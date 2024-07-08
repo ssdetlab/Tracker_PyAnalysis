@@ -1,0 +1,66 @@
+[RUN]
+isMC           = 0
+isCVMFS        = 0
+doVtx          = 0
+runtype        = cosmics
+pdgIdMatch     = 13
+nmax2process   = 100000000000
+nmax2processMP = 100000000
+nCPU           = 10
+doplot         = 0
+doDiagnostics  = 0
+doNoiseScan    = 1
+isCVRroot      = 0
+nprintout      = 20
+inputfile      = ~/Downloads/data_telescope/eudaq/Jul28/vbb0_dv10_vresetd115_clip60_run78z/tree_vbb0_dv10_vresetd115_clip60_run78z.root
+
+
+[CHIP]
+npix_x = 1024
+npix_y = 512
+pix_x = 0.02924
+pix_y = 0.02688
+
+
+[VTX]
+xVtx  = (534-1024/2)*0.02924
+yVtx  = (247-512/2)*0.02688
+zVtx  = 0
+exVtx = 1.0
+eyVtx = 1.0
+ezVtx = 0.05
+
+
+[CLUSTER]
+ezCls = 0.1
+
+
+[WORLD]
+lineScaleUp = 70
+lineScaleDn = 50
+
+
+[NOISE]
+pTrim    = 0.1
+zeroSupp = 1
+nSigma   = 25
+
+
+[DETECTOR]
+detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2
+plane2det     = ALPIDE_0:0 ALPIDE_1:1 ALPIDE_2:2
+rdetectors    = ALPIDE_0:0,0,29.0 ALPIDE_1:0,0,54.8 ALPIDE_2:0,0,80.6
+### DEFAULT MISALIGNMENT (before doing the alignment procedure):
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0
+misalignment  = ALPIDE_0:dx=0.10484497002964666,dy=0.3536804987148945,theta=-0.004183683398152487 ALPIDE_1:dx=-0.17837397825423035,dy=0.18687720691429396,theta=-0.003988124669175261 ALPIDE_2:dx=0.16497179917860424,dy=0.18212643250104174,theta=-0.004904515016439525
+maxchi2align  = 4
+axes2align    = xytheta
+naligniter    = 200
+alignmentbins = dx:bins=50,min=-0.5,max=+0.5 dy:bins=50,min=-0.5,max=+0.5 theta:bins=50,min=-0.035,max=+0.035
+worldmargins  = 0.1
+worldscales   = x:1.2,1.2 y:1.5,1.5 z:1,1
+worldcenter   = 0,0,54.8
+worldradius   = (80.6-29.0)*0.7
+
+[CUTS]
+cuts = All N_{hits/det}>0 N_{cls/det}==1 R<1mm Fitted #chi^{2}/N_{DoF}#leq10

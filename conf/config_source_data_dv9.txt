@@ -1,0 +1,62 @@
+[RUN]
+isMC          = 0
+isCVMFS       = 0
+doVtx         = 1
+runtype       = source
+pdgIdMatch    = 11
+nmax2process  = 100
+nCPU          = 10
+doplot        = 0
+doDiagnostics = 0
+doNoiseScan   = 0
+isCVRroot     = 0
+nprintout     = 20
+inputfile     = ~/Downloads/data_telescope/eudaq/Apr24/source_vbb3_dv9/tree_vbb3_sr_dv9_vresetd147_clip60_run699.root
+
+
+[CHIP]
+npix_x = 1024
+npix_y = 512
+pix_x = 0.02924
+pix_y = 0.02688
+
+
+[VTX]
+xVtx  = 0
+yVtx  = 0
+zVtx  = 0
+exVtx = 1.0
+eyVtx = 1.0
+ezVtx = 0.05
+
+
+[CLUSTER]
+ezCls = 0.1
+
+
+[WORLD]
+lineScaleUp = 70
+lineScaleDn = 50
+
+
+[NOISE]
+pTrim    = 0.01
+zeroSupp = 1
+nSigma   = 25
+
+
+[DETECTOR]
+detectors    = ALPIDE_0 ALPIDE_1 ALPIDE_2
+plane2det    = ALPIDE_0:2 ALPIDE_1:1 ALPIDE_2:0
+rdetectors   = ALPIDE_0:0,0,29.0 ALPIDE_1:0,0,54.8 ALPIDE_2:0,0,80.6
+misalignment = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.06625,dy=-0.00167,theta=0.00349 ALPIDE_2:dx=0,dy=0,theta=0
+maxchi2align  = 400
+alignmentbins = dx:bins=60,min=-0.4,max=+0.1 dy:bins=60,min=-0.3,max=+0.1 theta:bins=60,min=-0.1,max=+0.1
+worldmargins = 0.1
+worldscales  = x:1.2,1.2 y:1.5,1.5 z:1,1
+worldcenter  = 0,0,54.8
+worldradius  = (80.6-29.0)*0.7
+
+
+[CUTS]
+cuts = All N_{hits/det}>0 N_{cls/det}==1 Fitted #chi^{2}/N_{DoF}#leq10
