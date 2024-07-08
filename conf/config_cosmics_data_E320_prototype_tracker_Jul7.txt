@@ -50,16 +50,17 @@ nSigma   = 25
 [DETECTOR]
 detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3
 plane2det     = ALPIDE_0:1 ALPIDE_1:3 ALPIDE_2:5 ALPIDE_3:8
-rdetectors    = ALPIDE_0:0,0,54 ALPIDE_1:0,0,79 ALPIDE_2:0,0,105 ALPIDE_3:0,0,120
+rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,36.03 ALPIDE_2:0,0,60.05 ALPIDE_3:0,0,84.07
+### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
-maxchi2align  = 3
+maxchi2align  = 1
 axes2align    = xytheta
 naligniter    = 200
-alignmentbins = dx:bins=60,min=-0.3,max=+0.2 dy:bins=60,min=-0.2,max=+0.2 theta:bins=60,min=-0.1,max=+0.1
+alignmentbins = dx:bins=50,min=-0.5,max=+0.5 dy:bins=50,min=-0.5,max=+0.5 theta:bins=50,min=-0.035,max=+0.035
 worldmargins  = 0.1
 worldscales   = x:1.2,1.2 y:1.5,1.5 z:1,1
-worldcenter   = 0,0,92
-worldradius   = 131*0.7
+worldcenter   = 0,0,54.8
+worldradius   = (84.07-0.00)*0.7
 
 
 [CUTS]
