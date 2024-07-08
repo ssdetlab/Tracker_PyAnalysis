@@ -12,7 +12,7 @@ doDiagnostics  = 0
 doNoiseScan    = 0
 isCVRroot      = 0
 nprintout      = 20
-inputfile      = ~/Downloads/tree_07_04_2024_20_35_59.root
+inputfile      = test_data/tree_example_of_source_run_07_04_2024.root
 
 
 [CHIP]
@@ -43,8 +43,7 @@ lineScaleDn = 50
 [NOISE]
 pTrim    = 0.05
 zeroSupp = 1
-# nSigma   = 25
-nSigma   = 10000000
+nSigma   = 25
 
 
 [DETECTOR]

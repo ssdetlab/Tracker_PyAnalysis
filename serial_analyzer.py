@@ -422,17 +422,18 @@ if(cfg["doNoiseScan"]):
         redonoise = input("Noise file exists - do you want to rederive it?[y/n]:")
         if(redonoise=="y" or redonoise=="Y"):
             RunNoiseScan(tfilenamein,tfnoisename)
-            # print("before GetNoiseMask 1")
             masked = GetNoiseMask(tfnoisename)
-            # print("after GetNoiseMask 1")
         else:
             print("Option not understood - please try again.")
     else:
         RunNoiseScan(tfilenamein,tfnoisename)
-        # print("before GetNoiseMask 2")
         masked = GetNoiseMask(tfnoisename)
-        # print("after GetNoiseMask 2")
-    # print("before quit")
+    print("###################################")
+    print("### FINISHED RUNNING NOISE SCAN ###")
+    print("### CHANGE doNoiseScan TO 0 IN ####")
+    print("### THE CONFIG FILE AND RERUN #####")
+    print("### THE WITH THE SAME COMMAND #####")
+    print("###################################")
     quit()
 else:
     if(not isnoisefile):

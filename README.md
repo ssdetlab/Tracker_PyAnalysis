@@ -1,13 +1,17 @@
 # Tracker_PyAnalysis
 
 Prerequisits:
-- DetectorEvent header and lib (to read the EUDAQ data files directly)
+- have ROOT and python3 installed
+- have the DetectorEvent header and lib installed (to read the EUDAQ data files directly)
+  - Modify the python code to load DetectorEvent lib in `serial_analyzer.py` and `multiproc_analyzer.py`:
+    - look for the lines with `ROOT.gInterpreter.AddIncludePath` and `ROOT.gSystem.Load`
+    - change according to the way and place the DetectorEvent lib is compiled on your system
 
 Setup:
 - Setup ROOT
-- `export LD_LIBRARY_PATH=/path/to/TelescopeEvent/libs:$LD_LIBRARY_PATH`
-- put data files somewhere with enough space...
-- change config file as needed (see examples)
+- `export LD_LIBRARY_PATH=/path/to/DetectorEvent/libs:$LD_LIBRARY_PATH`
+- put data files somewhere with enough space (there's a dir called `test_data` with example data)
+- change config file as needed (see examples in the conf/ dir)
 
 Run noise scan:
 - change `doNoiseScan` in the config to 1
@@ -15,8 +19,8 @@ Run noise scan:
 - change `doNoiseScan` in the config back to 0
 
 Run analysis:
-- run noise scan (see above, will ask to do it if not doen)
-- run analysis in serially OR in parallel:
+- run noise scan (see above)
+- run analysis serially OR in parallel:
   - `python3 serial_analyzer.py -conf conf/config_file_name.txt`
   - `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
 - to see event displays (fits...):
