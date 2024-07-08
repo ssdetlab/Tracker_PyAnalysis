@@ -3,9 +3,7 @@
 Prerequisits:
 - have ROOT and python3 installed
 - have the DetectorEvent header and lib installed (to read the EUDAQ data files directly)
-  - Modify the python code to load DetectorEvent lib in `serial_analyzer.py` and `multiproc_analyzer.py`:
-    - look for the lines with `ROOT.gInterpreter.AddIncludePath` and `ROOT.gSystem.Load`
-    - change according to the way and place the DetectorEvent lib is compiled on your system
+  - it is also included in this rep for convenience
 
 Setup:
 - Setup ROOT

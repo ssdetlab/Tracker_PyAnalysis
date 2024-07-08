@@ -56,12 +56,12 @@ ROOT.gStyle.SetOptFit(0)
 
 print("-----------------------------------------------------------------------------------")
 print("Must first add DetectorEvent lib:")
-print("export LD_LIBRARY_PATH=$HOME/tracker_event:$LD_LIBRARY_PATH")
+print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH")
 print("-----------------------------------------------------------------------------------")
 
 print("---- start loading libs")
 ### see https://root.cern/manual/python/
-ROOT.gInterpreter.AddIncludePath('~/tracker_event/')
+ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240705/')
 ROOT.gSystem.Load('libtrk_event_dict.dylib')
 print("---- finish loading libs")
 

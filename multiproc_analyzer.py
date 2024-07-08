@@ -58,19 +58,16 @@ ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 # ROOT.gStyle.SetOptStat(0)
 
-# print("-----------------------------------------------------------------------------------")
-# print("Need to add TelescopeEvent lib and CVR libs:")
-# print("export LD_LIBRARY_PATH=$HOME/telescope_event:$LD_LIBRARY_PATH")
-# print("export LD_LIBRARY_PATH=$HOME/corryvreckan/corryvreckan-master/lib:$LD_LIBRARY_PATH")
-# print("-----------------------------------------------------------------------------------")
+print("-----------------------------------------------------------------------------------")
+print("Need to add TelescopeEvent lib:")
+print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH")
+print("-----------------------------------------------------------------------------------")
 
-# print("---- start loading libs")
+print("---- start loading libs")
 ### see https://root.cern/manual/python/
-ROOT.gInterpreter.AddIncludePath('~/telescope_event/')
+ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240705/')
 ROOT.gSystem.Load('libtel_event_dict.dylib')
-ROOT.gInterpreter.AddIncludePath('~/corryvreckan/corryvreckan-master/src/objects/')
-ROOT.gSystem.Load('libCorryvreckanObjects.dylib')
-# print("---- finish loading libs")
+print("---- finish loading libs")
 
 ###############################################################
 ###############################################################
