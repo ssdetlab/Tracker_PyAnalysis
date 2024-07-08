@@ -78,49 +78,14 @@ def get_all_pixles_mc(evt,hPixMatrix):
 
 
 
-# def get_all_pixles_cvr(evt,hPixMatrix):
-#     pixels = {}
-#     raws = {}
-#     def get_det_pixles_cvr(det,evtsensor):
-#         for i in range(evtsensor.size()):
-#             ix = evtsensor[i].column()
-#             iy = evtsensor[i].row()
-#             q  = evtsensor[i].charge()
-#             raw = hPixMatrix[det].FindBin(ix,iy)
-#             if(raw not in raws[det]):
-#                 raws[det].append(raw)
-#                 pixels[det].append( Hit(det,ix,iy,raw,q) )
-#     for det in cfg["detectors"]:
-#         pixels.update({det:[]})
-#         raws.update({det:[]})
-#     ndet = len(cfg["detectors"])
-#     n_active_planes = (evt.ALPIDE_0.size()>0) ## at least one...
-#     if(ndet==2): n_active_planes += (evt.ALPIDE_1.size()>0)
-#     if(ndet==3): n_active_planes += (evt.ALPIDE_2.size()>0)
-#     if(ndet==4): n_active_planes += (evt.ALPIDE_3.size()>0)
-#     if(ndet==5): n_active_planes += (evt.ALPIDE_4.size()>0)
-#     if(ndet==6): n_active_planes += (evt.ALPIDE_5.size()>0)
-#     if(ndet==7): n_active_planes += (evt.ALPIDE_6.size()>0)
-#     if(ndet==8): n_active_planes += (evt.ALPIDE_7.size()>0)
-#     if(ndet>0): get_det_pixles_cvr("ALPIDE_0",evt.ALPIDE_0)
-#     if(ndet>1): get_det_pixles_cvr("ALPIDE_1",evt.ALPIDE_1)
-#     if(ndet>2): get_det_pixles_cvr("ALPIDE_2",evt.ALPIDE_2)
-#     if(ndet>3): get_det_pixles_cvr("ALPIDE_3",evt.ALPIDE_3)
-#     if(ndet>4): get_det_pixles_cvr("ALPIDE_4",evt.ALPIDE_4)
-#     if(ndet>5): get_det_pixles_cvr("ALPIDE_5",evt.ALPIDE_5)
-#     if(ndet>6): get_det_pixles_cvr("ALPIDE_6",evt.ALPIDE_6)
-#     if(ndet>7): get_det_pixles_cvr("ALPIDE_7",evt.ALPIDE_7)
-#     return n_active_planes,pixels
-
-
-
 def get_all_pixles(evt,hPixMatrix,isCVRroot=False):
     n_active_planes = -1
     n_active_chips  = -1
     pixels = {}
-    if(not cfg["isMC"]): n_active_planes,n_active_chips,pixels = get_all_pixles_eudaq(evt,hPixMatrix)
-    else:                n_active_planes,pixels = get_all_pixles_mc(evt,hPixMatrix)
-    # else:
-        # if(isCVRroot):   n_active_planes,pixels = get_all_pixles_cvr(evt,hPixMatrix)
-        # else:            n_active_planes,pixels = get_all_pixles_mc(evt,hPixMatrix)
-    return n_active_planes,pixels
+    if(not cfg["isMC"]): n_active_staves, n_active_chips, pixels = get_all_pixles_eudaq(evt,hPixMatrix)
+    # else:                n_active_staves, n_active_chips, pixels = get_all_pixles_mc(evt,hPixMatrix)
+    else:
+        print("NEED TO RE-IMPLEMENT THE MC READOUT.")
+        print("QUITTING.")
+        quit()
+    return n_active_staves, n_active_chips, pixels

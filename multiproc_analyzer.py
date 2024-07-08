@@ -133,10 +133,10 @@ def analyze(tfilenamein,irange,evt_range,masked):
                 histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
 
         ### get the pixels
-        n_active_planes, pixels = get_all_pixles(ttree,hPixMatix,cfg["isCVRroot"])
+        n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,cfg["isCVRroot"])
         for det in cfg["detectors"]:
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
-        if(n_active_planes!=len(cfg["detectors"])): continue  ### CUT!!!
+        if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         
         ### get the non-noisy pixels but this will get emptied during clustering so also keep a duplicate

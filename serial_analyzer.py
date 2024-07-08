@@ -99,7 +99,7 @@ def RunNoiseScan(tfilename,tfnoisename):
     for evt in ttree:
         if(cfg["nmax2process"]>0 and nprocevents>cfg["nmax2process"]): break
         ### get the pixels
-        n_active_planes,pixels = get_all_pixles(evt,h2D_noise,cfg["isCVRroot"])
+        n_active_staves, n_active_chips, pixels = get_all_pixles(evt,h2D_noise,cfg["isCVRroot"])
         for det in cfg["detectors"]:
             for pix in pixels[det]:
                 i = h2D_noise[det].FindBin(pix.x,pix.y)
@@ -159,16 +159,16 @@ def Run(tfilename,tfnoisename,tfo,histos):
         ientry += 1 ### important!
         
         ### get the pixels
-        n_active_planes, pixels = get_all_pixles(evt,hPixMatix,cfg["isCVRroot"])
+        n_active_staves, n_active_chips, pixels = get_all_pixles(evt,hPixMatix,cfg["isCVRroot"])
         for det in cfg["detectors"]:
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
-        # if(n_active_planes!=len(cfg["detectors"])): continue ### CUT!!! ### TODO uncomment!!!
+        if(n_active_chips!=len(cfg["detectors"])): continue ### CUT!!! ### TODO uncomment!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         
         ### check if there's no noise
         pixels_save = {}  ### to hold a copy of all pixels
         for det in cfg["detectors"]:
-            goodpixels = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])  ### TODO uncomment and comment-out next line!!!
+            goodpixels = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])
             pixels[det] = goodpixels
             pixels_save.update({det:goodpixels.copy()})
 
@@ -178,8 +178,8 @@ def Run(tfilename,tfnoisename,tfo,histos):
         for det in cfg["detectors"]:
             det_clusters = GetAllClusters(pixels[det],det)
             clusters.update( {det:det_clusters} )
-            # if(len(det_clusters)==1): nclusters += 1 ### TODO uncomment and comment-out next line!!!
-            if(len(det_clusters)>0): nclusters += 1 ### TODO comment-out this line and uncomment the one above!!! 
+            if(len(det_clusters)==1): nclusters += 1 ### TODO uncomment and comment-out next line!!!
+            # if(len(det_clusters)>0): nclusters += 1 ### TODO comment-out this line and uncomment the one above!!!
         
         ### find the largest cluster
         for det in cfg["detectors"]:
@@ -187,14 +187,14 @@ def Run(tfilename,tfnoisename,tfo,histos):
                 if(len(c.pixels)>len(largest_clster[det].pixels)): largest_clster[det] = c
         
         ### exactly one cluster per layer
-        # if(nclusters!=len(cfg["detectors"])): continue ### CUT!!! #TODO uncomment this line!!!
+        if(nclusters!=len(cfg["detectors"])): continue ### CUT!!! #TODO uncomment this line!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}==1") )
         for det in cfg["detectors"]:
             fillClsHists(det,clusters[det],masked[det],histos)
-            # histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm ) #TODO uncvomment
+            histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm ) #TODO uncomment
 
         #######################################
-        continue #TODO remove this line, I just have it for stopping after the clustering step
+        # continue #TODO remove this line, I just have it for stopping after the clustering step
         #######################################
 
         ### diagnostics, also with truth
@@ -224,40 +224,35 @@ def Run(tfilename,tfnoisename,tfo,histos):
         best_Chi2 = {}
         best_value_Chi2 = +1e10
         ### loop on all cluster combinations
-        
-        # for i0 in range(len(clusters["ALPIDE_0"])):
-        #     for i1 in range(len(clusters["ALPIDE_1"])):
-        #         for i2 in range(len(clusters["ALPIDE_2"])):
-        #             for i3 in range(len(clusters["ALPIDE_3"])):
-        #
-        #                 clsx  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].xmm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].xmm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].xmm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].xmm}
-        #                 clsy  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].ymm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].ymm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].ymm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].ymm}
-        #                 clsz  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].zmm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].zmm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].zmm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].zmm}
-        #                 clsdx = {"ALPIDE_3":clusters["ALPIDE_3"][i3].dxmm, "ALPIDE_2":clusters["ALPIDE_2"][i2].dxmm, "ALPIDE_1":clusters["ALPIDE_1"][i1].dxmm, "ALPIDE_0":clusters["ALPIDE_0"][i0].dxmm}
-        #                 clsdy = {"ALPIDE_3":clusters["ALPIDE_3"][i3].dymm, "ALPIDE_2":clusters["ALPIDE_2"][i2].dymm, "ALPIDE_1":clusters["ALPIDE_1"][i1].dymm, "ALPIDE_0":clusters["ALPIDE_0"][i0].dymm}
-        #
-        #                 #############################
-        #                 ### to check timing #TODO ###
-        #                 #############################
-        #
-        #                 points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-        #                 points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-        #                 chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2 = fit_3d_chi2err(points_Chi2,errors_Chi2)
-        #
-        #                 # chisq,ndof,direction_Chi2,centroid_Chi2 = fit_3d_SVD(points_SVD,errors_SVD)
-        #                 # success_Chi2 = True
-        #                 # params_Chi2 = [1,0,0,0]
-        #
-        #                 chi2ndof_Chi2 = chisq/ndof if(ndof>0) else 99999
-        #                 if(success_Chi2 and chi2ndof_Chi2<best_value_Chi2): ### happens only when success_Chi2==True
-        #                     best_value_Chi2 = chi2ndof_Chi2
-        #                     best_Chi2.update( {"svd_points":points_SVD} )
-        #                     best_Chi2.update( {"points":points_Chi2} )
-        #                     best_Chi2.update( {"errors":errors_Chi2} )
-        #                     best_Chi2.update( {"direction":direction_Chi2} )
-        #                     best_Chi2.update( {"centroid":centroid_Chi2} )
-        #                     best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
-        #                     best_Chi2.update( {"params":params_Chi2} )
+        for i0 in range(len(clusters["ALPIDE_0"])):
+            for i1 in range(len(clusters["ALPIDE_1"])):
+                for i2 in range(len(clusters["ALPIDE_2"])):
+                    for i3 in range(len(clusters["ALPIDE_3"])):
+
+                        clsx  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].xmm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].xmm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].xmm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].xmm}
+                        clsy  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].ymm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].ymm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].ymm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].ymm}
+                        clsz  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].zmm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].zmm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].zmm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].zmm}
+                        clsdx = {"ALPIDE_3":clusters["ALPIDE_3"][i3].dxmm, "ALPIDE_2":clusters["ALPIDE_2"][i2].dxmm, "ALPIDE_1":clusters["ALPIDE_1"][i1].dxmm, "ALPIDE_0":clusters["ALPIDE_0"][i0].dxmm}
+                        clsdy = {"ALPIDE_3":clusters["ALPIDE_3"][i3].dymm, "ALPIDE_2":clusters["ALPIDE_2"][i2].dymm, "ALPIDE_1":clusters["ALPIDE_1"][i1].dymm, "ALPIDE_0":clusters["ALPIDE_0"][i0].dymm}
+
+                        #############################
+                        ### to check timing #TODO ###
+                        #############################
+
+                        points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
+                        points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
+                        chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2 = fit_3d_chi2err(points_Chi2,errors_Chi2)
+
+                        chi2ndof_Chi2 = chisq/ndof if(ndof>0) else 99999
+                        if(success_Chi2 and chi2ndof_Chi2<best_value_Chi2): ### happens only when success_Chi2==True
+                            best_value_Chi2 = chi2ndof_Chi2
+                            best_Chi2.update( {"svd_points":points_SVD} )
+                            best_Chi2.update( {"points":points_Chi2} )
+                            best_Chi2.update( {"errors":errors_Chi2} )
+                            best_Chi2.update( {"direction":direction_Chi2} )
+                            best_Chi2.update( {"centroid":centroid_Chi2} )
+                            best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
+                            best_Chi2.update( {"params":params_Chi2} )
         
 
         clsx   = {}
@@ -280,10 +275,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
         points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
         chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2 = fit_3d_chi2err(points_Chi2,errors_Chi2)
         
-        # chisq,ndof,direction_Chi2,centroid_Chi2 = fit_3d_SVD(points_SVD,errors_SVD)
-        # success_Chi2 = True
-        # params_Chi2 = [1,0,0,0]
-        
         chi2ndof_Chi2 = chisq/ndof if(ndof>0) else 99999
         if(success_Chi2 and chi2ndof_Chi2<best_value_Chi2): ### happens only when success_Chi2==True
             best_value_Chi2 = chi2ndof_Chi2
@@ -295,8 +286,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
             best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
             best_Chi2.update( {"params":params_Chi2} )
             
-
-        
         ### fit successful
         passFit = (len(best_Chi2)>0)
         if(passFit):
