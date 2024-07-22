@@ -243,6 +243,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
                         points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
                         chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2 = fit_3d_chi2err(points_Chi2,errors_Chi2)
 
+
                         chi2ndof_Chi2 = chisq/ndof if(ndof>0) else 99999
                         if(success_Chi2 and chi2ndof_Chi2<best_value_Chi2): ### happens only when success_Chi2==True
                             best_value_Chi2 = chi2ndof_Chi2

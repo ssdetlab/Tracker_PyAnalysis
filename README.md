@@ -2,22 +2,27 @@
 
 Prerequisits:
 - have ROOT and python3 installed
-- have the DetectorEvent header and lib installed (to read the EUDAQ data files directly)
-  - it is also included in this rep for convenience
+- have the DetectorEvent header and lib installed (to read the EUDAQ data files)
+  - it is also included in this rep for convenience, under DetectorEvent/
 
 Setup:
 - Setup ROOT
-- `export LD_LIBRARY_PATH=/path/to/DetectorEvent/libs:$LD_LIBRARY_PATH`
-- put data files somewhere with enough space (there's a dir called `test_data` with example data)
+- `export LD_LIBRARY_PATH=DetectorEvent/libs:$LD_LIBRARY_PATH`
+- put data files somewhere with enough space
+  - there's a dir called `test_data` with example data already
 - change config file as needed (see examples in the conf/ dir)
 
 Run noise scan:
+- if you want to process only part of the events, set the "nmax2process" parameter as needed
+- to process all events check that the "nmax2process" parameter is larger than what you have in data
 - change `doNoiseScan` in the config to 1
 - `python3 serial_analyzer.py -conf conf/config_file_name.txt`
 - change `doNoiseScan` in the config back to 0
 
 Run analysis:
 - run noise scan (see above)
+- if you want to process only part of the events, set the "nmax2process" / "nmax2processMP" parameter as needed
+- to process all events check that the "nmax2process" / "nmax2processMP" parameter is larger than what you have in data
 - run analysis serially OR in parallel:
   - `python3 serial_analyzer.py -conf conf/config_file_name.txt`
   - `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`

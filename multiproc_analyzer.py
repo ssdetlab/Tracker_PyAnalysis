@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit
-from skspatial.objects import Line, Sphere
-from skspatial.plotting import plot_3d
+# from skspatial.objects import Line, Sphere
+# from skspatial.plotting import plot_3d
 import pickle
 
 import argparse
@@ -168,7 +168,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             histos["h_cutflow"].Fill( cfg["cuts"].index("R<1mm") )
         
         for det in cfg["detectors"]:
-            # fillClsHists(det,clusters[det],masked[det],histos) ### TODO: this is now done aftet the fit
+            fillClsHists(det,clusters[det],masked[det],histos) ### TODO: this is now done aftet the fit
             histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm )
         
         ### prepare the clusters for the fit
@@ -208,16 +208,16 @@ def analyze(tfilenamein,irange,evt_range,masked):
         if(abs(np.sin(track.theta))>1e-10):
             histos["h_Chi2_theta_weighted"].Fill( track.theta,abs(1/(2*np.pi*np.sin(track.theta))) )
         
-        ### fill cluster size histos ### TODO: this was done above the fit
-        for det in cfg["detectors"]: 
-            if(cfg["runtype"]=="source"):
-                if(chi2ndof<5):
-                    fillClsHists(det,clusters[det],masked[det],histos) ### must be a good fit, just to tag good electrons
-            elif(cfg["runtype"]=="cosmics"):
-                fillClsHists(det,clusters[det],masked[det],histos) ### good fits by construction for cosmics...
-            else:
-                print("Error in run type:",cfg["runtype"],"-->quitting")
-                quit()
+        # ### fill cluster size histos ### TODO: this was done above the fit
+        # for det in cfg["detectors"]:
+        #     if(cfg["runtype"]=="source"):
+        #         if(chi2ndof<5):
+        #             fillClsHists(det,clusters[det],masked[det],histos) ### must be a good fit, just to tag good electrons
+        #     elif(cfg["runtype"]=="cosmics"):
+        #         fillClsHists(det,clusters[det],masked[det],histos) ### good fits by construction for cosmics...
+        #     else:
+        #         print("Error in run type:",cfg["runtype"],"-->quitting")
+        #         quit()
         
         ### Chi2 track to cluster residuals
         fill_trk2cls_residuals(points_SVD,direction,centroid,"h_Chi2fit_res_trk2cls",histos)
