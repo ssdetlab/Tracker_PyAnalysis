@@ -7,7 +7,7 @@ Prerequisits:
 
 Setup:
 - Setup ROOT
-- `export LD_LIBRARY_PATH=DetectorEvent/libs:$LD_LIBRARY_PATH`
+- `export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH`
 - put data files somewhere with enough space
   - there's a dir called `test_data` with example data already
 - change config file as needed (see examples in the conf/ dir)
@@ -36,14 +36,16 @@ Run alignment with cosmics:
 - run noise scan (see above)
 - step 1: `python3 multiproc_analyzer.py -conf conf/config_file_name.txt` with all `misalignment` parameters set to 0 in the config file
 - step 2: aligning wrt e.g. ALPIDE_0 or all at once after adjusting the parameters in the config: `maxchi2align`, `axes2align`, `naligniter`.
-  - `python3 alignment_fitter.py -conf conf/config_file_name.txt -det ALPIDE_0` or
-  - `python3 alignment_fitter.py -conf conf/config_file_name.txt`
+  - [option A.1] `python3 alignment_fitter.py -conf conf/config_file_name.txt -ref ALPIDE_0` or
+  - [option A.2] `python3 alignment_fitter.py -conf conf/config_file_name.txt`
+- step 3: choosing the fit strategy
+  - [option B.1] if the `axes2align` parameter equals to `xytheta` then the fit will be FULLY-SIMULTANEOUS in 3D
+  - [option B.2] if the `axes2align` parameter equals to `xy`, `xtheta` or `ytheta` then the fit will be SEMI-SIMULTANEOUS in 2D
+  - [option B.3] if the `axes2align` parameter equals to `x`, `y` or `theta` then the fit will be SEQUENTIAL (i.e. non-simultaneous) in 1D
   - Notes:
-    - if e.g. `-det ALPIDE_0` was used then you need to keep all `misalignment` parameters of `ALPIDE_0` fixed to 0 in the config file always
-    - if the `axes2align` parameter equals to `xytheta` then the fit will be FULLY-SIMULTANEOUS in 3D
-    - if the `axes2align` parameter equals to `xy`, `xtheta` or `ytheta` then the fit will be SEMI-SIMULTANEOUS in 2D
-    - if the `axes2align` parameter equals to `x`, `y` or `theta` then the fit will be SEQUENTIAL (i.e. non-simultaneous) in 1D
-- step 3: put the non-zero resulting misalignment values in the config file for the relevant detectors
-- step 4: run step 1 again, but with the new (non-zero wherever relevant) `misalignment` parameters in the config file (from step 3)
-- step 5: check the residuals and the chi2 histograms
-- step 6: if the fit is SEMI-SIMULTANEOUS or SEQUENTIAL, you need to repeat steps 2-5 for all axes (e.g. `axes2align=x`->`axes2align=y`->`axes2align=theta`)
+    - if e.g. `-det ALPIDE_0` was used in option A.1 then you need to keep all `misalignment` parameters of `ALPIDE_0` fixed to 0 in the config file always
+	 - THE BEST OPTION IS WITH NO REFERENCE DETECTOR AND WITH A SEQUENTIAL PROCESS: A.2+B.3
+- step 4: put the non-zero resulting misalignment values in the config file for the relevant detectors
+- step 5: run step 1 again, but with the new (non-zero wherever relevant) `misalignment` parameters in the config file (from step 3)
+- step 6: check the residuals and the chi2 histograms
+- step 7: if the fit is SEMI-SIMULTANEOUS or SEQUENTIAL, you need to repeat steps 2-5 for all axes (e.g. `axes2align=x`->`axes2align=y`->`axes2align=theta`)

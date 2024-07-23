@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit,basinhopping
-from skspatial.objects import Line, Sphere
-from skspatial.plotting import plot_3d
+# from skspatial.objects import Line, Sphere
+# from skspatial.plotting import plot_3d
 import pickle
 from pathlib import Path
 import ctypes

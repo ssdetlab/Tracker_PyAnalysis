@@ -162,7 +162,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
         n_active_staves, n_active_chips, pixels = get_all_pixles(evt,hPixMatix,cfg["isCVRroot"])
         for det in cfg["detectors"]:
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
-        if(n_active_chips!=len(cfg["detectors"])): continue ### CUT!!! ### TODO uncomment!!!
+        if(n_active_chips!=len(cfg["detectors"])): continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         
         ### check if there's no noise
@@ -178,8 +178,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
         for det in cfg["detectors"]:
             det_clusters = GetAllClusters(pixels[det],det)
             clusters.update( {det:det_clusters} )
-            if(len(det_clusters)==1): nclusters += 1 ### TODO uncomment and comment-out next line!!!
-            # if(len(det_clusters)>0): nclusters += 1 ### TODO comment-out this line and uncomment the one above!!!
+            if(len(det_clusters)==1): nclusters += 1
         
         ### find the largest cluster
         for det in cfg["detectors"]:
@@ -187,15 +186,11 @@ def Run(tfilename,tfnoisename,tfo,histos):
                 if(len(c.pixels)>len(largest_clster[det].pixels)): largest_clster[det] = c
         
         ### exactly one cluster per layer
-        if(nclusters!=len(cfg["detectors"])): continue ### CUT!!! #TODO uncomment this line!!!
+        if(nclusters!=len(cfg["detectors"])):
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}==1") )
         for det in cfg["detectors"]:
             fillClsHists(det,clusters[det],masked[det],histos)
-            histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm ) #TODO uncomment
-
-        #######################################
-        # continue #TODO remove this line, I just have it for stopping after the clustering step
-        #######################################
+            histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm )
 
         ### diagnostics, also with truth
         if(len(mcparticles)>0 and cfg["doDiagnostics"]):
@@ -207,17 +202,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
                     print(px)
                 for cl in clusters[det]:
                     print(cl)
-
-
-        # ### TODO: trying to see what is the characteristics of events with 3 single-pixel clusters alone
-        # singlepixel = True
-        # for det in detectors:
-        #     if(len(clusters[det][0].pixels)>1):
-        #         singlepixel = False
-        #         break
-        # if(not singlepixel): continue
         
-
         ### run tracking
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
         evtx = [cfg["exVtx"],cfg["eyVtx"],cfg["ezVtx"]] if(cfg["doVtx"]) else []
@@ -319,7 +304,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
             histos["h_Chi2_phi"].Fill(phi)
             histos["h_Chi2_theta"].Fill(theta)
             if(abs(np.sin(theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( theta,abs(1/(2*np.pi*np.sin(theta))) )
-            if(chi2ndof_Chi2<=10): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq10") )
+            if(chi2ndof_Chi2<=100): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq100") )
             ### Chi2 track to cluster residuals
             fill_trk2cls_residuals(points_SVD,direction_Chi2,centroid_Chi2,"h_Chi2fit_res_trk2cls",histos)
             ### Chi2 track to truth residuals

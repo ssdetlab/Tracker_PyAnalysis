@@ -12,6 +12,9 @@ import configparser
 
 ### should be called once from main
 def init_config(fname,show):
+    if(not os.path.isfile(fname)):
+        print(f"Config file {fname} does not exist. Quitting.")
+        quit()
     ConfigCls = Config(fname,show)
     # https://stackoverflow.com/questions/13034496/using-global-variables-between-files
     global cfg
