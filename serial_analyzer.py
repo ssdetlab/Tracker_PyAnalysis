@@ -186,7 +186,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
                 if(len(c.pixels)>len(largest_clster[det].pixels)): largest_clster[det] = c
         
         ### exactly one cluster per layer
-        if(nclusters!=len(cfg["detectors"])):
+        if(nclusters!=len(cfg["detectors"])): continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}==1") )
         for det in cfg["detectors"]:
             fillClsHists(det,clusters[det],masked[det],histos)
