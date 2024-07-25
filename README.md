@@ -45,7 +45,12 @@ Run alignment with cosmics:
   - Notes:
     - if e.g. `-det ALPIDE_0` was used in option A.1 then you need to keep all `misalignment` parameters of `ALPIDE_0` fixed to 0 in the config file always
 	 - it is advised to use one reference detector and align only the N-1 planes with respect to that with either the sequential or the simultaneous fit
+	 - if the fit is SEMI-SIMULTANEOUS or SEQUENTIAL, you need to repeat steps 2-5 for all axes (e.g. `axes2align=x`->`axes2align=y`->`axes2align=theta`)
 - step 4: put the non-zero resulting misalignment values in the config file for the relevant detectors
 - step 5: run step 1 again, but with the new (non-zero wherever relevant) `misalignment` parameters in the config file (from step 3)
 - step 6: check the residuals and the chi2 histograms
-- step 7: if the fit is SEMI-SIMULTANEOUS or SEQUENTIAL, you need to repeat steps 2-5 for all axes (e.g. `axes2align=x`->`axes2align=y`->`axes2align=theta`)
+
+Plot some histos and fit the residuals:
+- step 1: run the alignment as discussed above
+- step 2: `python3 postproc_analyzer.py -conf conf/config_file_name.txt`
+- step 3: look at the pdf file created in the dir where the root file is (as listed in the config file)

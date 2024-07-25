@@ -34,7 +34,7 @@ absChi2 = 20
 if(cfg["runtype"]=="source"):
     absRes  *= 20
     absChi2 *= 20
-nResBins = int(absRes*1000)
+nResBins = int(absRes*600)
 
 ### book histos
 def book_histos(tfo):
