@@ -140,35 +140,8 @@ def fitSVD(event,dx,dy,theta,refdet=""):
     for det in cfg["detectors"]:
         dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
         dabs += math.sqrt(dx*dx + dy*dy)
-    chi2ndof = chisq_SVD/ndof_SVD   if(ndof_SVD>0)  else -99999
+    chi2ndof = chisq_SVD/ndof_SVD if(ndof_SVD>0) else -99999
     return chi2ndof,dabs,dx,dy
-
-
-def scan_parameters():
-    k = 0
-    dxpar = [0]*3
-    dypar = [0]*3
-    dtpar = [0]*3
-    for det in cfg["detectors"]:
-        if(refdet!="" and det==refdet): continue
-        for dx in np.arange(-0.5, +0.5, 0.01):
-            for dy in np.arange(-0.5, +0.5, 0.01):
-                for dt in np.arange(-0.05, +0.05, 0.001):
-                    dxpar[k] = dx
-                    dypar[k] = dy
-                    dtpar[k] = dt
-                    sum_dabs = 0
-                    sum_chi2 = 0
-                    sum_dx = 0
-                    sum_dy = 0
-                    for event in events:
-                        chisq,dabs,dX,dY = fitSVD(event,dxpar,dypar,dtpar,refdet)
-                        sum_dx += dX
-                        sum_dy += dY
-                        sum_dabs += dabs
-                        sum_chi2 += chisq
-                    print(dxpar,",",dypar,",",dtpar,",",sum_dabs/len(events),",",sum_chi2/len(events))
-        k += 1
 
 
 def init_params(axes,ndet2align,params):
@@ -236,9 +209,9 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     
     ### https://stackoverflow.com/questions/24767191/scipy-is-not-optimizing-and-returns-desired-error-not-necessarily-achieved-due
     initial_params = [0]*(nparperdet*ndet2align)
-    dx_range = [(cfg["alignmentbins"]["dx"]["min"],cfg["alignmentbins"]["dx"]["max"])]*ndet2align       if("x"     in axes) else []
-    dy_range = [(cfg["alignmentbins"]["dy"]["min"],cfg["alignmentbins"]["dy"]["max"])]*ndet2align       if("y"     in axes) else []
-    dt_range = [(cfg["alignmentbins"]["theta"]["min"],cfg["alignmentbins"]["theta"]["max"])]*ndet2align if("theta" in axes) else []
+    dx_range = [(cfg["alignmentbounds"]["dx"]["min"],    cfg["alignmentbounds"]["dx"]["max"])]*ndet2align    if("x"     in axes) else []
+    dy_range = [(cfg["alignmentbounds"]["dy"]["min"],    cfg["alignmentbounds"]["dy"]["max"])]*ndet2align    if("y"     in axes) else []
+    dt_range = [(cfg["alignmentbounds"]["theta"]["min"], cfg["alignmentbounds"]["theta"]["max"])]*ndet2align if("theta" in axes) else []
     ranges = []
     if("x"     in axes): ranges.extend(dx_range)
     if("y"     in axes): ranges.extend(dy_range)
@@ -254,7 +227,7 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     # result = minimize(avg_chi2, initial_params, method='Nelder-Mead', args=(events), bounds=range_params) ### first fit to get closer
     # result = minimize(avg_chi2, result.x,       method='Powell',      args=(events), bounds=range_params) ### second fit to finish
     # result = basinhopping(avg_chi2, initial_params, niter=50, minimizer_kwargs={"method": "L-BFGS-B", "args":(events,), "bounds":range_params})
-    result = basinhopping(avg_chi2, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method": "SLSQP", "args":(events,), "bounds":range_params})
+    result = basinhopping(avg_chi2, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "args":(events,), "bounds":range_params})
     
     ### get the chi^2 value and the number of degrees of freedom
     chisq = result.fun

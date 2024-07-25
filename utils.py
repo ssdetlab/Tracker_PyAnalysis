@@ -72,9 +72,14 @@ def res_track2clusterErr(detector, points, errors, direction, centroid):
     ex = errors[:,0]
     ey = errors[:,1]
     zpoints = points[:,2]
-    i  = cfg["detectors"].index(detector)
-    if(len(points)==len(cfg["detectors"])+1): i = i+1 ### when the vertex is the first point in the points array
-    z  = zpoints[i]
+    i = cfg["detectors"].index(detector)
+    if(cfg["doVtx"]):
+        if(len(points)==len(cfg["detectors"])+1): i = i+1 ### when the vertex is the first point in the points array
+        else:
+            print("In res_track2clusterErr")
+            print(f"Problem with vertex or length of points. Quitting")
+            quit()
+    z = zpoints[i]
     xonline,yonline = xyofz(r1,r2,z)
     dx = (xonline-x[i])/ex[i]
     dy = (yonline-y[i])/ey[i]
@@ -86,9 +91,15 @@ def res_track2cluster(detector, points, direction, centroid):
     y  = points[:,1]
     zpoints = points[:,2]
     i  = cfg["detectors"].index(detector)
-    if(len(points)==len(cfg["detectors"])+1): i = i+1 ### when the vertex is the first point in the points array
+    if(cfg["doVtx"]):
+        if(len(points)==len(cfg["detectors"])+1): i = i+1 ### when the vertex is the first point in the points array
+        else:
+            print("In res_track2cluster()")
+            print(f"Problem with vertex or length of points. Quitting")
+            quit()
     z  = zpoints[i]
     xonline,yonline = xyofz(r1,r2,z)
+    # print(f"det={detector}: z={z}, xfit={xonline}, xpoint{x[i]}, yfit={yonline}, xpoint{y[i]}")
     dx = xonline-x[i]
     dy = yonline-y[i]
     return dx,dy

@@ -161,7 +161,8 @@ class Config:
         self.add("maxchi2align", self.getF('DETECTOR','maxchi2align'))
         self.add("axes2align", self.getS('DETECTOR','axes2align'))
         self.add("naligniter", self.getI('DETECTOR','naligniter'))
-        self.add("alignmentbins", self.getMap2MapF('DETECTOR','alignmentbins'))
+        # self.add("alignmentbins", self.getMap2MapF('DETECTOR','alignmentbins'))
+        self.add("alignmentbounds", self.getMap2MapF('DETECTOR','alignmentbounds'))
         
         firstdet = self.map["detectors"][0]
         lastdet  = self.map["detectors"][-1]

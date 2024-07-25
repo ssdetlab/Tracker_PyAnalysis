@@ -44,7 +44,7 @@ Run alignment with cosmics:
   - [option B.3] if the `axes2align` parameter equals to `x`, `y` or `theta` then the fit will be SEQUENTIAL (i.e. non-simultaneous) in 1D
   - Notes:
     - if e.g. `-det ALPIDE_0` was used in option A.1 then you need to keep all `misalignment` parameters of `ALPIDE_0` fixed to 0 in the config file always
-	 - THE BEST OPTION IS WITH NO REFERENCE DETECTOR AND WITH A SEQUENTIAL PROCESS: A.2+B.3
+	 - it is advised to use one reference detector and align only the N-1 planes with respect to that with either the sequential or the simultaneous fit
 - step 4: put the non-zero resulting misalignment values in the config file for the relevant detectors
 - step 5: run step 1 again, but with the new (non-zero wherever relevant) `misalignment` parameters in the config file (from step 3)
 - step 6: check the residuals and the chi2 histograms

@@ -128,9 +128,21 @@ def book_histos(tfo):
 
         histos.update( { "h_Chi2fit_res_trk2cls_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
         histos.update( { "h_Chi2fit_res_trk2cls_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+
+        histos.update( { "h_Chi2fit_res_trk2cls_x_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_mid_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_y_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_mid_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        
+        histos.update( { "h_Chi2fit_res_trk2cls_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_full_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_full_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
     
         histos.update( { "h_Chi2fit_res_trk2tru_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_x_"+det,";"+det+" x_{trk}-x_{tru} [mm];Events",nResBins,-absRes,+absRes) } )
         histos.update( { "h_Chi2fit_res_trk2tru_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_y_"+det,";"+det+" y_{trk}-y_{tru} [mm];Events",nResBins,-absRes,+absRes) } )    
+        
+        histos.update( { "h_Chi2fit_res_trk2tru_x_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_x_mid_"+det,";"+det+" x_{trk}-x_{tru} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        histos.update( { "h_Chi2fit_res_trk2tru_y_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_y_mid_"+det,";"+det+" y_{trk}-y_{tru} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        
+        histos.update( { "h_Chi2fit_res_trk2tru_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_x_full_"+det,";"+det+" x_{trk}-x_{tru} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        histos.update( { "h_Chi2fit_res_trk2tru_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_y_full_"+det,";"+det+" y_{trk}-y_{tru} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )    
         
         histos.update( { "h_ncls_"+det          : ROOT.TH1D("h_ncls_"+det,";Number of clusters;Events",10,0,10) } )
         histos.update( { "h_cls_size_"+det      : ROOT.TH1D("h_cls_size_"+det,";Cluster size;Events",10,0.5,10.5) } )
@@ -149,15 +161,15 @@ def book_histos(tfo):
     return histos
 
 
-def book_alignment_histos(tfo):
-    histos = {}
-    tfo.cd()
-    histos.update( {"hChi2dof":ROOT.TH1D("hChi2dof",";Original #chi^{2}/N_{DoF};Tracks",100,0,10)} )
-    histos.update( {"hSVDchi2dof":ROOT.TH1D("hSVDchi2dof",";SVD #chi^{2}/N_{DoF};Tracks",100,0,10)} )
-    histos.update( {"hTransform":ROOT.TH3D("hTransform",";x [mm];y [mm];#theta",int(cfg["alignmentbins"]["dx"]["bins"]),cfg["alignmentbins"]["dx"]["min"],cfg["alignmentbins"]["dx"]["max"],
-                                                                           int(cfg["alignmentbins"]["dy"]["bins"]),cfg["alignmentbins"]["dy"]["min"],cfg["alignmentbins"]["dy"]["max"],
-                                                                           int(cfg["alignmentbins"]["theta"]["bins"]),cfg["alignmentbins"]["theta"]["min"],cfg["alignmentbins"]["theta"]["max"])})
-    return histos
+# def book_alignment_histos(tfo):
+#     histos = {}
+#     tfo.cd()
+#     histos.update( {"hChi2dof":ROOT.TH1D("hChi2dof",";Original #chi^{2}/N_{DoF};Tracks",100,0,10)} )
+#     histos.update( {"hSVDchi2dof":ROOT.TH1D("hSVDchi2dof",";SVD #chi^{2}/N_{DoF};Tracks",100,0,10)} )
+#     histos.update( {"hTransform":ROOT.TH3D("hTransform",";x [mm];y [mm];#theta",int(cfg["alignmentbins"]["dx"]["bins"]),cfg["alignmentbins"]["dx"]["min"],cfg["alignmentbins"]["dx"]["max"],
+#                                                                            int(cfg["alignmentbins"]["dy"]["bins"]),cfg["alignmentbins"]["dy"]["min"],cfg["alignmentbins"]["dy"]["max"],
+#                                                                            int(cfg["alignmentbins"]["theta"]["bins"]),cfg["alignmentbins"]["theta"]["min"],cfg["alignmentbins"]["theta"]["max"])})
+#     return histos
 
 
 def GetPixMatrix():
@@ -211,6 +223,10 @@ def fill_trk2cls_residuals(points,direction,centroid,hname,histos):
         dx,dy = res_track2cluster(det,points,direction,centroid)
         histos[hname+"_x_"+det].Fill(dx)
         histos[hname+"_y_"+det].Fill(dy)
+        histos[hname+"_x_mid_"+det].Fill(dx)
+        histos[hname+"_y_mid_"+det].Fill(dy)
+        histos[hname+"_x_full_"+det].Fill(dx)
+        histos[hname+"_y_full_"+det].Fill(dy)
 
 
 def fill_trk2vtx_residuals(vtx,direction,centroid,hname,histos):
@@ -225,3 +241,8 @@ def fill_trk2tru_residuals(mcparticles,pdgIdMatch,points,direction,centroid,hnam
         # print(dy,offsets_y[det])
         histos[hname+"_x_"+det].Fill(dx)
         histos[hname+"_y_"+det].Fill(dy)
+        histos[hname+"_y_"+det].Fill(dy)
+        histos[hname+"_x_mid_"+det].Fill(dx)
+        histos[hname+"_y_mid_"+det].Fill(dy)
+        histos[hname+"_x_full_"+det].Fill(dx)
+        histos[hname+"_y_full_"+det].Fill(dy)
