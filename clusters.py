@@ -22,10 +22,12 @@ def RecursiveClustering(cluster_pixels,pivot,pixels):
 def GetAllClusters(pixels,det):
     clusters  = []
     positions = []
-    while len(pixels)>0: ## loop as long as there are live pixels in the list
+    CID = 0
+    while len(pixels)>0:  ## loop as long as there are live pixels in the list
         pixel = pixels[0] ## this is the pivot pixel for the cluster recursion
         cluster_pixels = []
         RecursiveClustering(cluster_pixels,pixel,pixels)
-        cluster = Cls(cluster_pixels,det)
+        cluster = Cls(cluster_pixels,det,CID)
+        CID += 1
         clusters.append( cluster )
     return clusters

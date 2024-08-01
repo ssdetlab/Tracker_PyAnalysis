@@ -53,6 +53,9 @@ import noise
 from noise import *
 import candidate
 from candidate import *
+import hough_seeder
+from hough_seeder import *
+
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
@@ -152,103 +155,127 @@ def analyze(tfilenamein,irange,evt_range,masked):
         for det in cfg["detectors"]:
             det_clusters = GetAllClusters(pixels[det],det)
             clusters.update( {det:det_clusters} )
-            # fillClsHists(det,clusters[det],masked[det],histos)
-            if(len(det_clusters)==1): nclusters += 1
-        if(nclusters!=len(cfg["detectors"])): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}==1") )
-
-        if(cfg["runtype"]=="source"):
-            nOKsmallR = 0
-            for det in cfg["detectors"]:
-                Rx = clusters[det][0].xmm
-                Ry = clusters[det][0].ymm
-                R  = math.sqrt(Rx*Rx + Ry*Ry)
-                if(R<1): nOKsmallR += 1
-            if(nOKsmallR!=len(cfg["detectors"])): continue ### CUT!!!
-            histos["h_cutflow"].Fill( cfg["cuts"].index("R<1mm") )
+            fillClsHists(det,clusters[det],masked[det],histos)
+            if(len(det_clusters)>0): nclusters += 1
+        ### at least one cluster per layer
+        if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
         
-        for det in cfg["detectors"]:
-            fillClsHists(det,clusters[det],masked[det],histos) ### TODO: this is now done aftet the fit
-            histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm )
+        ### run the seeding
+        ncomb = 1
+        for det in cfg["detectors"]: ncomb *= len(clusters[det])
+        seeder = HoughSeeder(clusters,ievt)
+        # print(f'ievt:{ievt} --> ncomb={ncomb} --> nseeds={seeder.summary["nseeds"]}, nplanes={seeder.summary["nplanes"]}, seed_clusters_per_detector={seeder.seed_clusters_per_detector}')
+        seed_cuslters = seeder.seed_clusters
+        seeder.clear_h2Freq() ### TODO: very important!
+        if(seeder.summary["nplanes"]<len(cfg["detectors"]) or seeder.summary["nseeds"]<1): continue ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
+        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
         
         ### prepare the clusters for the fit
-        clsx = {}
-        clsy = {}
-        clsz = {}
-        clsdx = {}
-        clsdy = {}
-        for det in cfg["detectors"]:
-            clsx.update({det:clusters[det][0].xmm})
-            clsy.update({det:clusters[det][0].ymm})
-            clsz.update({det:clusters[det][0].zmm})
-            clsdx.update({det:clusters[det][0].dxmm})
-            clsdy.update({det:clusters[det][0].dymm})
+        det0 = cfg["detectors"][0]
+        det1 = cfg["detectors"][1]
+        det2 = cfg["detectors"][2]
+        det3 = cfg["detectors"][3]
+        seeds = []
+        for c0 in seed_cuslters[det0]:
+            for c1 in seed_cuslters[det1]:
+                for c2 in seed_cuslters[det2]:
+                    for c3 in seed_cuslters[det3]:
+                        ###
+                        seed = { "x":{}, "y":{}, "z":{}, "dx":{}, "dy":{} }
+                        ###
+                        seed["x"].update({det0:c0.xmm})
+                        seed["y"].update({det0:c0.ymm})
+                        seed["z"].update({det0:c0.zmm})
+                        seed["dx"].update({det0:c0.dxmm})
+                        seed["dy"].update({det0:c0.dymm})
+                        ###
+                        seed["x"].update({det1:c1.xmm})
+                        seed["y"].update({det1:c1.ymm})
+                        seed["z"].update({det1:c1.zmm})
+                        seed["dx"].update({det1:c1.dxmm})
+                        seed["dy"].update({det1:c1.dymm})
+                        ###
+                        seed["x"].update({det2:c2.xmm})
+                        seed["y"].update({det2:c2.ymm})
+                        seed["z"].update({det2:c2.zmm})
+                        seed["dx"].update({det2:c2.dxmm})
+                        seed["dy"].update({det2:c2.dymm})
+                        ###
+                        seed["x"].update({det3:c3.xmm})
+                        seed["y"].update({det3:c3.ymm})
+                        seed["z"].update({det3:c3.zmm})
+                        seed["dx"].update({det3:c3.dxmm})
+                        seed["dy"].update({det3:c3.dymm})
+                        ###
+                        seeds.append(seed)
+        histos["h_nSeeds"].Fill(len(seeds))
+        # print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters[det0])} in {det0}, {len(clusters[det1])} in {det1}, {len(clusters[det2])} in {det2}, {len(clusters[det3])} in {det3}")
+        # if(len(seeds)>100):
+        #     print(f"{det0}:")
+        #     for i,c in enumerate(clusters[det0]): print(f"  [{i}]: {c}")
+        #     print(f"{det1}:")
+        #     for i,c in enumerate(clusters[det1]): print(f"  [{i}]: {c}")
+        #     print(f"{det2}:")
+        #     for i,c in enumerate(clusters[det2]): print(f"  [{i}]: {c}")
+        #     print(f"{det3}:")
+        #     for i,c in enumerate(clusters[det3]): print(f"  [{i}]: {c}")
+        #     print("")
 
         ### get the event tracks
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
         evtx = [cfg["exVtx"],cfg["eyVtx"],cfg["ezVtx"]] if(cfg["doVtx"]) else []
-        points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-        points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-        chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2)
-        chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
-        chi2ndof = chisq/ndof if(ndof>0) else 99999
-        track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
         
-        if(not success): continue ### CUT!!!
+        ### loop over all seeds:
+        tracks = []
+        n_successful_tracks = 0
+        n_goodchi2_tracks   = 0
+        for seed in seeds:
+            clsx = seed["x"]
+            clsy = seed["y"]
+            clsz = seed["z"]
+            clsdx = seed["dx"]
+            clsdy = seed["dy"]
+            
+            points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
+            points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
+            chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2)
+            chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
+            chi2ndof = chisq/ndof if(ndof>0) else 99999
+            track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
+            tracks.append(track)
+            if(success):    n_successful_tracks += 1
+            if(chi2ndof>5): n_goodchi2_tracks += 1
+            
+            histos["h_3Dchi2err"].Fill(chi2ndof)
+            histos["h_3Dchi2err_full"].Fill(chi2ndof)
+            histos["h_3Dchi2err_zoom"].Fill(chi2ndof)
+            histos["h_Chi2_phi"].Fill(track.phi)
+            histos["h_Chi2_theta"].Fill(track.theta)
+            if(abs(np.sin(track.theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( track.theta,abs(1/(2*np.pi*np.sin(track.theta))) )
+            
+            ### Chi2 track to cluster residuals
+            fill_trk2cls_residuals(points_SVD,direction,centroid,"h_Chi2fit_res_trk2cls",histos)
+            # fill_trk2cls_residuals(points_SVD,direction_SVD,centroid_SVD,"h_Chi2fit_res_trk2cls",histos)
+            ### Chi2 track to truth residuals
+            if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
+            ### Chi2 fit points on laters
+            fillFitOcc(params,"h_fit_occ_2D", "h_fit_3D",histos)
+            ### Chi2 track to vertex residuals
+            if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
+        histos["h_nTracks"].Fill(len(tracks))
+        histos["h_nTracks_success"].Fill( n_successful_tracks )
+        histos["h_nTracks_goodchi2"].Fill( n_goodchi2_tracks )
+        
+        if(n_successful_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )
         
-        if(chi2ndof>100): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq100") )
+        if(n_goodchi2_tracks<1): continue ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq5") )
         
-        histos["h_3Dchi2err"].Fill(chi2ndof)
-        histos["h_3Dchi2err_full"].Fill(chi2ndof)
-        histos["h_3Dchi2err_zoom"].Fill(chi2ndof)
-        histos["h_Chi2_phi"].Fill(track.phi)
-        histos["h_Chi2_theta"].Fill(track.theta)
-        if(abs(np.sin(track.theta))>1e-10):
-            histos["h_Chi2_theta_weighted"].Fill( track.theta,abs(1/(2*np.pi*np.sin(track.theta))) )
-        
-        # ### fill cluster size histos ### TODO: this was done above the fit
-        # for det in cfg["detectors"]:
-        #     if(cfg["runtype"]=="source"):
-        #         if(chi2ndof<5):
-        #             fillClsHists(det,clusters[det],masked[det],histos) ### must be a good fit, just to tag good electrons
-        #     elif(cfg["runtype"]=="cosmics"):
-        #         fillClsHists(det,clusters[det],masked[det],histos) ### good fits by construction for cosmics...
-        #     else:
-        #         print("Error in run type:",cfg["runtype"],"-->quitting")
-        #         quit()
-        
-        ### Chi2 track to cluster residuals
-        fill_trk2cls_residuals(points_SVD,direction,centroid,"h_Chi2fit_res_trk2cls",histos)
-        # fill_trk2cls_residuals(points_SVD,direction_SVD,centroid_SVD,"h_Chi2fit_res_trk2cls",histos)
-        ### Chi2 track to truth residuals
-        if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
-        ### Chi2 fit points on laters
-        fillFitOcc(params,"h_fit_occ_2D", "h_fit_3D",histos)
-        ### Chi2 track to vertex residuals
-        if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
-        
-        ### fill cluster size vs true position
-        if(cfg["isCVRroot"]):
-            for det in cfg["detectors"]:
-                xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
-                wgt = clusters[det][0].n
-                posx = ((xtru-cfg["pix_x"]/2.)%(2*cfg["pix_x"]))
-                posy = ((ytru-cfg["pix_y"]/2.)%(2*cfg["pix_y"]))
-                histos["h_csize_vs_trupos"].Fill(posx,posy,wgt)
-                histos["h_ntrks_vs_trupos"].Fill(posx,posy)
-                histos["h_csize_vs_trupos_"+det].Fill(posx,posy,wgt)
-                histos["h_ntrks_vs_trupos_"+det].Fill(posx,posy)
-                ### divide into smaller sizes
-                strcsize = str(wgt) if(wgt<5) else "n"
-                histos["h_csize_"+strcsize+"_vs_trupos"].Fill(posx,posy,wgt)
-                histos["h_ntrks_"+strcsize+"_vs_trupos"].Fill(posx,posy)
-                histos["h_csize_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy,wgt)
-                histos["h_ntrks_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy)
-                
         ### fill the event data and add to events
-        eventslist.append( Event(pixels_save,clusters,track,mcparticles) )
+        eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )
         
     ### end
     pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle

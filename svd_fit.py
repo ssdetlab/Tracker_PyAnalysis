@@ -5,7 +5,6 @@ import subprocess
 import array
 import numpy as np
 import ROOT
-# from ROOT import *
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -19,7 +18,7 @@ from utils import *
 
 
 ### similar to https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d
- 
+
 def calculateSVDchi2(points, errors, direction, centroid):
     r1,r2 = r1r2(direction, centroid)
     x  = points[:,0]

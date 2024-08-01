@@ -47,6 +47,8 @@ import noise
 from noise import *
 import candidate
 from candidate import *
+import hough_seeder
+from hough_seeder import *
 
 
 
@@ -134,14 +136,9 @@ def Run(tfilename,tfnoisename,tfo,histos):
     
     hPixMatix = GetPixMatrix()
     
-    largest_clster = {}
-    for det in cfg["detectors"]:
-        largest_clster.update({det:Cls([],det)})
-    
     nprocevents = 0
     norigevents = -1
-    ientry      = 0 ### impoortant!!
-    for evt in ttree:
+    for ientry,evt in enumerate(ttree):
         ### before anything else
         if(cfg["nmax2process"]>0 and nprocevents>cfg["nmax2process"]): break
         histos["h_events"].Fill(0.5)
@@ -156,7 +153,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
                 xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
                 histos["h_tru_3D"].Fill( xtru,ytru,ztru )
                 histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
-        ientry += 1 ### important!
         
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(evt,hPixMatix,cfg["isCVRroot"])
@@ -178,30 +174,37 @@ def Run(tfilename,tfnoisename,tfo,histos):
         for det in cfg["detectors"]:
             det_clusters = GetAllClusters(pixels[det],det)
             clusters.update( {det:det_clusters} )
-            if(len(det_clusters)==1): nclusters += 1
-        
-        ### find the largest cluster
-        for det in cfg["detectors"]:
-            for c in clusters[det]:
-                if(len(c.pixels)>len(largest_clster[det].pixels)): largest_clster[det] = c
-        
-        ### exactly one cluster per layer
-        if(nclusters!=len(cfg["detectors"])): continue
-        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}==1") )
-        for det in cfg["detectors"]:
             fillClsHists(det,clusters[det],masked[det],histos)
-            histos["h_cls_3D"].Fill( clusters[det][0].xmm,clusters[det][0].ymm,clusters[det][0].zmm )
-
-        ### diagnostics, also with truth
-        if(len(mcparticles)>0 and cfg["doDiagnostics"]):
-            for det in cfg["detectors"]:
-                print("-------"+det+":")
-                for pr in mcparticles[det]:
-                    print("["+str(mcparticles[det].index(pr))+"]:",pr)
-                for px in pixels_save[det]:
-                    print(px)
-                for cl in clusters[det]:
-                    print(cl)
+            if(len(det_clusters)>0): nclusters += 1
+        ### at least one cluster per layer
+        if(nclusters<len(cfg["detectors"])): continue
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
+        
+        # interesting events:
+        # 12196 --> 900 --> 0 seeds, OK
+        # 12209 --> 96 --> 0 seeds, OK
+        # 12243 --> 16 --> 16 seeds, OK?
+        # 34581 --> 16 --> 16 seeds, OK? --> nice 2-muon event!!
+        # 34599 --> 15 --> 0/1/2 seeds --> very depending on the binning of the 2D histo!!
+        # 12717 --> 32 --> 16 seeds --> very depending on the binning of the 2D histo!!
+        # 23093 --> 160 --> 1/16 seed --> nice 2-muon event, very depending on the binning of the 2D histo!!
+        # 33427 --> 180 --> 0/1 seeds OK
+        # 10923 --> 360 --> 2 seeds, OK
+        # 24 --> 1200 --> 24 seeds, OK
+        
+        ### run the seeding
+        # if(ientry!=33427): continue
+        # ncomb = 1
+        # for det in cfg["detectors"]: ncomb *= len(clusters[det])
+        seeder = HoughSeeder(clusters,ientry)
+        # seeder.plot(str(ientry))
+        # print(f"ientry:{ientry} --> ncomb={ncomb} --> nseeds={seeder.nseeds}, nplanes={seeder.nplanes}, seed_clusters_per_detector={seeder.seed_clusters_per_detector}, found_intrscts_zx_and_zy={seeder.found_intrscts_zx_and_zy}")
+        seed_cuslters = seeder.seed_clusters
+        seeder.clear_h2Freq() ### TODO: very important!
+        if(seeder.summary["nplanes"]<len(cfg["detectors"]) or seeder.summary["nseeds"]<1): continue ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
+        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
+        # quit()
         
         ### run tracking
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -209,16 +212,16 @@ def Run(tfilename,tfnoisename,tfo,histos):
         best_Chi2 = {}
         best_value_Chi2 = +1e10
         ### loop on all cluster combinations
-        for i0 in range(len(clusters["ALPIDE_0"])):
-            for i1 in range(len(clusters["ALPIDE_1"])):
-                for i2 in range(len(clusters["ALPIDE_2"])):
-                    for i3 in range(len(clusters["ALPIDE_3"])):
+        for i0 in range(len(seed_cuslters["ALPIDE_0"])):
+            for i1 in range(len(seed_cuslters["ALPIDE_1"])):
+                for i2 in range(len(seed_cuslters["ALPIDE_2"])):
+                    for i3 in range(len(seed_cuslters["ALPIDE_3"])):
 
-                        clsx  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].xmm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].xmm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].xmm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].xmm}
-                        clsy  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].ymm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].ymm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].ymm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].ymm}
-                        clsz  = {"ALPIDE_3":clusters["ALPIDE_3"][i3].zmm,  "ALPIDE_2":clusters["ALPIDE_2"][i2].zmm,  "ALPIDE_1":clusters["ALPIDE_1"][i1].zmm,  "ALPIDE_0":clusters["ALPIDE_0"][i0].zmm}
-                        clsdx = {"ALPIDE_3":clusters["ALPIDE_3"][i3].dxmm, "ALPIDE_2":clusters["ALPIDE_2"][i2].dxmm, "ALPIDE_1":clusters["ALPIDE_1"][i1].dxmm, "ALPIDE_0":clusters["ALPIDE_0"][i0].dxmm}
-                        clsdy = {"ALPIDE_3":clusters["ALPIDE_3"][i3].dymm, "ALPIDE_2":clusters["ALPIDE_2"][i2].dymm, "ALPIDE_1":clusters["ALPIDE_1"][i1].dymm, "ALPIDE_0":clusters["ALPIDE_0"][i0].dymm}
+                        clsx  = {"ALPIDE_3":seed_cuslters["ALPIDE_3"][i3].xmm,  "ALPIDE_2":seed_cuslters["ALPIDE_2"][i2].xmm,  "ALPIDE_1":seed_cuslters["ALPIDE_1"][i1].xmm,  "ALPIDE_0":seed_cuslters["ALPIDE_0"][i0].xmm}
+                        clsy  = {"ALPIDE_3":seed_cuslters["ALPIDE_3"][i3].ymm,  "ALPIDE_2":seed_cuslters["ALPIDE_2"][i2].ymm,  "ALPIDE_1":seed_cuslters["ALPIDE_1"][i1].ymm,  "ALPIDE_0":seed_cuslters["ALPIDE_0"][i0].ymm}
+                        clsz  = {"ALPIDE_3":seed_cuslters["ALPIDE_3"][i3].zmm,  "ALPIDE_2":seed_cuslters["ALPIDE_2"][i2].zmm,  "ALPIDE_1":seed_cuslters["ALPIDE_1"][i1].zmm,  "ALPIDE_0":seed_cuslters["ALPIDE_0"][i0].zmm}
+                        clsdx = {"ALPIDE_3":seed_cuslters["ALPIDE_3"][i3].dxmm, "ALPIDE_2":seed_cuslters["ALPIDE_2"][i2].dxmm, "ALPIDE_1":seed_cuslters["ALPIDE_1"][i1].dxmm, "ALPIDE_0":seed_cuslters["ALPIDE_0"][i0].dxmm}
+                        clsdy = {"ALPIDE_3":seed_cuslters["ALPIDE_3"][i3].dymm, "ALPIDE_2":seed_cuslters["ALPIDE_2"][i2].dymm, "ALPIDE_1":seed_cuslters["ALPIDE_1"][i1].dymm, "ALPIDE_0":seed_cuslters["ALPIDE_0"][i0].dymm}
 
                         #############################
                         ### to check timing #TODO ###
@@ -239,38 +242,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
                             best_Chi2.update( {"centroid":centroid_Chi2} )
                             best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
                             best_Chi2.update( {"params":params_Chi2} )
-        
-
-        clsx   = {}
-        clsy   = {}
-        clsz   = {}
-        clsdx  = {}
-        clsdy  = {}
-        for det in cfg["detectors"]:
-            clsx.update( {det:clusters[det][0].xmm} )
-            clsy.update( {det:clusters[det][0].ymm} )
-            clsz.update( {det:clusters[det][0].zmm} )
-            clsdx.update( {det:clusters[det][0].dxmm} )
-            clsdy.update( {det:clusters[det][0].dymm} )
-
-        #############################
-        ### to check timing #TODO ###
-        #############################
-        
-        points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-        points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-        chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2 = fit_3d_chi2err(points_Chi2,errors_Chi2)
-        
-        chi2ndof_Chi2 = chisq/ndof if(ndof>0) else 99999
-        if(success_Chi2 and chi2ndof_Chi2<best_value_Chi2): ### happens only when success_Chi2==True
-            best_value_Chi2 = chi2ndof_Chi2
-            best_Chi2.update( {"svd_points":points_SVD} )
-            best_Chi2.update( {"points":points_Chi2} )
-            best_Chi2.update( {"errors":errors_Chi2} )
-            best_Chi2.update( {"direction":direction_Chi2} )
-            best_Chi2.update( {"centroid":centroid_Chi2} )
-            best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
-            best_Chi2.update( {"params":params_Chi2} )
             
         ### fit successful
         passFit = (len(best_Chi2)>0)
@@ -304,7 +275,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
             histos["h_Chi2_phi"].Fill(phi)
             histos["h_Chi2_theta"].Fill(theta)
             if(abs(np.sin(theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( theta,abs(1/(2*np.pi*np.sin(theta))) )
-            if(chi2ndof_Chi2<=100): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq100") )
+            if(chi2ndof_Chi2<=5): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq5") )
             ### Chi2 track to cluster residuals
             fill_trk2cls_residuals(points_SVD,direction_Chi2,centroid_Chi2,"h_Chi2fit_res_trk2cls",histos)
             ### Chi2 track to truth residuals
@@ -314,23 +285,23 @@ def Run(tfilename,tfnoisename,tfo,histos):
             ### Chi2 track to vertex residuals
             if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction_Chi2,centroid_Chi2,"h_Chi2fit_res_trk2vtx",histos)
 
-            ### fill cluster size vs true position
-            if(cfg["isCVRroot"] and truth_tree is not None):
-                for det in cfg["detectors"]:
-                    xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
-                    wgt = clusters[det][0].n
-                    posx = ((xtru-cfg["pix_x"]/2.)%(2*cfg["pix_x"]))
-                    posy = ((ytru-cfg["pix_y"]/2.)%(2*cfg["pix_y"]))
-                    histos["h_csize_vs_trupos"].Fill(posx,posy,wgt)
-                    histos["h_ntrks_vs_trupos"].Fill(posx,posy)
-                    histos["h_csize_vs_trupos_"+det].Fill(posx,posy,wgt)
-                    histos["h_ntrks_vs_trupos_"+det].Fill(posx,posy)
-                    ### divide into smaller sizes
-                    strcsize = str(wgt) if(wgt<5) else "n"
-                    histos["h_csize_"+strcsize+"_vs_trupos"].Fill(posx,posy,wgt)
-                    histos["h_ntrks_"+strcsize+"_vs_trupos"].Fill(posx,posy)
-                    histos["h_csize_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy,wgt)
-                    histos["h_ntrks_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy)
+            # ### fill cluster size vs true position
+            # if(cfg["isCVRroot"] and truth_tree is not None):
+            #     for det in cfg["detectors"]:
+            #         xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
+            #         wgt = clusters[det][0].n
+            #         posx = ((xtru-cfg["pix_x"]/2.)%(2*cfg["pix_x"]))
+            #         posy = ((ytru-cfg["pix_y"]/2.)%(2*cfg["pix_y"]))
+            #         histos["h_csize_vs_trupos"].Fill(posx,posy,wgt)
+            #         histos["h_ntrks_vs_trupos"].Fill(posx,posy)
+            #         histos["h_csize_vs_trupos_"+det].Fill(posx,posy,wgt)
+            #         histos["h_ntrks_vs_trupos_"+det].Fill(posx,posy)
+            #         ### divide into smaller sizes
+            #         strcsize = str(wgt) if(wgt<5) else "n"
+            #         histos["h_csize_"+strcsize+"_vs_trupos"].Fill(posx,posy,wgt)
+            #         histos["h_ntrks_"+strcsize+"_vs_trupos"].Fill(posx,posy)
+            #         histos["h_csize_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy,wgt)
+            #         histos["h_ntrks_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy)
                 
                     # if(det=="ALPIDE_0"): print("Size:",wgt,"Tru:",xtru,ytru,"Residuals:",(xtru%pix_x),(ytru%pix_y))
         
@@ -372,13 +343,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
             hnewname = hname.replace("csize","mean")
             hdenname = hname.replace("csize","ntrks")
             histos.update( {hnewname:histos[hname].Clone(hnewname)} )
-            histos[hnewname].Divide(histos[hdenname])
-    
-    ### largest clusters
-    for det in cfg["detectors"]:
-        for pix in largest_clster[det].pixels:
-            histos["h_big_cls_2D_"+det].Fill(pix.x,pix.y)
-        
+            histos[hnewname].Divide(histos[hdenname])        
 
 #############################################################################
 #############################################################################

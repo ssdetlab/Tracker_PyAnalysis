@@ -59,6 +59,10 @@ def book_histos(tfo):
     histos.update( { "h_Chi2fit_res_trk2vtx_x" : ROOT.TH1D("h_Chi2fit_res_trk2vtx_x",";x_{trk}-x_{vtx} [mm];Events",nResBins,-absRes,+absRes) } )
     histos.update( { "h_Chi2fit_res_trk2vtx_y" : ROOT.TH1D("h_Chi2fit_res_trk2vtx_y",";y_{trk}-y_{vtx} [mm];Events",nResBins,-absRes,+absRes) } )
     
+    histos.update( { "h_nSeeds"              : ROOT.TH1D("h_nSeeds",";N_{seeds}/Event;Events",10,0,10) } )
+    histos.update( { "h_nTracks"             : ROOT.TH1D("h_nTracks",";N_{tracks}/Event;Events",10,0,10) } )
+    histos.update( { "h_nTracks_success"     : ROOT.TH1D("h_nTracks_success",";N_{tracks}/Event;Events",10,0,10) } )
+    histos.update( { "h_nTracks_goodchi2"    : ROOT.TH1D("h_nTracks_goodchi2",";N_{tracks}/Event;Events",10,0,10) } )
     histos.update( { "h_Chi2_phi"            : ROOT.TH1D("h_Chi2_phi",";Chi2 fit: #phi;Tracks",100,-np.pi,+np.pi) } )
     histos.update( { "h_Chi2_theta"          : ROOT.TH1D("h_Chi2_theta",";Chi2 fit: #theta;Tracks",100,0,np.pi) } )
     histos.update( { "h_Chi2_theta_weighted" : ROOT.TH1D("h_Chi2_theta_weighted",";Chi2 fit: #theta weighted;Tracks",100,0,np.pi) } )
@@ -199,6 +203,8 @@ def fillClsHists(det,clusters,masked,histos):
             if(i in masked):
                 noisy = True
                 break
+        histos["h_cls_3D"].Fill( c.xmm,c.ymm,c.zmm )
+        
         ### not masked
         histos["h_cls_size_"+det].Fill(len(c.pixels))
         histos["h_cls_size_ncol_"+det].Fill(c.dx)

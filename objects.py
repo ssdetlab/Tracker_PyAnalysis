@@ -24,7 +24,10 @@ class Hit:
         return f"Pixel: x={self.x}, y={self.y}, raw={self.raw}, q={self.q}, r=({self.xmm,self.ymm,self.zmm}) [mm]"
 
 class Cls:
-    def __init__(self,pixels,det):
+    def __init__(self,pixels,det,CID):
+        self.det = det
+        self.CID = CID
+        self.DID = cfg["detectors"].index(det)
         self.pixels = pixels
         self.n = len(pixels)
         self.x,self.y,self.dx,self.dy = self.build(pixels) 
@@ -98,10 +101,10 @@ class Track:
 
 
 class Event:
-    def __init__(self,pixels,clusters,track,mcparticles=None):
+    def __init__(self,pixels,clusters,tracks,mcparticles=None):
         self.pixels = pixels
         self.clusters = clusters
-        self.track = track
+        self.tracks = tracks
         self.mcparticles = mcparticles
     def __str__(self):
-        return f"Event: pixels={self.pixels}, clusters={self.clusters}, track={self.track}, mcparticles={self.mcparticles}"
+        return f"Event: pixels={self.pixels}, clusters={self.clusters}, tracks={self.tracks}, mcparticles={self.mcparticles}"
