@@ -6,6 +6,7 @@ import array
 import numpy as np
 import ROOT
 from scipy.optimize import minimize
+import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
@@ -122,3 +123,65 @@ def plot_3d_chi2err(evt,points,params,show=False):
     ax.axes.set_aspect('equal') if(not cfg["isCVMFS"]) else ax.axes.set_aspect('auto')
     plt.title("Chi2 w/err fit (evt #"+str(evt)+")", fontdict=None, loc='center', pad=None)
     plt.show()
+
+    
+def plot_event(evt,fname,clusters,tracks,chi2threshold=10.,show=False):
+    ### turn interactive plotting off
+    plt.ioff()
+    matplotlib.use('Agg')
+    ### define the plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel("x [mm]")
+    ax.set_ylabel("y [mm]")
+    ax.set_zlabel("z [mm]")
+    ### the chips
+    L1verts = getChips()
+    ax.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
+    ax.axes.set_aspect('equal') if(not cfg["isCVMFS"]) else ax.axes.set_aspect('auto')
+    plt.title(f"Clusters & Tracks for event #{evt}", fontdict=None, loc='center', pad=None)
+    ### print all clusters
+    clsx = []
+    clsy = []
+    clsz = []
+    for det in cfg["detectors"]:
+        for cluster in clusters[det]:
+                clsx.append( cluster.xmm )
+                clsy.append( cluster.ymm )
+                clsz.append( cluster.zmm )
+    ax.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+    ### then the track
+    trkcols = ['r','b','m','c','y','k','g']
+    goodtrk = 0
+    for track in tracks:
+        if(track.chi2ndof>chi2threshold): continue
+        trkcol = trkcols[goodtrk]
+        goodtrk += 1
+        x = track.points[0]
+        y = track.points[1]
+        z = track.points[2]
+        # Plot the points and the fitted line
+        x0,y0,z0 = line(cfg["zFirst"], track.params)
+        x1,y1,z1 = line(cfg["zLast"],  track.params)
+        #TODO: need to check this:
+        xm,ym,zm = line((cfg["zLast"]-cfg["zFirst"])/2., track.params) #TODO
+        centroid  = [xm,ym,zm]
+        direction = [x1-x0,y1-y0,z1-z0]
+        # plot the tracks clusters
+        ax.scatter(x,y,z,s=0.92,c='r',marker='o')
+        ### plot the tracks lines
+        # ax.plot([x0, x1], [y0, y1], [z0, z1], c='r', linewidth=1)
+        ax.plot([x0, x1], [y0, y1], [z0, z1], c=trkcol, linewidth=1)
+    ### the limits
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    zlim = ax.get_zlim()
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_zlim(zlim)
+    plt.xlim(cfg["world"]["x"])
+    plt.ylim(cfg["world"]["y"])
+    ax.set_zlim(cfg["world"]["z"])
+    # if(show): plt.show()
+    plt.savefig(fname)
+    plt.close(fig)
