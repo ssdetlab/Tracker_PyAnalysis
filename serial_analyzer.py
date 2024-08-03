@@ -211,6 +211,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
         evtx = [cfg["exVtx"],cfg["eyVtx"],cfg["ezVtx"]] if(cfg["doVtx"]) else []
         best_Chi2 = {}
         best_value_Chi2 = +1e10
+        tracks = []
         ### loop on all cluster combinations
         for i0 in range(len(seed_cuslters["ALPIDE_0"])):
             for i1 in range(len(seed_cuslters["ALPIDE_1"])):
@@ -230,7 +231,9 @@ def Run(tfilename,tfnoisename,tfo,histos):
                         points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
                         points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
                         chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2 = fit_3d_chi2err(points_Chi2,errors_Chi2)
-
+                        
+                        track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction_Chi2,centroid_Chi2,params_Chi2,success_Chi2)
+                        tracks.append(track)
 
                         chi2ndof_Chi2 = chisq/ndof if(ndof>0) else 99999
                         if(success_Chi2 and chi2ndof_Chi2<best_value_Chi2): ### happens only when success_Chi2==True
@@ -242,7 +245,13 @@ def Run(tfilename,tfnoisename,tfo,histos):
                             best_Chi2.update( {"centroid":centroid_Chi2} )
                             best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
                             best_Chi2.update( {"params":params_Chi2} )
-            
+
+        ### plot
+        if(ientry==12196 or ientry==12209 or ientry==12243 or ientry==34581 or ientry==34599 or ientry==12717 or ientry==23093 or ientry==33427 or ientry==10923 or ientry==24):
+            fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ientry}.pdf")
+            plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=1.)
+        if(ientry==24): quit()
+
         ### fit successful
         passFit = (len(best_Chi2)>0)
         if(passFit):

@@ -125,21 +125,36 @@ def plot_3d_chi2err(evt,points,params,show=False):
     plt.show()
 
     
-def plot_event(evt,fname,clusters,tracks,chi2threshold=10.,show=False):
+def plot_event(evt,fname,clusters,tracks,chi2threshold=1.):
+    if(len(tracks)<1): return
     ### turn interactive plotting off
     plt.ioff()
     matplotlib.use('Agg')
     ### define the plot
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlabel("x [mm]")
-    ax.set_ylabel("y [mm]")
-    ax.set_zlabel("z [mm]")
+    # fig = plt.figure(figsize=(8, 3))
+    fig = plt.figure(figsize=(8, 4),frameon=False)
+    plt.title(f"Clusters & Tracks for event #{evt}", fontdict=None, loc='center', pad=None)
+    plt.box(False)
+    plt.axis('off')
+    # ax = fig.add_axes([0, 0, 1, 1])
+    # ax.set_title(f"Clusters & Tracks for event #{evt}")
+    # ax.axis('off')
+    ## the views
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122, projection='3d')
+    ax1.set_xlabel("x [mm]")
+    ax1.set_ylabel("y [mm]")
+    ax1.set_zlabel("z [mm]")
+    ax2.set_xlabel("x [mm]")
+    ax2.set_ylabel("y [mm]")
+    ax2.set_zlabel("z [mm]")
     ### the chips
     L1verts = getChips()
-    ax.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
-    ax.axes.set_aspect('equal') if(not cfg["isCVMFS"]) else ax.axes.set_aspect('auto')
-    plt.title(f"Clusters & Tracks for event #{evt}", fontdict=None, loc='center', pad=None)
+    ax1.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
+    ax1.axes.set_aspect('equal')
+    ax2.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
+    ax2.axes.set_aspect('equal')
+    
     ### print all clusters
     clsx = []
     clsy = []
@@ -149,7 +164,8 @@ def plot_event(evt,fname,clusters,tracks,chi2threshold=10.,show=False):
                 clsx.append( cluster.xmm )
                 clsy.append( cluster.ymm )
                 clsz.append( cluster.zmm )
-    ax.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+    ax1.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+    ax2.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
     ### then the track
     trkcols = ['r','b','m','c','y','k','g']
     goodtrk = 0
@@ -168,20 +184,54 @@ def plot_event(evt,fname,clusters,tracks,chi2threshold=10.,show=False):
         centroid  = [xm,ym,zm]
         direction = [x1-x0,y1-y0,z1-z0]
         # plot the tracks clusters
-        ax.scatter(x,y,z,s=0.92,c='r',marker='o')
+        ax1.scatter(x,y,z,s=0.92,c='r',marker='o')
+        ax2.scatter(x,y,z,s=0.92,c='r',marker='o')
         ### plot the tracks lines
-        # ax.plot([x0, x1], [y0, y1], [z0, z1], c='r', linewidth=1)
-        ax.plot([x0, x1], [y0, y1], [z0, z1], c=trkcol, linewidth=1)
+        ax1.plot([x0, x1], [y0, y1], [z0, z1], c=trkcol, linewidth=0.8)
+        ax2.plot([x0, x1], [y0, y1], [z0, z1], c=trkcol, linewidth=0.8)
+        
     ### the limits
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-    zlim = ax.get_zlim()
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_zlim(zlim)
-    plt.xlim(cfg["world"]["x"])
-    plt.ylim(cfg["world"]["y"])
-    ax.set_zlim(cfg["world"]["z"])
-    # if(show): plt.show()
+    xlim1 = ax1.get_xlim()
+    ylim1 = ax1.get_ylim()
+    zlim1 = ax1.get_zlim()
+    ax1.set_xlim(xlim1)
+    ax1.set_ylim(ylim1)
+    ax1.set_zlim(zlim1)    
+    xlim2 = ax2.get_xlim()
+    ylim2 = ax2.get_ylim()
+    zlim2 = ax2.get_zlim()
+    ax2.set_xlim(xlim2)
+    ax2.set_ylim(ylim2)
+    ax2.set_zlim(zlim2)
+    ## world limits
+    ax1.set_xlim(cfg["world"]["x"])
+    ax2.set_xlim(cfg["world"]["x"])
+    ax1.set_ylim(cfg["world"]["y"])
+    ax2.set_ylim(cfg["world"]["y"])
+    ax1.set_zlim(cfg["world"]["z"])
+    ax2.set_zlim(cfg["world"]["z"])
+    
+    ### add some text to ax1
+    stracks = "tracks" if(goodtrk>1) else "track"
+    ax1.text(+15,-15,0,f"{goodtrk} {stracks}", fontsize=7)
+    for det in cfg["detectors"]:
+        z = cfg["rdetectors"][det][2]
+        n = len(clusters[det])
+        ax1.text(-30,-20,z,f"{det}", fontsize=7)
+        ax1.text(+15,+10,z,f"{n} clusters", fontsize=7)
+    ### add some text to ax2
+    ax2.text(-10,+15,0,f"{goodtrk} {stracks}", fontsize=7)
+    for det in cfg["detectors"]:
+        z = cfg["rdetectors"][det][2]
+        n = len(clusters[det])
+        ax2.text(25,20,z,f"{det}", fontsize=7)
+        ax2.text(-15,-10,z,f"{n} clusters", fontsize=7)
+    
+
+    ### cbahne view of the 2nd plot
+    ax2.elev = 25
+    ax2.azim = 150 #270  # 270 is xz view, 0 is yz view, and -90 is xy view
+
+    ### finish
     plt.savefig(fname)
     plt.close(fig)

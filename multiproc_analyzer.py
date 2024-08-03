@@ -277,7 +277,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### plot
         if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
             fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
-            plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=10.,show=False)
+            plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=1.)
         
         ### fill the event data and add to events
         eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )
