@@ -154,6 +154,9 @@ def Run(tfilename,tfnoisename,tfo,histos):
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
         norigevents += 1
         
+        ### get the trigger number
+        trigger_number = evt.event.trg_n
+        
         ### check event errors
         nerrors,errors = check_errors(evt)
         if(nerrors>0):
@@ -165,7 +168,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
                     histos["h_errors"].AddBinContent(b,wgt)
                     histos["h_errors_"+det].AddBinContent(b)
             continue
-        histos["h_cutflow"].Fill( cfg["cuts"].index("NoErr") )
+        histos["h_cutflow"].Fill( cfg["cuts"].index("0Err") )
         
         ### truth particles
         mcparticles = {}

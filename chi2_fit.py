@@ -2,6 +2,7 @@
 import os
 import math
 import subprocess
+import time
 import array
 import numpy as np
 import ROOT
@@ -54,19 +55,23 @@ def fit_line_3d_chi2err(x,y,z,ex,ey,ez):
             d2 = distance2(params, x[i],y[i],z[i], ex[i],ey[i],ez[i])
             sum += d2
         return sum
-    
     ### Perform the chi^2 fit using minimize
     ### https://stackoverflow.com/questions/24767191/scipy-is-not-optimizing-and-returns-desired-error-not-necessarily-achieved-due
     initial_params = [1,0,0,0]
-    result = minimize(chi2, initial_params, method='Nelder-Mead', args=(x,y,z, ex,ey,ez)) ### first fit to get closer
-    result = minimize(chi2, result.x,       method='Powell',      args=(x,y,z, ex,ey,ez)) ### second fit to finish
+    result0 = None
+    result1 = None
+    if(cfg["fast"]):
+        result1 = minimize(chi2, initial_params, method=cfg["method0"],      args=(x,y,z, ex,ey,ez))s
+    else:
+        result0 = minimize(chi2, initial_params, method=cfg["method1"][0], args=(x,y,z, ex,ey,ez)) ### first fit to get closer
+        result1 = minimize(chi2, result0.x,      method=cfg["method0"][1], args=(x,y,z, ex,ey,ez)) ### second fit to finish
     ### get the chi^2 value and the number of degrees of freedom
-    chisq = result.fun
+    chisq = result1.fun
     ndof = 2*len(x) - len(initial_params)
-    params  = result.x
-    success = result.success
-    # status  = result.status
-    # message = result.message
+    params  = result1.x
+    success = result1.success
+    # status  = result1.status
+    # message = result1.message
     # print(success,status,message)
     return params,chisq,ndof,success
 
@@ -226,7 +231,6 @@ def plot_event(evt,fname,clusters,tracks,chi2threshold=1.):
         n = len(clusters[det])
         ax2.text(25,20,z,f"{det}", fontsize=7)
         ax2.text(-15,-10,z,f"{n} clusters", fontsize=7)
-    
 
     ### cbahne view of the 2nd plot
     ax2.elev = 25

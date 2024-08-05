@@ -122,17 +122,21 @@ def analyze(tfilenamein,irange,evt_range,masked):
     ### start the event loop
     ievt_start = evt_range[0]
     ievt_end   = evt_range[-1]
-    
     eventslist = []
     for ievt in range(ievt_start,ievt_end+1):
+        ### get the event
         ttree.GetEntry(ievt)
+        
+        ### get the trigger number
+        trigger_number = ttree.event.trg_n
+
+        ### all events...
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
         
         ### check event errors
         nerrors,errors = check_errors(ttree)
         if(nerrors>0):
-            # print(f"Skipping event {ievt} due to errors: {errors}")
             wgt = 1./float(len(cfg["detectors"]))
             for det in cfg["detectors"]:
                 for err in errors[det]:
@@ -140,7 +144,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
                     histos["h_errors"].AddBinContent(b,wgt)
                     histos["h_errors_"+det].AddBinContent(b)
             continue
-        histos["h_cutflow"].Fill( cfg["cuts"].index("NoErr") )
+        histos["h_cutflow"].Fill( cfg["cuts"].index("0Err") )
         
         ### truth particles
         mcparticles = get_truth_cvr(truth_tree,ievt) if(cfg["isCVRroot"] and truth_tree is not None) else {}

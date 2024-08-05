@@ -62,6 +62,10 @@ worldscales   = x:1.2,1.2 y:1.5,1.5 z:1,1
 worldcenter   = 0,0,54.8
 worldradius   = (84.07-0.00)*0.7
 
+[FIT]
+fast = 1
+method0 = Powell
+method1 = Nelder-Mead Powell
 
 [CUTS]
-cuts = All NoErr N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq5
+cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq5

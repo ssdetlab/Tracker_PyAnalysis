@@ -200,6 +200,10 @@ class Config:
         self.add("offsets_x", offsets_x)
         self.add("offsets_y", offsets_y)
         
+        self.add("fast",    self.getB('FIT','fast'))
+        self.add("method0", self.getS('FIT','method0'))
+        self.add("method1", self.getArrS('FIT','method1'))
+        
         self.add("cuts", self.getArrS('CUTS','cuts'))
     
         if(doprint):
