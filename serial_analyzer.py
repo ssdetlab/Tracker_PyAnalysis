@@ -49,6 +49,8 @@ import candidate
 from candidate import *
 import hough_seeder
 from hough_seeder import *
+import errors
+from errors import *
 
 
 
@@ -98,8 +100,15 @@ def RunNoiseScan(tfilename,tfnoisename):
     tfile,ttree = GetTree(tfilename)
     
     nprocevents = 0
-    for evt in ttree:
+    for ievt,evt in enumerate(ttree):
         if(cfg["nmax2process"]>0 and nprocevents>cfg["nmax2process"]): break
+
+        ### check for errors
+        nerrors,errors = check_errors(evt)
+        if(nerrors>0):
+            print(f"Skipping event {ievt} due to errors: {errors}")
+            continue
+
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(evt,h2D_noise,cfg["isCVRroot"])
         for det in cfg["detectors"]:
@@ -144,6 +153,19 @@ def Run(tfilename,tfnoisename,tfo,histos):
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
         norigevents += 1
+        
+        ### check event errors
+        nerrors,errors = check_errors(evt)
+        if(nerrors>0):
+            # print(f"Skipping event {ientry} due to errors: {errors}")
+            wgt = 1./float(len(cfg["detectors"]))
+            for det in cfg["detectors"]:
+                for err in errors[det]:
+                    b = ERRORS.index(err)+1
+                    histos["h_errors"].AddBinContent(b,wgt)
+                    histos["h_errors_"+det].AddBinContent(b)
+            continue
+        histos["h_cutflow"].Fill( cfg["cuts"].index("NoErr") )
         
         ### truth particles
         mcparticles = {}
@@ -250,7 +272,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
         if(ientry==12196 or ientry==12209 or ientry==12243 or ientry==34581 or ientry==34599 or ientry==12717 or ientry==23093 or ientry==33427 or ientry==10923 or ientry==24):
             fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ientry}.pdf")
             plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=1.)
-        if(ientry==24): quit()
 
         ### fit successful
         passFit = (len(best_Chi2)>0)
@@ -263,12 +284,12 @@ def Run(tfilename,tfnoisename,tfo,histos):
             centroid_Chi2  = best_Chi2["centroid"]
             chi2ndof_Chi2  = best_Chi2["chi2ndof"]
             params_Chi2    = best_Chi2["params"]
-            if(cfg["doplot"]):
-                for det in cfg["detectors"]:
-                    dx,dy = res_track2cluster(det,points_SVD,direction_Chi2,centroid_Chi2)
-                    print(det,"-->",dx,dy)
-                plot_3d_chi2err(norigevents,points_Chi2,params_Chi2,cfg["doplot"])
-                print("")
+            # if(cfg["doplot"]):
+            #     for det in cfg["detectors"]:
+            #         dx,dy = res_track2cluster(det,points_SVD,direction_Chi2,centroid_Chi2)
+            #         print(det,"-->",dx,dy)
+            #     plot_3d_chi2err(norigevents,points_Chi2,params_Chi2,cfg["doplot"])
+            #     print("")
 
             ### fill some histos
             histos["h_3Dchi2err"].Fill(chi2ndof_Chi2)

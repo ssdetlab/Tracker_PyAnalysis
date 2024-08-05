@@ -20,6 +20,8 @@ import objects
 from objects import *
 import chi2_fit
 from chi2_fit import *
+import errors
+from errors import *
 
 ### global parameters for pixel matrix
 pix_x_nbins = cfg["npix_x"]+1
@@ -46,6 +48,10 @@ def book_histos(tfo):
     
     histos.update( { "h_events" : ROOT.TH1D("h_events",";;Events",1,0,1) } )
     histos["h_events"].GetXaxis().SetBinLabel(1,"")
+    
+    histos.update( { "h_errors" : ROOT.TH1D("h_errors",";;Events",len(ERRORS),0,len(ERRORS)) } )
+    for b in range(1,len(ERRORS)+1):
+        histos["h_errors"].GetXaxis().SetBinLabel(b,ERRORS[b-1])
     
     histos.update( { "h_cutflow"   : ROOT.TH1D("h_cutflow",";;Events",10,0,10) } )
     for b in range(1,len(cfg["cuts"])+1):
@@ -97,6 +103,10 @@ def book_histos(tfo):
     for det in cfg["detectors"]:
         
         tfo.cd(det)
+
+        histos.update( { "h_errors_"+det : ROOT.TH1D("h_errors_"+det,";;Events",len(ERRORS),0,len(ERRORS)) } )
+        for b in range(1,len(ERRORS)+1):
+            histos["h_errors_"+det].GetXaxis().SetBinLabel(b,ERRORS[b-1])
         
         histos.update( { "h_pix_occ_1D_"+det        : ROOT.TH1D("h_pix_occ_1D_"+det,";Pixel;Hits",cfg["npix_x"]*cfg["npix_y"],1,cfg["npix_x"]*cfg["npix_y"]+1) } )
         histos.update( { "h_pix_occ_1D_masked_"+det : ROOT.TH1D("h_pix_occ_1D_masked_"+det,";Pixel;Hits",cfg["npix_x"]*cfg["npix_y"],1,cfg["npix_x"]*cfg["npix_y"]+1) } )

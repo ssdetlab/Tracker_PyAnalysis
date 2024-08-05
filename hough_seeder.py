@@ -10,6 +10,7 @@ import config
 from config import *
 
 ### based largely on this: https://www.cs.ubc.ca/~lsigal/425_2018W2/Lecture17.pdf
+### see also https://www.sciencedirect.com/science/article/pii/S0167865500000441?via%3Dihub
 
 class HoughSeeder:
     def __init__(self,clusters,eventid=0):

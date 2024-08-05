@@ -55,6 +55,8 @@ import candidate
 from candidate import *
 import hough_seeder
 from hough_seeder import *
+import errors
+from errors import *
 
 
 ROOT.gROOT.SetBatch(1)
@@ -126,6 +128,19 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ttree.GetEntry(ievt)
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
+        
+        ### check event errors
+        nerrors,errors = check_errors(ttree)
+        if(nerrors>0):
+            # print(f"Skipping event {ievt} due to errors: {errors}")
+            wgt = 1./float(len(cfg["detectors"]))
+            for det in cfg["detectors"]:
+                for err in errors[det]:
+                    b = ERRORS.index(err)+1
+                    histos["h_errors"].AddBinContent(b,wgt)
+                    histos["h_errors_"+det].AddBinContent(b)
+            continue
+        histos["h_cutflow"].Fill( cfg["cuts"].index("NoErr") )
         
         ### truth particles
         mcparticles = get_truth_cvr(truth_tree,ievt) if(cfg["isCVRroot"] and truth_tree is not None) else {}
