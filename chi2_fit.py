@@ -61,7 +61,7 @@ def fit_line_3d_chi2err(x,y,z,ex,ey,ez):
     result0 = None
     result1 = None
     if(cfg["fast"]):
-        result1 = minimize(chi2, initial_params, method=cfg["method0"],      args=(x,y,z, ex,ey,ez))s
+        result1 = minimize(chi2, initial_params, method=cfg["method0"],      args=(x,y,z, ex,ey,ez))
     else:
         result0 = minimize(chi2, initial_params, method=cfg["method1"][0], args=(x,y,z, ex,ey,ez)) ### first fit to get closer
         result1 = minimize(chi2, result0.x,      method=cfg["method0"][1], args=(x,y,z, ex,ey,ez)) ### second fit to finish

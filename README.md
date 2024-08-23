@@ -2,14 +2,21 @@
 
 Prerequisits:
 - have ROOT and python3 installed
-- have the DetectorEvent header and lib installed (to read the EUDAQ data files)
-  - it is also included in this rep for convenience, under DetectorEvent/
+- On mac: have the DetectorEvent header and lib installed (to read the EUDAQ data files)
+  - it is also included in this rep for convenience, under DetectorEvent/ for different dates
+- on the DAQ PC:
+  - it is already compiled in work/eudaq/lib/libeudaq_det_event_dict.so
 
 Setup:
-- Setup ROOT
-- `export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH`
+- On mac: Setup ROOT
+- On the DAQ PC it is already setup
+- On mac: `export LD_LIBRARY_PATH=$PWD/DetectorEvent/DATEDIR:$LD_LIBRARY_PATH` (DATEDIR is the specific date where the lib is valid for)
+- On the DAQ PC: `export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH`
 - put data files somewhere with enough space
-  - there's a dir called `test_data` with example data already
+  - there's a dir called `test_data` with example data already - navigate through...
+  - the data from eudaq on the DAQ PC it is in: $HOME/work/eudaq/user/stave/misc/run_data/
+  - put the data file in a dedicated dir called "run_000000XX" according to the run number
+  - mkdir event_displays in that new data dir
 - change config file as needed (see examples in the conf/ dir)
 
 Run noise scan:

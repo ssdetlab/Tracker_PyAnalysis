@@ -63,15 +63,20 @@ ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 # ROOT.gStyle.SetOptStat(0)
 
-print("-----------------------------------------------------------------------------------")
-print("Need to add TelescopeEvent lib:")
-print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH")
-print("-----------------------------------------------------------------------------------")
 
+### see https://root.cern/manual/python
 print("---- start loading libs")
-### see https://root.cern/manual/python/
-ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240705/')
-ROOT.gSystem.Load('libtel_event_dict.dylib')
+if(os.uname()[1]=="wisett")
+    print("On DAQ PC (linux): must first add DetectorEvent lib:")
+    print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
+    ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
+    ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/hardware/inc/')
+    ROOT.gSystem.Load('libeudaq_det_event_dict.so')
+elsei:
+    print("On mac: must first add DetectorEvent lib:")
+    print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH")
+    ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240705/')
+    ROOT.gSystem.Load('libtrk_event_dict.dylib')
 print("---- finish loading libs")
 
 ###############################################################
@@ -265,8 +270,9 @@ def analyze(tfilenamein,irange,evt_range,masked):
             track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
             tracks.append(track)
             if(success):    n_successful_tracks += 1
-            if(chi2ndof>5): n_goodchi2_tracks += 1
-            
+            if(chi2ndof>1000): n_goodchi2_tracks += 1
+            print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
+
             histos["h_3Dchi2err"].Fill(chi2ndof)
             histos["h_3Dchi2err_full"].Fill(chi2ndof)
             histos["h_3Dchi2err_zoom"].Fill(chi2ndof)
@@ -291,12 +297,12 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )
         
         if(n_goodchi2_tracks<1): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq5") )
+        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq1000") )
         
         ### plot
-        if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
-            fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
-            plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=1.)
+        #if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
+        fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
+        plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=1.)
         
         ### fill the event data and add to events
         eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )
