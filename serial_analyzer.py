@@ -301,7 +301,8 @@ def Run(tfilename,tfnoisename,tfo,histos):
             histos["h_Chi2_phi"].Fill(phi)
             histos["h_Chi2_theta"].Fill(theta)
             if(abs(np.sin(theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( theta,abs(1/(2*np.pi*np.sin(theta))) )
-            if(chi2ndof_Chi2<=1000): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq1000") )
+            if(chi2ndof_Chi2<=5): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq5") )
+            print(f"chi2ndof_Chi2={chi2ndof_Chi2}")
             ### Chi2 track to cluster residuals
             fill_trk2cls_residuals(points_SVD,direction_Chi2,centroid_Chi2,"h_Chi2fit_res_trk2cls",histos)
             ### Chi2 track to truth residuals

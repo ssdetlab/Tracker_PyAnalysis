@@ -9,11 +9,11 @@ nmax2processMP = 10000000000000
 nCPU           = 10
 doplot         = 0
 doDiagnostics  = 0
-doNoiseScan    = 0 
+doNoiseScan    = 0
 isCVRroot      = 0
 nprintout      = 20
-# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000046/tree_08_21_2024_07_01_30_Run46.root
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000079/tree_08_22_2024_10_31_31_Run79.root
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000046/tree_08_21_2024_07_01_30_Run46.root
+#inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000079/tree_08_22_2024_10_31_31_Run79.root
 
 
 [CHIP]
@@ -69,4 +69,4 @@ method0 = Powell
 method1 = Nelder-Mead Powell
 
 [CUTS]
-cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq1000
+cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq5
