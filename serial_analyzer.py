@@ -60,7 +60,7 @@ ROOT.gStyle.SetOptFit(0)
 
 ### see https://root.cern/manual/python
 print("---- start loading libs")
-if(os.uname()[1]=="wisett")
+if(os.uname()[1]=="wisett"):
     print("On DAQ PC (linux): must first add DetectorEvent lib:")
     print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
     ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
@@ -68,8 +68,8 @@ if(os.uname()[1]=="wisett")
     ROOT.gSystem.Load('libeudaq_det_event_dict.so')
 else:
     print("On mac: must first add DetectorEvent lib:")
-    print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH")
-    ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240705/')
+    print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240822:$LD_LIBRARY_PATH")
+    ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240822/')
     ROOT.gSystem.Load('libtrk_event_dict.dylib')
 print("---- finish loading libs")
 

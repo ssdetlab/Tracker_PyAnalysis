@@ -66,7 +66,7 @@ ROOT.gStyle.SetOptFit(0)
 
 ### see https://root.cern/manual/python
 print("---- start loading libs")
-if(os.uname()[1]=="wisett")
+if(os.uname()[1]=="wisett"):
     print("On DAQ PC (linux): must first add DetectorEvent lib:")
     print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
     ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
