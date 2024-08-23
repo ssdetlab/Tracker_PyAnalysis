@@ -1,0 +1,72 @@
+[RUN]
+isMC           = 0
+isCVMFS        = 0
+doVtx          = 0
+runtype        = cosmics
+pdgIdMatch     = 13
+nmax2process   = 10000000000000
+nmax2processMP = 10000000000000
+nCPU           = 10
+doplot         = 0
+doDiagnostics  = 0
+doNoiseScan    = 0 
+isCVRroot      = 0
+nprintout      = 20
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000046/tree_08_21_2024_07_01_30_Run46.root
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000079/tree_08_22_2024_10_31_31_Run79.root
+
+
+[CHIP]
+npix_x = 1024
+npix_y = 512
+pix_x = 0.02924
+pix_y = 0.02688
+
+
+[VTX]
+xVtx  = 0
+yVtx  = 0
+zVtx  = 0
+exVtx = 1.0
+eyVtx = 1.0
+ezVtx = 0.05
+
+
+[CLUSTER]
+ezCls = 0.1
+
+
+[WORLD]
+lineScaleUp = 70
+lineScaleDn = 50
+
+
+[NOISE]
+pTrim    = 0.1
+zeroSupp = 1
+nSigma   = 25
+
+
+[DETECTOR]
+detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3
+plane2det     = ALPIDE_0:8 ALPIDE_1:5 ALPIDE_2:3 ALPIDE_3:1
+rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,36.03 ALPIDE_2:0,0,60.05 ALPIDE_3:0,0,84.07
+### DEFAULT MISALIGNMENT (before doing the alignment procedure):
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.5191531681709917,dy=-0.46595050424595746,theta=0.0009213194795836727 ALPIDE_2:dx=-0.7029308767047607,dy=-0.6681298502851433,theta=-0.001983609179703054 ALPIDE_3:dx=-0.8148037396883998,dy=-0.7457714668355226,theta=-0.00024245376925574271
+maxchi2align  = 1
+axes2align    = xytheta
+naligniter    = 200
+alignmentbounds = dx:min=-1.0,max=+1.0 dy:min=-1.0,max=1.0 theta:min=-0.2,max=+0.2
+worldmargins  = 0.1
+worldscales   = x:1.2,1.2 y:1.5,1.5 z:1,1
+worldcenter   = 0,0,54.8
+worldradius   = (84.07-0.00)*0.7
+
+[FIT]
+fast = 1
+method0 = Powell
+method1 = Nelder-Mead Powell
+
+[CUTS]
+cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq1000
