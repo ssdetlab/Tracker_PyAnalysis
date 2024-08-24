@@ -135,9 +135,17 @@ def RunNoiseScan(tfilename,tfnoisename):
 
 
 def Run(tfilename,tfnoisename,tfo,histos):
+    
+    ### make event display dir
+    paths = tfilename.split("/")
+    evtdspdir = ""
+    for i in range(len(paths)-1): evtdspdir += paths[i]+"/"
+    evtdspdir += "event_displays"
+    ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
+    
+    
     ### get the tree
     tfile,ttree = GetTree(tfilename)
-    
     truth_tree = None
     if(cfg["isCVRroot"]):
         truth_tree = tfile.Get("MCParticle")
@@ -408,12 +416,10 @@ else:
         print("Generate first by setting doNoiseScan=True")
         quit()
 
-# print("before output")
 
 tfilenameout = tfilenamein.replace(".root","_histograms.root")
 tfo = ROOT.TFile(tfilenameout,"RECREATE")
 tfo.cd()
-# book_histos(tfo,absRes,absChi2)
 histos = book_histos(tfo)
 Run(tfilenamein,tfnoisename,tfo,histos)
 tfo.cd()

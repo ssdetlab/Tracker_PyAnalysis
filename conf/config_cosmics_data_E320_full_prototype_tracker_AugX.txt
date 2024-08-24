@@ -12,9 +12,14 @@ doDiagnostics  = 0
 doNoiseScan    = 0
 isCVRroot      = 0
 nprintout      = 20
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000046/tree_08_21_2024_07_01_30_Run46.root
-#inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000079/tree_08_22_2024_10_31_31_Run79.root
-
+### first run, continuous mode
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000046/tree_08_21_2024_07_01_30_Run46.root
+### second run, continuous mode
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000079/tree_08_22_2024_10_31_31_Run79.root
+### third run, Arduino NIM trigger, 1kHz
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000096/tree_08_23_2024_06_57_09_Run96.root
+### fourth run, Arduino TTL trigger, 1kHz
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000104/tree_08_24_2024_00_24_39_Run104.root
 
 [CHIP]
 npix_x = 1024

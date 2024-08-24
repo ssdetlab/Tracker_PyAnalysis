@@ -271,7 +271,8 @@ def analyze(tfilenamein,irange,evt_range,masked):
             tracks.append(track)
             if(success):    n_successful_tracks += 1
             if(chi2ndof>5): n_goodchi2_tracks += 1
-            print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
+            
+            if(n_active_chips==4): print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
 
             histos["h_3Dchi2err"].Fill(chi2ndof)
             histos["h_3Dchi2err_full"].Fill(chi2ndof)
@@ -350,11 +351,17 @@ if __name__ == "__main__":
     ### Create a pool of workers
     pool = mp.Pool(nCPUs)
     
+    ### make event display dir
+    paths = cfg["inputfile"].split("/")
+    evtdspdir = ""
+    for i in range(len(paths)-1): evtdspdir += paths[i]+"/"
+    evtdspdir += "event_displays"
+    ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
+    
     # Parallelize the analysis
     tfilenamein = cfg["inputfile"]
     tfnoisename = tfilenamein.replace(".root","_noise.root")
     masked = GetNoiseMask(tfnoisename)
-    # print(masked)
     
     ### the output histos
     tfilenameout = tfilenamein.replace(".root","_multiprocess_histograms.root")
