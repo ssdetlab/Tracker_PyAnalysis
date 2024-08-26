@@ -52,7 +52,7 @@ from hough_seeder import *
 import errors
 from errors import *
 
-
+ROOT.gErrorIgnoreLevel = ROOT.kError
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
@@ -193,7 +193,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
         
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(evt,hPixMatix,cfg["isCVRroot"])
-        print(f'n_active_staves={n_active_staves}, n_active_chips={n_active_chips}, len(det)={len(cfg["detectors"])}')
         for det in cfg["detectors"]:
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
         if(n_active_chips!=len(cfg["detectors"])): continue
@@ -218,19 +217,12 @@ def Run(tfilename,tfnoisename,tfo,histos):
         if(nclusters<len(cfg["detectors"])): continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
         
-        ### run the seeding
-        # if(ientry!=33427): continue
-        # ncomb = 1
-        # for det in cfg["detectors"]: ncomb *= len(clusters[det])
+        ### run seeding
         seeder = HoughSeeder(clusters,ientry)
-        # seeder.plot(str(ientry))
-        # print(f"ientry:{ientry} --> ncomb={ncomb} --> nseeds={seeder.nseeds}, nplanes={seeder.nplanes}, seed_clusters_per_detector={seeder.seed_clusters_per_detector}, found_intrscts_zx_and_zy={seeder.found_intrscts_zx_and_zy}")
         seed_cuslters = seeder.seed_clusters
-        seeder.clear_h2Freq() ### TODO: very important!
+        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
         if(seeder.summary["nplanes"]<len(cfg["detectors"]) or seeder.summary["nseeds"]<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
-        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
-        # quit()
         
         ### run tracking
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -275,7 +267,8 @@ def Run(tfilename,tfnoisename,tfo,histos):
         ### plot
         # if(ientry==12196 or ientry==12209 or ientry==12243 or ientry==34581 or ientry==34599 or ientry==12717 or ientry==23093 or ientry==33427 or ientry==10923 or ientry==24):
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ientry}.pdf")
-        plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=1.)
+        seeder.plot_seeder(fevtdisplayname)
+        plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=20.)
 
         ### fit successful
         passFit = (len(best_Chi2)>0)
@@ -309,8 +302,8 @@ def Run(tfilename,tfnoisename,tfo,histos):
             histos["h_Chi2_phi"].Fill(phi)
             histos["h_Chi2_theta"].Fill(theta)
             if(abs(np.sin(theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( theta,abs(1/(2*np.pi*np.sin(theta))) )
-            if(chi2ndof_Chi2<=5): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq5") )
-            print(f"chi2ndof_Chi2={chi2ndof_Chi2}")
+            print(f"event: {ientry}, chi2ndof_Chi2={chi2ndof_Chi2}")
+            if(chi2ndof_Chi2<=20): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq20") )
             ### Chi2 track to cluster residuals
             fill_trk2cls_residuals(points_SVD,direction_Chi2,centroid_Chi2,"h_Chi2fit_res_trk2cls",histos)
             ### Chi2 track to truth residuals

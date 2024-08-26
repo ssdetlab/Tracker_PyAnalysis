@@ -186,15 +186,11 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
         
         ### run the seeding
-        ncomb = 1
-        for det in cfg["detectors"]: ncomb *= len(clusters[det])
         seeder = HoughSeeder(clusters,ievt)
-        # print(f'ievt:{ievt} --> ncomb={ncomb} --> nseeds={seeder.summary["nseeds"]}, nplanes={seeder.summary["nplanes"]}, seed_clusters_per_detector={seeder.seed_clusters_per_detector}')
         seed_cuslters = seeder.seed_clusters
-        seeder.clear_h2Freq() ### TODO: very important!
+        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
         if(seeder.summary["nplanes"]<len(cfg["detectors"]) or seeder.summary["nseeds"]<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
-        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
         
         ### prepare the clusters for the fit
         det0 = cfg["detectors"][0]
@@ -303,7 +299,8 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### plot
         #if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
-        plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=1.)
+        seeder.plot_seeder(fevtdisplayname)
+        plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=20.)
         
         ### fill the event data and add to events
         eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )

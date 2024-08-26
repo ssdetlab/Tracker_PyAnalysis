@@ -23,19 +23,16 @@ def get_all_pixles_eudaq(evt,hPixMatrix):
         ids2d.update({det:[]})
     n_active_staves = 0
     n_active_chips  = 0
-    print(f"event number={evt.event.trg_n}, timestamp={evt.event.ts}")
     for istv in range(staves.size()):
         staveid  = staves[istv].stave_id
         chips    = staves[istv].ch_ev_buffer
         ## isactivestave = False
         isactivestave = True
-        print(f"staveid={staveid}, nchips={chips.size()}")
         for ichp in range(chips.size()):
             chipid   = chips[ichp].chip_id
             detector = cfg["plane2det"][chipid]
             nhits    = chips[ichp].hits.size()
             ## isactivestave   = (nhits>0 and not isactivestave)
-            print(f"chipid={chipid}, detector={detector}, nhits={nhits}, isactivestave={isactivestave}")
             n_active_chips += (nhits>0)
             for ipix in range(nhits):
                 ix,iy = chips[ichp].hits[ipix]

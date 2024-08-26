@@ -19,7 +19,11 @@ nprintout      = 20
 ### third run, Arduino NIM trigger, 1kHz
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000096/tree_08_23_2024_06_57_09_Run96.root
 ### fourth run, Arduino TTL trigger, 1kHz
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000104/tree_08_24_2024_00_24_39_Run104.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000104/tree_08_24_2024_00_24_39_Run104.root
+### fifth run, Arduino TTL trigger, 1kHz
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000107/tree_08_24_2024_23_47_26_Run107.root
+### six run, continuous mode, 1kHz?
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000114/tree_08_26_2024_09_01_07_Run114.root
 
 [CHIP]
 npix_x = 1024
@@ -74,4 +78,4 @@ method0 = Powell
 method1 = Nelder-Mead Powell
 
 [CUTS]
-cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq5
+cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leq20

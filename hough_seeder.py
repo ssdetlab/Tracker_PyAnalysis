@@ -87,6 +87,8 @@ class HoughSeeder:
         self.hough_points_zy,self.zy_cls = self.candidates("zy",self.h2Freq_zy,self.imap_zy)
         ### set the seeds and summary statistics
         self.summary = self.set_seeds(clusters)
+        ### clear memory if there are no seeds
+        if(self.summary["nseeds"]==0): self.clear_h2Freq()
 
     def __str__(self):
         return f"Seeder"
@@ -254,7 +256,9 @@ class HoughSeeder:
         del self.h2Freq_zx
         del self.h2Freq_zy
     
-    def plot(self,plotsuff):
+    def plot_seeder(self,name):
+        ROOT.gErrorIgnoreLevel = ROOT.kError
+        # ROOT.gErrorIgnoreLevel = ROOT.kWarning
         ROOT.gROOT.SetBatch(1)
         ROOT.gStyle.SetOptFit(0)
         ROOT.gStyle.SetOptStat(0)
@@ -262,14 +266,14 @@ class HoughSeeder:
         ROOT.gStyle.SetPadLeftMargin(0.13)
         ROOT.gStyle.SetPadRightMargin(0.15)
         
-        plotname = "hough_transform_"+plotsuff+".pdf"
+        plotname = name.replace(".pdf","_hough_transform.pdf")
         
         gxy0 = self.graph("ALPIDE_0",self.x0,self.y0,ROOT.kRed,     [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
         gxy1 = self.graph("ALPIDE_1",self.x1,self.y1,ROOT.kBlack,   [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
         gxy2 = self.graph("ALPIDE_2",self.x2,self.y2,ROOT.kGreen-2, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
         gxy3 = self.graph("ALPIDE_3",self.x3,self.y3,ROOT.kMagenta, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
 
-        cnv = ROOT.TCanvas("cnv","",1000,1000)
+        cnv = ROOT.TCanvas("cnv_hits_xy","",1000,1000)
         cnv.Divide(2,2)
         cnv.cd(1)
         ROOT.gPad.SetTicks(1,1)
@@ -288,10 +292,10 @@ class HoughSeeder:
         gxy3.Draw("AP")
         ROOT.gPad.RedrawAxis()
         cnv.SaveAs(plotname+"(")
-        
+
         zx_mg = self.multigraph("zx","Telescope x vs z;z [mm];x [mm]",self.z,self.x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
         zy_mg = self.multigraph("zy","Telescope x vs y;z [mm];y [mm]",self.z,self.y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
-        cnv = ROOT.TCanvas("cnv","",1000,500)
+        cnv = ROOT.TCanvas("cnv_hits_vs_z","",1000,500)
         cnv.Divide(2,1)
         cnv.cd(1)
         ROOT.gPad.SetTicks(1,1)
@@ -302,7 +306,7 @@ class HoughSeeder:
         zy_mg.Draw("AP")
         ROOT.gPad.RedrawAxis()
         cnv.SaveAs(plotname)
-        
+
         arrows_zx = []
         for point in self.hough_points_zx:
             arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
@@ -311,14 +315,14 @@ class HoughSeeder:
         for point in self.hough_points_zy:
             arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
             arrows_zy.append( arw )
-    
-        cnv = ROOT.TCanvas("cnv","",1500,1200)
+
+        cnv = ROOT.TCanvas("cnv_transform","",1500,1200)
         cnv.Divide(2,2)
         cnv.cd(1)
         ROOT.gPad.SetGridx()
         ROOT.gPad.SetGridy()
         ROOT.gPad.SetTicks(1,1)
-        first = True    
+        first = True
         for name,f in self.zx_functions.items():
             f.SetMinimum(self.zx_fmin*1.2)
             f.SetMaximum(self.zx_fmax*1.2)
@@ -359,10 +363,10 @@ class HoughSeeder:
         for arw in arrows_zy: arw.Draw()
         ROOT.gPad.RedrawAxis()
         cnv.SaveAs(plotname)
-    
+
         zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.z_seed,self.x_seed,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
         zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope x vs y;z [mm];y [mm]",self.z_seed,self.y_seed,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
-        cnv = ROOT.TCanvas("cnv","",1000,500)
+        cnv = ROOT.TCanvas("cnv_frequency","",1000,500)
         cnv.Divide(2,1)
         cnv.cd(1)
         ROOT.gPad.SetTicks(1,1)
@@ -374,85 +378,5 @@ class HoughSeeder:
         ROOT.gPad.RedrawAxis()
         cnv.SaveAs(plotname+")")
 
-###############################################
-###############################################
-###############################################
-
-if __name__ == "__main__":
-    ROOT.gROOT.SetBatch(1)
-    ROOT.gStyle.SetOptFit(0)
-    ROOT.gStyle.SetOptStat(0)
-    ROOT.gStyle.SetPadBottomMargin(0.15)
-    ROOT.gStyle.SetPadLeftMargin(0.13)
-    ROOT.gStyle.SetPadRightMargin(0.15)
-    
-    # ### must be called here (first) and only once!
-    # configfile = "conf/config_cosmics_data_E320_full_prototype_tracker_JulX.txt"
-    # init_config(configfile,True)
-    
-    '''
-    ALPIDE_0:
-      [0]: Cluster: x=20.5, y=208.5, r=((-14.371459999999999, -1.2767999999999997, 0.0)) [mm], size=4
-      [1]: Cluster: x=487.0833333333333, y=509.75, r=((-0.7285633333333337, 6.8208, 0.0)) [mm], size=12
-      [2]: Cluster: x=823.7142857142857, y=360.0, r=((9.114525714285714, 2.79552, 0.0)) [mm], size=7
-    ALPIDE_1:
-      [0]: Cluster: x=317.6666666666667, y=322.6666666666667, r=((-6.203108427456671, 1.3208135161224561, 36.03)) [mm], size=3
-      [1]: Cluster: x=374.5, y=79.5, r=((-4.535280427996441, -5.2139726551301475, 36.03)) [mm], size=4
-      [2]: Cluster: x=483.6666666666667, y=150.66666666666666, r=((-1.3450108964715013, -3.2980725849451806, 36.03)) [mm], size=3
-      [3]: Cluster: x=990.0, y=320.0, r=((13.455975935799831, 1.267245788199794, 36.03)) [mm], size=1
-    ALPIDE_2:
-      [0]: Cluster: x=74.5, y=161.5, r=((-13.500444390743365, -3.182909549105556, 60.05)) [mm], size=4
-      [1]: Cluster: x=101.5, y=165.5, r=((-12.710752666409318, -3.0769557793834688, 60.05)) [mm], size=4
-      [2]: Cluster: x=370.64285714285717, y=91.92857142857143, r=((-4.844953789036907, -5.070162361349382, 60.05)) [mm], size=14
-      [3]: Cluster: x=510.0, y=395.0, r=((-0.7539993678639819, 3.0682988004468266, 60.05)) [mm], size=1
-      [4]: Cluster: x=733.5, y=505.5, r=((5.787019566681159, 6.025569801745483, 60.05)) [mm], size=4
-    ALPIDE_3:
-      [0]: Cluster: x=19.333333333333332, y=441.3333333333333, r=((-15.21916880313665, 4.239481072259748, 84.07)) [mm], size=3
-      [1]: Cluster: x=228.0, y=482.5, r=((-9.11748735949526, 5.34456172908987, 84.07)) [mm], size=2
-      [2]: Cluster: x=251.0, y=229.0, r=((-8.446619478625736, -1.4696811256385718, 84.07)) [mm], size=1
-      [3]: Cluster: x=285.0, y=76.0, r=((-7.453456632905826, -5.582562042597089, 84.07)) [mm], size=1
-      [4]: Cluster: x=382.5, y=304.0, r=((-4.6010708048453814, 0.5453865658264474, 84.07)) [mm], size=2
-      [5]: Cluster: x=700.5, y=464.5, r=((4.698294925598414, 4.857372026313013, 84.07)) [mm], size=4
-    '''
-    ###
-    class DummyCls:
-        def __init__(self,x,y,z,det,CID):
-            self.CID  = CID
-            self.DID  = ["ALPIDE_0","ALPIDE_1","ALPIDE_2","ALPIDE_3"].index(det)
-            self.det  = det
-            self.xmm  = x
-            self.ymm  = y
-            self.zmm  = z
-    ###
-    clusters = {"ALPIDE_0":[], "ALPIDE_1":[], "ALPIDE_2":[], "ALPIDE_3":[]}
-    ###
-    clusters["ALPIDE_0"].append( DummyCls(-14.371459999999999,-1.2767999999999997,0.0, "ALPIDE_0",0) )
-    clusters["ALPIDE_0"].append( DummyCls(-0.7285633333333337,6.8208,0.0, "ALPIDE_0",1) )
-    clusters["ALPIDE_0"].append( DummyCls(9.114525714285714,2.79552,0.0, "ALPIDE_0",2) )
-    ###
-    clusters["ALPIDE_1"].append( DummyCls(-6.203108427456671,1.3208135161224561,36.03, "ALPIDE_1",0) )
-    clusters["ALPIDE_1"].append( DummyCls(-4.535280427996441,-5.2139726551301475,36.03, "ALPIDE_1",1) )
-    clusters["ALPIDE_1"].append( DummyCls(-1.3450108964715013,-3.2980725849451806,36.03, "ALPIDE_1",2) )
-    clusters["ALPIDE_1"].append( DummyCls(13.455975935799831,1.267245788199794,36.03, "ALPIDE_1",3) )
-    ###
-    clusters["ALPIDE_2"].append( DummyCls(-13.500444390743365,-3.182909549105556,60.05, "ALPIDE_2",0) )
-    clusters["ALPIDE_2"].append( DummyCls(-12.710752666409318,-3.0769557793834688,60.05, "ALPIDE_2",1) )
-    clusters["ALPIDE_2"].append( DummyCls(-4.844953789036907,-5.070162361349382,60.05, "ALPIDE_2",2) )
-    clusters["ALPIDE_2"].append( DummyCls(-0.7539993678639819,3.0682988004468266,60.05, "ALPIDE_2",3) )
-    clusters["ALPIDE_2"].append( DummyCls(5.787019566681159,6.025569801745483,60.05, "ALPIDE_2",4) )
-    ###
-    clusters["ALPIDE_3"].append( DummyCls(-15.21916880313665,4.239481072259748,84.07, "ALPIDE_3",0) )
-    clusters["ALPIDE_3"].append( DummyCls(-9.11748735949526,5.34456172908987,84.07, "ALPIDE_3",1) )
-    clusters["ALPIDE_3"].append( DummyCls(-8.446619478625736,-1.4696811256385718,84.07, "ALPIDE_3",2) )
-    clusters["ALPIDE_3"].append( DummyCls(-7.453456632905826,-5.582562042597089,84.07, "ALPIDE_3",3) )
-    clusters["ALPIDE_3"].append( DummyCls(-4.6010708048453814,0.5453865658264474,84.07, "ALPIDE_3",4) )
-    clusters["ALPIDE_3"].append( DummyCls(4.698294925598414,4.857372026313013,84.07, "ALPIDE_3",5) )
-    ###
-    seeder = HoughSeeder(clusters,True)
-    for det in ["ALPIDE_0","ALPIDE_1","ALPIDE_2","ALPIDE_3"]:
-        for seed_cluster in seeder.seed_clusters[det]:
-            print(f"seed_cluster {seed_cluster.det}:{seed_cluster.CID}")
-    
-    seeder.plot()
-        
-        
+        ### important!!!
+        self.clear_h2Freq()
