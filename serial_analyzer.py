@@ -268,7 +268,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
         # if(ientry==12196 or ientry==12209 or ientry==12243 or ientry==34581 or ientry==34599 or ientry==12717 or ientry==23093 or ientry==33427 or ientry==10923 or ientry==24):
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ientry}.pdf")
         seeder.plot_seeder(fevtdisplayname)
-        plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=20.)
+        plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
 
         ### fit successful
         passFit = (len(best_Chi2)>0)
@@ -302,8 +302,8 @@ def Run(tfilename,tfnoisename,tfo,histos):
             histos["h_Chi2_phi"].Fill(phi)
             histos["h_Chi2_theta"].Fill(theta)
             if(abs(np.sin(theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( theta,abs(1/(2*np.pi*np.sin(theta))) )
-            print(f"event: {ientry}, chi2ndof_Chi2={chi2ndof_Chi2}")
-            if(chi2ndof_Chi2<=20): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq20") )
+            # print(f"event: {ientry}, chi2ndof_Chi2={chi2ndof_Chi2}")
+            if(chi2ndof_Chi2<=cfg["cut_chi2dof"]): histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
             ### Chi2 track to cluster residuals
             fill_trk2cls_residuals(points_SVD,direction_Chi2,centroid_Chi2,"h_Chi2fit_res_trk2cls",histos)
             ### Chi2 track to truth residuals

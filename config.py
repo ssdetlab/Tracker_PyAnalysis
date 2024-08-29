@@ -205,6 +205,7 @@ class Config:
         self.add("method1", self.getArrS('FIT','method1'))
         
         self.add("cuts", self.getArrS('CUTS','cuts'))
+        self.add("cut_chi2dof", self.getF('CUTS','cut_chi2dof'))
     
         if(doprint):
             print("Configuration map:")

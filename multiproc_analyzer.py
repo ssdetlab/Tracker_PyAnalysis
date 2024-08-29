@@ -265,10 +265,10 @@ def analyze(tfilenamein,irange,evt_range,masked):
             chi2ndof = chisq/ndof if(ndof>0) else 99999
             track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
             tracks.append(track)
-            if(success):    n_successful_tracks += 1
-            if(chi2ndof>5): n_goodchi2_tracks += 1
+            if(success):                      n_successful_tracks += 1
+            if(chi2ndof<=cfg["cut_chi2dof"]): n_goodchi2_tracks += 1
             
-            if(n_active_chips==4): print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
+            # if(n_active_chips==4): print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
 
             histos["h_3Dchi2err"].Fill(chi2ndof)
             histos["h_3Dchi2err_full"].Fill(chi2ndof)
@@ -294,13 +294,13 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )
         
         if(n_goodchi2_tracks<1): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leq5") )
+        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
         
         ### plot
         #if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
         seeder.plot_seeder(fevtdisplayname)
-        plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=20.)
+        plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
         
         ### fill the event data and add to events
         eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )

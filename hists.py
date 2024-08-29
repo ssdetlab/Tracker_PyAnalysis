@@ -55,7 +55,9 @@ def book_histos(tfo):
     
     histos.update( { "h_cutflow"   : ROOT.TH1D("h_cutflow",";;Events",10,0,10) } )
     for b in range(1,len(cfg["cuts"])+1):
-        histos["h_cutflow"].GetXaxis().SetBinLabel(b,cfg["cuts"][b-1])
+        cutname = cfg["cuts"][b-1]
+        if(cutname=="#chi^{2}/N_{DoF}#leqX"): cutname.replace("X",str(cfg["cut_chi2dof"]))
+        histos["h_cutflow"].GetXaxis().SetBinLabel(b,cutname)
     
     histos.update( { "h_3Dchi2err"      : ROOT.TH1D("h_3Dchi2err",";3D-#chi^{2} fit w/err: #chi^{2}/N_{dof};Tracks",200,0,absChi2) } )
     histos.update( { "h_3Dchi2err_full" : ROOT.TH1D("h_3Dchi2err_full",";3D-#chi^{2} fit w/err: #chi^{2}/N_{dof};Tracks",200,0,absChi2*10) } )
