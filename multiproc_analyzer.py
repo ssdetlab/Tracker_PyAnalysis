@@ -2,6 +2,7 @@
 import multiprocessing as mp
 # from multiprocessing.pool import ThreadPool
 import time
+import datetime
 import os
 import os.path
 import math
@@ -103,6 +104,15 @@ def analyze(tfilenamein,irange,evt_range,masked):
     
     ### important
     sufx = "_"+str(irange)
+    
+    ### the metadata:
+    tfmeta = ROOT.TFile(tfilenamein,"READ")
+    tmeta = tfmeta.Get("MyTreeMeta")
+    tmeta.GetEntry(0)
+    runnumber = tmeta.run_meta_data.run_number
+    starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
+    duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+    tfmeta.Close()
     
     ### open the pickle:
     picklename = tfilenamein.replace(".root","_"+str(irange)+".pkl")
@@ -300,7 +310,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         #if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
         seeder.plot_seeder(fevtdisplayname)
-        plot_event(ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
+        plot_event(runnumber,starttime,duration,ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
         
         ### fill the event data and add to events
         eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )
@@ -365,6 +375,14 @@ if __name__ == "__main__":
     tfo = ROOT.TFile(tfilenameout,"RECREATE")
     tfo.cd()
     allhistos = book_histos(tfo)
+    
+    ### meta data:
+    tfmeta = ROOT.TFile(tfilenamein,"READ")
+    tmeta = tfmeta.Get("MyTreeMeta")
+    tmeta.GetEntry(0)
+    print( f"Run start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
+    print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
+    print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" ) 
     
     ### start the loop
     print("\nStarting the loop:")

@@ -130,20 +130,16 @@ def plot_3d_chi2err(evt,points,params,show=False):
     plt.show()
 
     
-def plot_event(evt,fname,clusters,tracks,chi2threshold=1.):
+def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     if(len(tracks)<1): return
     ### turn interactive plotting off
     plt.ioff()
     matplotlib.use('Agg')
     ### define the plot
-    # fig = plt.figure(figsize=(8, 3))
-    fig = plt.figure(figsize=(8, 4),frameon=False)
-    plt.title(f"Clusters & Tracks for event #{evt}", fontdict=None, loc='center', pad=None)
+    fig = plt.figure(figsize=(8,4),frameon=False)
+    plt.title(f"Run {run}, Start: {start}, Duration: ~{duration} [h], Event {evt}", fontdict=None, loc='center', pad=None)
     plt.box(False)
     plt.axis('off')
-    # ax = fig.add_axes([0, 0, 1, 1])
-    # ax.set_title(f"Clusters & Tracks for event #{evt}")
-    # ax.axis('off')
     ## the views
     ax1 = fig.add_subplot(121, projection='3d')
     ax2 = fig.add_subplot(122, projection='3d')

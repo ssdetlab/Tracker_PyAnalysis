@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import os
+import time
+import datetime
 import math
 import subprocess
 import array
@@ -15,6 +17,21 @@ from scipy.optimize import curve_fit
 import config
 from config import *
 
+
+def get_human_timestamp(timestamp_ms,fmt="%d/%m/%Y, %H:%M:%S"):
+    unix_timestamp = timestamp_ms/1000
+    human_timestamp = time.strftime(fmt,time.localtime(unix_timestamp))
+    return human_timestamp
+
+def get_run_length(run_start,run_end,fmt="hours"):
+    run_start  = run_start/1000
+    run_end    = run_end/1000
+    run_length = datetime.datetime.fromtimestamp(run_end) - datetime.datetime.fromtimestamp(run_start)
+    X = -1
+    if(fmt=="hours"): X = 60*60
+    if(fmt=="days"):  X = 60*60*24
+    run_length_X = round(run_length.total_seconds()/X)
+    return run_length_X
 
 def xofz(r1,r2,z):
    dz = r2[2]-r1[2]
