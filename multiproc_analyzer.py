@@ -112,7 +112,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
     runnumber = tmeta.run_meta_data.run_number
     starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
     duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
-    tfmeta.Close()
+    # tfmeta.Close()
     
     ### open the pickle:
     picklename = tfilenamein.replace(".root","_"+str(irange)+".pkl")

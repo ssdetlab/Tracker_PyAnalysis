@@ -33,6 +33,7 @@ def get_run_length(run_start,run_end,fmt="hours"):
     run_length_X = round(run_length.total_seconds()/X)
     return run_length_X
 
+
 def xofz(r1,r2,z):
    dz = r2[2]-r1[2]
    dx = r2[0]-r1[0]

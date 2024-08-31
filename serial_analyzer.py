@@ -143,6 +143,14 @@ def Run(tfilename,tfnoisename,tfo,histos):
     evtdspdir += "event_displays"
     ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
     
+    ### the metadata:
+    tfmeta = ROOT.TFile(tfilename,"READ")
+    tmeta = tfmeta.Get("MyTreeMeta")
+    tmeta.GetEntry(0)
+    runnumber = tmeta.run_meta_data.run_number
+    starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
+    duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+    # tfmeta.Close()
     
     ### get the tree
     tfile,ttree = GetTree(tfilename)
@@ -150,11 +158,13 @@ def Run(tfilename,tfnoisename,tfo,histos):
     if(cfg["isCVRroot"]):
         truth_tree = tfile.Get("MCParticle")
     
+    ### get the noise masking
     masked = GetNoiseMask(tfnoisename)
     if(cfg["isMC"]):
         for det in cfg["detectors"]:
             masked.update( {det:{}} )
     
+    ### get the bare pixel matrix
     hPixMatix = GetPixMatrix()
     
     nprocevents = 0
@@ -268,7 +278,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
         # if(ientry==12196 or ientry==12209 or ientry==12243 or ientry==34581 or ientry==34599 or ientry==12717 or ientry==23093 or ientry==33427 or ientry==10923 or ientry==24):
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ientry}.pdf")
         seeder.plot_seeder(fevtdisplayname)
-        plot_event(ientry,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
+        plot_event(runnumber,starttime,duration,ientry,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
 
         ### fit successful
         passFit = (len(best_Chi2)>0)

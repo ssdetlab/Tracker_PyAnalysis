@@ -25,7 +25,10 @@ nprintout      = 20
 ### six run, continuous mode, 1kHz?
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000114/tree_08_26_2024_09_01_07_Run114.root
 ### seventh and last run, Arduino TTL, 1kHz
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000122/tree_08_27_2024_06_01_02_Run122.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000122/tree_08_27_2024_06_01_02_Run122.root
+### eighth run taken from IL, Arduino TTL, 1kHz
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000124/tree_08_29_2024_07_50_40_Run124.root ### bad run??
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/run_00000125/tree_08_31_2024_11_01_53_Run125.root
 
 
 [CHIP]
@@ -54,7 +57,7 @@ lineScaleDn = 50
 
 
 [NOISE]
-pTrim    = 0.1
+pTrim    = 0.01
 zeroSupp = 1
 nSigma   = 25
 
