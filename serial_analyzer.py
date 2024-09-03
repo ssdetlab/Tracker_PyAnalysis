@@ -91,58 +91,12 @@ def GetTree(tfilename):
     return tfile,ttree
 
 
-def RunNoiseScan(tfilename,tfnoisename):
-    tfilenoise = ROOT.TFile(tfnoisename,"RECREATE")
-    tfilenoise.cd()
-    h1D_noise       = {}
-    h2D_noise       = {}
-    for det in cfg["detectors"]:
-        h1D_noise.update( { det:ROOT.TH1D("h_noisescan_pix_occ_1D_"+det,";Pixel;Hits",cfg["npix_x"]*cfg["npix_y"],1,cfg["npix_x"]*cfg["npix_y"]+1) } )
-        h2D_noise.update( { det:ROOT.TH2D("h_noisescan_pix_occ_2D_"+det,";Pixel;Hits",cfg["npix_x"]+1,-0.5,cfg["npix_x"]+0.5, cfg["npix_y"]+1,-0.5,cfg["npix_y"]+0.5) } )
-
-    ### get the tree
-    tfile,ttree = GetTree(tfilename)
-    
-    nprocevents = 0
-    for ievt,evt in enumerate(ttree):
-        if(cfg["nmax2process"]>0 and nprocevents>cfg["nmax2process"]): break
-
-        ### check for errors
-        nerrors,errors = check_errors(evt)
-        if(nerrors>0):
-            print(f"Skipping event {ievt} due to errors: {errors}")
-            continue
-
-        ### get the pixels
-        n_active_staves, n_active_chips, pixels = get_all_pixles(evt,h2D_noise,cfg["isCVRroot"])
-        for det in cfg["detectors"]:
-            for pix in pixels[det]:
-                i = h2D_noise[det].FindBin(pix.x,pix.y)
-                h1D_noise[det].AddBinContent(i,1)
-                h2D_noise[det].Fill(pix.x,pix.y)
-        if(nprocevents%1000==0 and nprocevents>0): print("event:",nprocevents)
-        nprocevents += 1
-    ### finish
-    tfilenoise.Write()
-    tfilenoise.Close()
-    print("Noise scan histos saved in:",tfnoisename)
-
-
-
 #####################################################################################
 #####################################################################################
 #####################################################################################
 
 
 def Run(tfilename,tfnoisename,tfo,histos):
-    
-    ### make event display dir
-    paths = tfilename.split("/")
-    evtdspdir = ""
-    for i in range(len(paths)-1): evtdspdir += paths[i]+"/"
-    evtdspdir += "event_displays"
-    ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
-    
     ### the metadata:
     tfmeta = ROOT.TFile(tfilename,"READ")
     tmeta = tfmeta.Get("MyTreeMeta")
@@ -168,13 +122,17 @@ def Run(tfilename,tfnoisename,tfo,histos):
     hPixMatix = GetPixMatrix()
     
     nprocevents = 0
-    norigevents = -1
+    nevents = ttree.GetEntries()
     for ientry,evt in enumerate(ttree):
         ### before anything else
         if(cfg["nmax2process"]>0 and nprocevents>cfg["nmax2process"]): break
+        
+        ### event counter
+        if(nprocevents%5000==0 and nprocevents>0): print(f"processed event:{nprocevents} out of {nevents} events")
+        nprocevents += 1
+        
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
-        norigevents += 1
         
         ### get the trigger number
         trigger_number = evt.event.trg_n
@@ -274,8 +232,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
                             best_Chi2.update( {"chi2ndof":chi2ndof_Chi2} )
                             best_Chi2.update( {"params":params_Chi2} )
 
-        ### plot
-        # if(ientry==12196 or ientry==12209 or ientry==12243 or ientry==34581 or ientry==34599 or ientry==12717 or ientry==23093 or ientry==33427 or ientry==10923 or ientry==24):
+        ### plot everything which is fitted but the function will only put the track line if it passes the chi2 cut
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ientry}.pdf")
         seeder.plot_seeder(fevtdisplayname)
         plot_event(runnumber,starttime,duration,ientry,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
@@ -342,10 +299,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
             #         histos["h_ntrks_"+strcsize+"_vs_trupos_"+det].Fill(posx,posy)
                 
                     # if(det=="ALPIDE_0"): print("Size:",wgt,"Tru:",xtru,ytru,"Residuals:",(xtru%pix_x),(ytru%pix_y))
-        
-        ### event counter
-        if(nprocevents%10==0 and nprocevents>0): print("processed event:",nprocevents,"out of",norigevents,"events read")
-        nprocevents += 1
 
 
     #######################
@@ -387,38 +340,21 @@ def Run(tfilename,tfnoisename,tfo,histos):
 #############################################################################
 #############################################################################
 
-# get the start time
+### get the start time
 st = time.time()
 
-tfilenamein = cfg["inputfile"]
+### make directories, copy the input file to the new basedir and return the path to it
+tfilenamein = make_run_dirs(cfg["inputfile"])
+# tfilenamein = cfg["inputfile"]
+
+### noise...
 tfnoisename = tfilenamein.replace(".root","_noise.root")
 isnoisefile = os.path.isfile(os.path.expanduser(tfnoisename))
 print("Running on:",tfilenamein)
-if(cfg["doNoiseScan"]):
-    print("Noise run file exists?:",isnoisefile)
-    if(isnoisefile):
-        redonoise = input("Noise file exists - do you want to rederive it?[y/n]:")
-        if(redonoise=="y" or redonoise=="Y"):
-            RunNoiseScan(tfilenamein,tfnoisename)
-            masked = GetNoiseMask(tfnoisename)
-        else:
-            print("Option not understood - please try again.")
-    else:
-        RunNoiseScan(tfilenamein,tfnoisename)
-        masked = GetNoiseMask(tfnoisename)
-    print("###################################")
-    print("### FINISHED RUNNING NOISE SCAN ###")
-    print("### CHANGE doNoiseScan TO 0 IN ####")
-    print("### THE CONFIG FILE AND RERUN #####")
-    print("### THE WITH THE SAME COMMAND #####")
-    print("###################################")
+if(not isnoisefile):
+    print("Noise file",tfnoisename,"not found")
+    print("Generate it first by running noise_analyzer.py")
     quit()
-else:
-    if(not isnoisefile):
-        print("Noise file",tfnoisename,"not found")
-        print("Generate first by setting doNoiseScan=True")
-        quit()
-
 
 tfilenameout = tfilenamein.replace(".root","_histograms.root")
 tfo = ROOT.TFile(tfilenameout,"RECREATE")
@@ -429,7 +365,7 @@ tfo.cd()
 tfo.Write()
 tfo.Close()
 
-# get the end time and the execution time
+### get the end time and the execution time
 et = time.time()
 elapsed_time = et - st
 print('Execution time:', elapsed_time, 'seconds')

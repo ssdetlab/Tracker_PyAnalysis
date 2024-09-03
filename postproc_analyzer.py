@@ -56,7 +56,9 @@ ROOT.gStyle.SetOptStat(0)
 
 mm2um = 1000
 
-tfilenamein = cfg["inputfile"].replace(".root","_multiprocess_histograms.root")
+tfilenamein = make_run_dirs(cfg["inputfile"])
+tfilenamein = tfilenamein.replace(".root","_multiprocess_histograms.root")
+# tfilenamein = cfg["inputfile"].replace(".root","_multiprocess_histograms.root")
 detectors = cfg["detectors"]
 
 histprefx = ["h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]

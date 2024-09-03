@@ -13,18 +13,22 @@ Setup:
 - On mac: `export LD_LIBRARY_PATH=$PWD/DetectorEvent/DATEDIR:$LD_LIBRARY_PATH` (DATEDIR is the specific date where the lib is valid for)
 - On the DAQ PC: `export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH`
 - put data files somewhere with enough space
-  - there's a dir called `test_data` with example data already - navigate through...
+  - there's a dir called `test_data` with example data already
   - the data from eudaq on the DAQ PC it is in: $HOME/work/eudaq/user/stave/misc/run_data/
-  - put the data file in a dedicated dir called "run_000000XX" according to the run number
-  - mkdir event_displays in that new data dir
+- copy the run data file e.g. to the `test_data` dir (can be whatever you want)
 - change config file as needed (see examples in the conf/ dir)
+  - particularly change the path to the input file to wherever you copied it
+  - it is assumed that the file name starts with `tree_` and ends with `RunX.root` where `X` is the EUDAQ run number between 0 and 1000000
+- Once you run any of the scripts below, several dirs and files will be created in the same dir where the input file from the config is:
+  - a dedicated run dir, e.g. `run_0000046` if the EUDAQ run number is 46
+  - a subdir for the event displays, e.g. `run_0000046/event_displays` if the EUDAQ run number is 46
+  - an input file will copy placed in `run_0000046/` if the EUDAQ run number is 46
+
 
 Run noise scan:
 - if you want to process only part of the events, set the "nmax2process" parameter as needed
 - to process all events check that the "nmax2process" parameter is larger than what you have in data
-- change `doNoiseScan` in the config to 1
-- `python3 serial_analyzer.py -conf conf/config_file_name.txt`
-- change `doNoiseScan` in the config back to 0
+- `python3 noise_analyzer.py -conf conf/config_file_name.txt`
 
 Run analysis:
 - run noise scan (see above)
@@ -33,11 +37,6 @@ Run analysis:
 - run analysis serially OR in parallel:
   - `python3 serial_analyzer.py -conf conf/config_file_name.txt`
   - `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
-- to see event displays (fits...):
-  - change `doplot` in the config to 1
-  - run with `serial_analyzer.py` as above
-  - kill the process after as many fits as desired
-  - change `doplot` in the config back to 0
 
 Run alignment with cosmics:
 - run noise scan (see above)

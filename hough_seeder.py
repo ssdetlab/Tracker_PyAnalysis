@@ -324,11 +324,13 @@ class HoughSeeder:
         ROOT.gPad.SetTicks(1,1)
         first = True
         for name,f in self.zx_functions.items():
+            f.SetTitle("Hough transform in z-x;#theta;#rho")
+            f.GetXaxis().SetTitle("#theta")
+            f.GetYaxis().SetTitle("#rho")
             f.SetMinimum(self.zx_fmin*1.2)
             f.SetMaximum(self.zx_fmax*1.2)
             if(first):
                 f.Draw("l")
-                f.SetTitle("Hough transform in z-x")
                 first = False
             else: f.Draw("l same")
             for arw in arrows_zx: arw.Draw()
@@ -339,11 +341,13 @@ class HoughSeeder:
         ROOT.gPad.SetGridy()
         first = True
         for name,f in self.zy_functions.items():
+            f.SetTitle("Hough transform in z-y")
+            f.GetXaxis().SetTitle("#theta")
+            f.GetYaxis().SetTitle("#rho")
             f.SetMinimum(self.zy_fmin*1.2)
             f.SetMaximum(self.zy_fmax*1.2)
             if(first):
                 f.Draw("l")
-                f.SetTitle("Hough transform in z-y")
                 first = False
             else: f.Draw("l same")
             for arw in arrows_zy: arw.Draw()
@@ -365,7 +369,7 @@ class HoughSeeder:
         cnv.SaveAs(plotname)
 
         zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.z_seed,self.x_seed,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
-        zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope x vs y;z [mm];y [mm]",self.z_seed,self.y_seed,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
+        zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope y vs z;z [mm];y [mm]",self.z_seed,self.y_seed,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
         cnv = ROOT.TCanvas("cnv_frequency","",1000,500)
         cnv.Divide(2,1)
         cnv.cd(1)

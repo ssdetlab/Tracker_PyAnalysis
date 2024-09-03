@@ -126,7 +126,7 @@ class Config:
         self.add("nCPU", self.getI('RUN','nCPU'))
         self.add("doplot", self.getB('RUN','doplot'))
         self.add("doDiagnostics", self.getB('RUN','doDiagnostics'))
-        self.add("doNoiseScan", self.getB('RUN','doNoiseScan'))
+        # self.add("doNoiseScan", self.getB('RUN','doNoiseScan'))
         self.add("isCVRroot", self.getB('RUN','isCVRroot'))
         self.add("nprintout", self.getI('RUN','nprintout'))
         self.add("inputfile", self.getS('RUN','inputfile'))

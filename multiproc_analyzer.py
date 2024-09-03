@@ -303,14 +303,13 @@ def analyze(tfilenamein,irange,evt_range,masked):
         if(n_successful_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )
         
-        if(n_goodchi2_tracks<1): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
-        
-        ### plot
-        #if(ievt==12196 or ievt==12209 or ievt==12243 or ievt==34581 or ievt==34599 or ievt==12717 or ievt==23093 or ievt==33427 or ievt==10923 or ievt==24):
+        ### plot everything which is fitted but the function will only put the track line if it passes the chi2 cut
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
         seeder.plot_seeder(fevtdisplayname)
         plot_event(runnumber,starttime,duration,ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
+        
+        if(n_goodchi2_tracks<1): continue ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
         
         ### fill the event data and add to events
         eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )
@@ -358,15 +357,17 @@ if __name__ == "__main__":
     ### Create a pool of workers
     pool = mp.Pool(nCPUs)
     
-    ### make event display dir
-    paths = cfg["inputfile"].split("/")
-    evtdspdir = ""
-    for i in range(len(paths)-1): evtdspdir += paths[i]+"/"
-    evtdspdir += "event_displays"
-    ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
+    # ### make event display dir
+    # paths = cfg["inputfile"].split("/")
+    # evtdspdir = ""
+    # for i in range(len(paths)-1): evtdspdir += paths[i]+"/"
+    # evtdspdir += "event_displays"
+    # ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
     
     # Parallelize the analysis
-    tfilenamein = cfg["inputfile"]
+    ### make directories, copy the input file to the new basedir and return the path to it
+    tfilenamein = make_run_dirs(cfg["inputfile"])
+    # tfilenamein = cfg["inputfile"]
     tfnoisename = tfilenamein.replace(".root","_noise.root")
     masked = GetNoiseMask(tfnoisename)
     

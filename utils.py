@@ -18,6 +18,53 @@ import config
 from config import *
 
 
+def format_run_number(run):
+    if(run<0 or run>=10000000):
+        print(f"run number {run} is not supported. Quitting.")
+        quit()
+    if(run<10):                        return f"run_000000{run}"
+    if(run>=10 and run<100):           return f"run_00000{run}"
+    if(run>=100 and run<1000):         return f"run_0000{run}"
+    if(run>=1000 and run<10000):       return f"run_000{run}"
+    if(run>=10000 and run<100000):     return f"run_00{run}"
+    if(run>=100000 and run<1000000):   return f"run_0{run}"
+    if(run>=1000000 and run<10000000): return f"run_{run}" # assume no more than 9,999,999 events...
+    return ""
+
+def get_run_from_file(name):
+    ## example: name = tree_09_02_2024_21_39_47_Run128.root
+    words = name.split("_")
+    word = words[-1]
+    srun = word.replace("Run","").replace(".root","")
+    run = int(srun)
+    return run
+
+def make_run_dirs(name):
+    print(f"Got input file {name}")
+    if(not os.path.isfile(name)):
+        print(f"Input file {name} does not exist. Quitting.")
+        quit()
+    run    = get_run_from_file(name)
+    srun   = format_run_number(run)
+    paths  = name.split("/")
+    infile = paths[-1]
+    rundir = ""
+    for i in range(len(paths)-1): rundir += paths[i]+"/"
+    rundir += srun
+    evtdir = rundir+"/event_displays"
+    filecopy = f"{rundir}/{infile}"
+    if(not os.path.isdir(rundir)):
+        print(f"Making dir {rundir}")
+        ROOT.gSystem.Exec(f"/bin/mkdir -p {rundir}")
+    if(not os.path.isdir(evtdir)):
+        print(f"Making dir {evtdir}")
+        ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdir}")
+    if(not os.path.isfile(filecopy)):
+        print(f"Copying input file {name} to run dir {rundir}")
+        ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
+    return filecopy
+
+
 def get_human_timestamp(timestamp_ms,fmt="%d/%m/%Y, %H:%M:%S"):
     unix_timestamp = timestamp_ms/1000
     human_timestamp = time.strftime(fmt,time.localtime(unix_timestamp))
