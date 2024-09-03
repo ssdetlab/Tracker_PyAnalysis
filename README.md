@@ -19,11 +19,19 @@ Setup:
 - change config file as needed (see examples in the conf/ dir)
   - particularly change the path to the input file to wherever you copied it
   - it is assumed that the file name starts with `tree_` and ends with `RunX.root` where `X` is the EUDAQ run number between 0 and 1000000
-- Once you run any of the scripts below, several dirs and files will be created in the same dir where the input file from the config is:
+
+Quick start (but read below...):
+- Must run:  `python3 noise_analyzer.py -conf conf/config_file_name.txt`
+- Then run:  `python3 serial_analyzer.py -conf conf/config_file_name.txt`
+- *OR* run:  `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
+- Summarize: `python3 postproc_analyzer.py -conf conf/config_file_name.txt`
+- Finally, check the `event_displays` dir
+
+Directories and input business:
+- Once you run any of the scripts listed above (and below), several dirs and files will be created in the same dir where the input file from the config is:
   - a dedicated run dir, e.g. `run_0000046` if the EUDAQ run number is 46
   - a subdir for the event displays, e.g. `run_0000046/event_displays` if the EUDAQ run number is 46
   - an input file will copy placed in `run_0000046/` if the EUDAQ run number is 46
-
 
 Run noise scan:
 - if you want to process only part of the events, set the "nmax2process" parameter as needed

@@ -58,10 +58,10 @@ mm2um = 1000
 
 tfilenamein = make_run_dirs(cfg["inputfile"])
 tfilenamein = tfilenamein.replace(".root","_multiprocess_histograms.root")
-# tfilenamein = cfg["inputfile"].replace(".root","_multiprocess_histograms.root")
 detectors = cfg["detectors"]
 
-histprefx = ["h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
+histprefx_glb = ["h_cutflow", "h_3Dchi2err_full" ]
+histprefx_det = ["h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
 histos = {}
 
 def gethmax(h,norm=True):
@@ -73,13 +73,20 @@ def gethmax(h,norm=True):
     return hmax
 
 def book_histos(tfo):
+    tfi = ROOT.TFile( tfilenamein,"READ" )
     tfo.cd()
-    for prefx in histprefx:
+    ### global histos
+    for hist in histprefx_glb:
+        print("From file:",tfilenamein,"getting histogram named:",hist)
+        name = hist
+        histos.update({name:tfi.Get(hist).Clone(name)})
+        histos[name].SetDirectory(0)
+    ### per detector histos
+    for prefx in histprefx_det:
         for idet,det in enumerate(detectors):
             hname = prefx+"_"+det
             hist = det+"/"+hname
             name = hname
-            tfi = ROOT.TFile( tfilenamein,"READ" )
             print("From file:",tfilenamein,"getting histogram named:",hist)
             histos.update({name:tfi.Get(hist).Clone(name)})
             if(det in histos[name].GetTitle()): histos[name].SetTitle( det )
@@ -157,7 +164,8 @@ def plot_2x2_histos(pdf,prefix):
         histos[hname].SetMarkerColor(ROOT.kBlack)
         histos[hname].SetMarkerSize(1)
         histos[hname].SetMarkerStyle(20)
-        histos[hname].Scale(1./histos[hname].Integral())
+        integral = histos[hname].Integral()
+        if(integral>0): histos[hname].Scale(1./integral)
         histos[hname].SetTitle(det)
         histos[hname].GetYaxis().SetTitle("Normalized")
     
@@ -181,7 +189,40 @@ def plot_2x2_histos(pdf,prefix):
             s.SetTextSize(0.045)
             s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
             s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
-            s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+            if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+    cnv.SaveAs(pdf)
+
+def plot_2x2_1D_histos(pdf,prefix,logy,addtotitle=""):
+    for idet,det in enumerate(detectors):
+        hname = prefix+"_"+det
+        histos[hname].SetLineColor(ROOT.kBlack)
+        title = det
+        if(addtotitle!=""): title += " "+addtotitle
+        histos[hname].SetTitle(title)
+    cnv = ROOT.TCanvas("cnv","",1200,1000)
+    cnv.Divide(2,2)
+    for count1,det in enumerate(detectors):
+        p = cnv.cd(count1+1)
+        p.SetTicks(1,1)
+        if(logy): p.SetLogy()
+        hname = prefix+"_"+det
+        histos[hname].Draw("hist")
+    cnv.SaveAs(pdf)
+
+def plot_2x2_2D_histos(pdf,prefix,logz,addtotitle=""):
+    for idet,det in enumerate(detectors):
+        hname = prefix+"_"+det
+        title = det
+        if(addtotitle!=""): title += " "+addtotitle
+        histos[hname].SetTitle(title)
+    cnv = ROOT.TCanvas("cnv","",1200,1000)
+    cnv.Divide(2,2)
+    for count1,det in enumerate(detectors):
+        p = cnv.cd(count1+1)
+        p.SetTicks(1,1)
+        if(logz): p.SetLogz()
+        hname = prefix+"_"+det
+        histos[hname].Draw("colz")
     cnv.SaveAs(pdf)
 
 
@@ -195,11 +236,23 @@ if __name__ == "__main__":
     tfo = ROOT.TFile(tfilenameout,"RECREATE")
     book_histos(tfo)
     
-    # scale6 = gethmax(histos[run2fit+"_h_cls_size_ALPIDE_0"])
-    # scale0 = gethmax(histos[run2fit+"_h_cls_size_ALPIDE_3"]) if(runtype=="cosmics") else gethmax(histos[run2fit+"_h_cls_size_ALPIDE_0"])
-    # print("scale0=",scale0,"  scale6=",scale6)
+    cnv = ROOT.TCanvas("cnv","",800,500)
+    cnv.SetLogy()
+    histos["h_cutflow"].Draw("text0")
+    cnv.SaveAs(tfilenameout.replace("root","pdf("))
     
-    plot_2x2_histos(tfilenameout.replace("root","pdf("),"h_cls_size")
+    cnv = ROOT.TCanvas("cnv","",800,500)
+    cnv.SetLogy()
+    histos["h_3Dchi2err_full"].Draw("hist")
+    cnv.SaveAs(tfilenameout.replace("root","pdf"))
+    
+    plot_2x2_1D_histos(tfilenameout.replace("root","pdf"),"h_pix_occ_1D",logy=True,addtotitle="unmasked")
+    plot_2x2_1D_histos(tfilenameout.replace("root","pdf"),"h_pix_occ_1D_masked",logy=True,addtotitle="masked")
+    plot_2x2_2D_histos(tfilenameout.replace("root","pdf"),"h_pix_occ_2D",logz=True,addtotitle="unmasked")
+    plot_2x2_2D_histos(tfilenameout.replace("root","pdf"),"h_pix_occ_2D_masked",logz=True,addtotitle="masked")
+    
+    plot_2x2_histos(tfilenameout.replace("root","pdf"),"h_cls_size")
+    
     plot_2x2_histos(tfilenameout.replace("root","pdf"),"h_Chi2fit_res_trk2cls_x")
     plot_2x2_histos(tfilenameout.replace("root","pdf)"),"h_Chi2fit_res_trk2cls_y")
     
