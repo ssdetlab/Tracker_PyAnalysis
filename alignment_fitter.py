@@ -246,7 +246,8 @@ if __name__ == "__main__":
         print("Unknown detector:",refdet," --> quitting")
         quit()
     
-    tfilenamein = cfg["inputfile"]
+    # tfilenamein = cfg["inputfile"]
+    tfilenamein = make_run_dirs(cfg["inputfile"])
     files = getfiles(tfilenamein)
     
     axes       = cfg["axes2align"]
@@ -267,8 +268,12 @@ if __name__ == "__main__":
             for event in data:
                 if(allevents%50==0 and allevents>0): print("Reading event #",allevents)
                 allevents += 1
+                
+                ### TODO: one track per event. need to adapt the code to take all tracks...
+                if(len(event.tracks)!=1): continue
+                
                 chi2dof,dabs,dX,dY = fitSVD(event,[0]*ndet2align,[0]*ndet2align,[0]*ndet2align,refdet)
-                chi2dof_werr = event.track.chi2ndof 
+                chi2dof_werr = event.tracks[0].chi2ndof 
                 # if(chi2dof>cfg["maxchi2align"]): continue
                 if(chi2dof_werr>cfg["maxchi2align"]): continue
                 events.append(event)

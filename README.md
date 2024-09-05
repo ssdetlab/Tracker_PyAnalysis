@@ -20,7 +20,7 @@ Setup:
   - particularly change the path to the input file to wherever you copied it
   - it is assumed that the file name starts with `tree_` and ends with `RunX.root` where `X` is the EUDAQ run number between 0 and 1000000
 
-Quick start (but read below...):
+Quick start, assuming that the detector is aligned already (but read below...):
 - Must run:  `python3 noise_analyzer.py -conf conf/config_file_name.txt`
 - Then run:  `python3 serial_analyzer.py -conf conf/config_file_name.txt`
 - *OR* run:  `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`

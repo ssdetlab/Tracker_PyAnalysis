@@ -31,7 +31,9 @@ nprintout      = 20
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_08_31_2024_11_01_53_Run125.root ### ok
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_01_2024_23_46_17_Run127.root ### ok
 ### Arduino TTL, 1kHz, threshold ~104e
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_02_2024_21_39_47_Run128.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_02_2024_21_39_47_Run128.root
+### Arduino TTL, 1kHz, threshold ~117e, Vertical (ALPIDE_0, chip #8 up)
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_03_2024_14_25_55_Run129.root
 
 
 [CHIP]
@@ -71,7 +73,10 @@ plane2det     = ALPIDE_0:8 ALPIDE_1:5 ALPIDE_2:3 ALPIDE_3:1
 rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,36.03 ALPIDE_2:0,0,60.05 ALPIDE_3:0,0,84.07
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.5191531681709917,dy=-0.46595050424595746,theta=0.0009213194795836727 ALPIDE_2:dx=-0.7029308767047607,dy=-0.6681298502851433,theta=-0.001983609179703054 ALPIDE_3:dx=-0.8148037396883998,dy=-0.7457714668355226,theta=-0.00024245376925574271
+### measured at WIS prior to sending the detector to SLAC:
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.5191531681709917,dy=-0.46595050424595746,theta=0.0009213194795836727 ALPIDE_2:dx=-0.7029308767047607,dy=-0.6681298502851433,theta=-0.001983609179703054 ALPIDE_3:dx=-0.8148037396883998,dy=-0.7457714668355226,theta=-0.00024245376925574271
+### measured at SLAC when the detector is facing the sky, threshold is 117e:
+misalignment  = ALPIDE_0:dx=0.3140542205447679,dy=0.4543104021464066,theta=0.01115620238000288 ALPIDE_1:dx=0.1046498539399403,dy=0.2764420035219474,theta=0.011910787640029084 ALPIDE_2:dx=0.10920416067011089,dy=0.27263478188436574,theta=0.008910888642971782 ALPIDE_3:dx=0.20832138306726375,dy=0.3814251915126402,theta=0.009949216012100914
 maxchi2align  = 1
 axes2align    = xytheta
 naligniter    = 200
