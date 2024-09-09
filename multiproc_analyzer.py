@@ -65,21 +65,6 @@ ROOT.gStyle.SetOptFit(0)
 # ROOT.gStyle.SetOptStat(0)
 
 
-### see https://root.cern/manual/python
-print("---- start loading libs")
-if(os.uname()[1]=="wisett"):
-    print("On DAQ PC (linux): must first add DetectorEvent lib:")
-    print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
-    ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
-    ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/hardware/inc/')
-    ROOT.gSystem.Load('libeudaq_det_event_dict.so')
-else:
-    print("On mac: must first add DetectorEvent lib:")
-    print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240705:$LD_LIBRARY_PATH")
-    ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240705/')
-    ROOT.gSystem.Load('libtrk_event_dict.dylib')
-print("---- finish loading libs")
-
 ###############################################################
 ###############################################################
 ###############################################################
@@ -338,9 +323,44 @@ if __name__ == "__main__":
     # get the start time
     st = time.time()
     
+    ### see https://root.cern/manual/python
+    print("---- start loading libs")
+    if(os.uname()[1]=="wisett"):
+        print("On DAQ PC (linux): must first add DetectorEvent lib:")
+        print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
+        ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/hardware/inc/')
+        ROOT.gSystem.Load('libeudaq_det_event_dict.so')
+    else:
+        print("On mac: must first add DetectorEvent lib:")
+        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240822:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240822/')
+        ROOT.gSystem.Load('libtrk_event_dict.dylib')
+    print("---- finish loading libs")
+    
     # print config once
     show_config()
     
+    ### make directories, copy the input file to the new basedir and return the path to it
+    tfilenamein = make_run_dirs(cfg["inputfile"])
+    tfnoisename = tfilenamein.replace(".root","_noise.root")
+    masked = GetNoiseMask(tfnoisename)
+    
+    ### the output histos
+    tfilenameout = tfilenamein.replace(".root","_multiprocess_histograms.root")
+    tfo = ROOT.TFile(tfilenameout,"RECREATE")
+    tfo.cd()
+    allhistos = book_histos(tfo)
+    
+    ### meta data:
+    tfmeta = ROOT.TFile(tfilenamein,"READ")
+    tmeta = tfmeta.Get("MyTreeMeta")
+    tmeta.GetEntry(0)
+    print( f"\nRun start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
+    print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
+    print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" )
+    
+    # Parallelize the analysis
     ### architecture depndent
     nCPUs = mp.cpu_count()
     print("nCPUs available:",nCPUs)
@@ -356,34 +376,6 @@ if __name__ == "__main__":
 
     ### Create a pool of workers
     pool = mp.Pool(nCPUs)
-    
-    # ### make event display dir
-    # paths = cfg["inputfile"].split("/")
-    # evtdspdir = ""
-    # for i in range(len(paths)-1): evtdspdir += paths[i]+"/"
-    # evtdspdir += "event_displays"
-    # ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdspdir}")
-    
-    # Parallelize the analysis
-    ### make directories, copy the input file to the new basedir and return the path to it
-    tfilenamein = make_run_dirs(cfg["inputfile"])
-    # tfilenamein = cfg["inputfile"]
-    tfnoisename = tfilenamein.replace(".root","_noise.root")
-    masked = GetNoiseMask(tfnoisename)
-    
-    ### the output histos
-    tfilenameout = tfilenamein.replace(".root","_multiprocess_histograms.root")
-    tfo = ROOT.TFile(tfilenameout,"RECREATE")
-    tfo.cd()
-    allhistos = book_histos(tfo)
-    
-    ### meta data:
-    tfmeta = ROOT.TFile(tfilenamein,"READ")
-    tmeta = tfmeta.Get("MyTreeMeta")
-    tmeta.GetEntry(0)
-    print( f"Run start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
-    print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
-    print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" ) 
     
     ### start the loop
     print("\nStarting the loop:")

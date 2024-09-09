@@ -18,8 +18,10 @@ from scipy.optimize import curve_fit
 import argparse
 parser = argparse.ArgumentParser(description='postptrocess_plots.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
+parser.add_argument('-mult', metavar='multi run?',  required=False, help='is this a multirun? [0/1]')
 argus = parser.parse_args()
 configfile = argus.conf
+ismutirun  = argus.mult if(argus.mult is not None and int(argus.mult)==1) else False
 
 import config
 from config import *
@@ -55,13 +57,6 @@ ROOT.gStyle.SetOptFit(0)
 ROOT.gStyle.SetOptStat(0)
 
 mm2um = 1000
-
-tfilenamein = make_run_dirs(cfg["inputfile"])
-tfilenamein = tfilenamein.replace(".root","_multiprocess_histograms.root")
-detectors = cfg["detectors"]
-
-histprefx_glb = ["h_cutflow", "h_nSeeds", "h_nTracks", "h_nTracks_success", "h_nTracks_goodchi2", "h_3Dchi2err_full" ]
-histprefx_det = ["h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
 histos = {}
 
 def gethmax(h,norm=True):
@@ -72,18 +67,17 @@ def gethmax(h,norm=True):
         hmax = y if(y>hmax) else hmax
     return hmax
 
-def book_histos(tfo):
-    tfi = ROOT.TFile( tfilenamein,"READ" )
+def book_histos(tfi,tfo,hprefx_glb,hprefx_det,dets):
     tfo.cd()
     ### global histos
-    for hist in histprefx_glb:
+    for hist in hprefx_glb:
         print("From file:",tfilenamein,"getting histogram named:",hist)
         name = hist
         histos.update({name:tfi.Get(hist).Clone(name)})
         histos[name].SetDirectory(0)
     ### per detector histos
-    for prefx in histprefx_det:
-        for idet,det in enumerate(detectors):
+    for prefx in hprefx_det:
+        for idet,det in enumerate(dets):
             hname = prefx+"_"+det
             hist = det+"/"+hname
             name = hname
@@ -91,7 +85,6 @@ def book_histos(tfo):
             histos.update({name:tfi.Get(hist).Clone(name)})
             if(det in histos[name].GetTitle()): histos[name].SetTitle( det )
             histos[name].SetDirectory(0)
-
 
 def write_histos(tfo):
     tfo.cd()
@@ -157,8 +150,8 @@ def fit3(h,col):
     return f3
 
 
-def plot_2x2_histos(pdf,prefix):
-    for idet,det in enumerate(detectors):
+def plot_2x2_histos(pdf,prefix,dets):
+    for idet,det in enumerate(dets):
         hname = prefix+"_"+det
         histos[hname].SetLineColor(ROOT.kBlack)
         histos[hname].SetMarkerColor(ROOT.kBlack)
@@ -171,7 +164,7 @@ def plot_2x2_histos(pdf,prefix):
     
     cnv = ROOT.TCanvas("cnv","",1200,1000)
     cnv.Divide(2,2)
-    for count1,det in enumerate(detectors):
+    for count1,det in enumerate(dets):
         p = cnv.cd(count1+1)
         p.SetTicks(1,1)
         # if("cls_size" in prefix): p.SetLogy()
@@ -199,8 +192,8 @@ def plot_1D_histos(pdf,hname,logy,cnvx=500,cnvy=500,drawopt="hist",addtotitle=""
     histos[hname].Draw(drawopt)
     cnv.SaveAs(pdf)
     
-def plot_2x2_1D_histos(pdf,prefix,logy,addtotitle=""):
-    for idet,det in enumerate(detectors):
+def plot_2x2_1D_histos(pdf,prefix,dets,logy,addtotitle=""):
+    for idet,det in enumerate(dets):
         hname = prefix+"_"+det
         histos[hname].SetLineColor(ROOT.kBlack)
         title = det
@@ -208,7 +201,7 @@ def plot_2x2_1D_histos(pdf,prefix,logy,addtotitle=""):
         histos[hname].SetTitle(title)
     cnv = ROOT.TCanvas("cnv","",1200,1000)
     cnv.Divide(2,2)
-    for count1,det in enumerate(detectors):
+    for count1,det in enumerate(dets):
         p = cnv.cd(count1+1)
         p.SetTicks(1,1)
         if(logy): p.SetLogy()
@@ -216,15 +209,15 @@ def plot_2x2_1D_histos(pdf,prefix,logy,addtotitle=""):
         histos[hname].Draw("hist")
     cnv.SaveAs(pdf)
 
-def plot_2x2_2D_histos(pdf,prefix,logz,addtotitle=""):
-    for idet,det in enumerate(detectors):
+def plot_2x2_2D_histos(pdf,prefix,dets,logz,addtotitle=""):
+    for idet,det in enumerate(dets):
         hname = prefix+"_"+det
         title = det
         if(addtotitle!=""): title += " "+addtotitle
         histos[hname].SetTitle(title)
     cnv = ROOT.TCanvas("cnv","",1200,1000)
     cnv.Divide(2,2)
-    for count1,det in enumerate(detectors):
+    for count1,det in enumerate(dets):
         p = cnv.cd(count1+1)
         p.SetTicks(1,1)
         if(logz): p.SetLogz()
@@ -238,13 +231,27 @@ def plot_2x2_2D_histos(pdf,prefix,logz,addtotitle=""):
 #####################################################################################
 #####################################################################################
 if __name__ == "__main__":
+    tfilenamein = ""
+    if(ismutirun):
+        tfilenamein = make_multirun_dir(cfg["inputfile"],cfg["runnums"])
+    else:
+        tfilenamein = make_run_dirs(cfg["inputfile"])
+        tfilenamein = tfilenamein.replace(".root","_multiprocess_histograms.root")
+    tfi = ROOT.TFile( tfilenamein,"READ" )
+    
+    detectors = cfg["detectors"]
+
+    histprefx_glb = ["h_cutflow", "h_nSeeds", "h_nTracks", "h_nTracks_success", "h_nTracks_goodchi2", "h_3Dchi2err_full" ]
+    histprefx_det = ["h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
+    
     # get the start time
     tfilenameout = tfilenamein.replace(".root","_postprocessplots.root")
     tfo = ROOT.TFile(tfilenameout,"RECREATE")
-    book_histos(tfo)
+    book_histos(tfi,tfo,histprefx_glb,histprefx_det,detectors)
     
     pdf = tfilenameout.replace("root","pdf")
     
+    ####### plot
     plot_1D_histos(pdf+"(","h_cutflow",logy=True,cnvx=800,cnvy=500,drawopt="hist text0")
     plot_1D_histos(pdf,    "h_nSeeds",logy=True,cnvx=500,cnvy=500,drawopt="hist text0")
     plot_1D_histos(pdf,    "h_nTracks",logy=True,cnvx=500,cnvy=500,drawopt="hist text0",addtotitle="All tracks")
@@ -252,16 +259,17 @@ if __name__ == "__main__":
     plot_1D_histos(pdf,    "h_nTracks_goodchi2",logy=True,cnvx=500,cnvy=500,drawopt="hist text0",addtotitle="Good #chi^{2}/N_{DoF} tracks")
     plot_1D_histos(pdf,    "h_3Dchi2err_full",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     
-    plot_2x2_1D_histos(pdf,"h_pix_occ_1D",logy=True,addtotitle="unmasked")
-    plot_2x2_1D_histos(pdf,"h_pix_occ_1D_masked",logy=True,addtotitle="masked")
-    plot_2x2_2D_histos(pdf,"h_pix_occ_2D",logz=True,addtotitle="unmasked")
-    plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",logz=True,addtotitle="masked")
+    plot_2x2_1D_histos(pdf,"h_pix_occ_1D",detectors,logy=True,addtotitle="unmasked")
+    plot_2x2_1D_histos(pdf,"h_pix_occ_1D_masked",detectors,logy=True,addtotitle="masked")
+    # plot_2x2_2D_histos(pdf,"h_pix_occ_2D",detectors,logz=True,addtotitle="unmasked")
+    # plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",detectors,logz=True,addtotitle="masked")
     
-    plot_2x2_histos(pdf,"h_cls_size")
+    plot_2x2_histos(pdf,"h_cls_size",detectors)
     
-    plot_2x2_histos(pdf,"h_Chi2fit_res_trk2cls_x")
-    plot_2x2_histos(pdf+")","h_Chi2fit_res_trk2cls_y")
+    plot_2x2_histos(pdf,"h_Chi2fit_res_trk2cls_x",detectors)
+    plot_2x2_histos(pdf+")","h_Chi2fit_res_trk2cls_y",detectors)
     
+    ####### save in root file
     write_histos(tfo)
     tfo.Write()
     tfo.Close()

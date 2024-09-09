@@ -58,21 +58,6 @@ ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 # ROOT.gStyle.SetOptStat(0)
 
-### see https://root.cern/manual/python
-print("---- start loading libs")
-if(os.uname()[1]=="wisett"):
-    print("On DAQ PC (linux): must first add DetectorEvent lib:")
-    print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
-    ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
-    ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/hardware/inc/')
-    ROOT.gSystem.Load('libeudaq_det_event_dict.so')
-else:
-    print("On mac: must first add DetectorEvent lib:")
-    print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240822:$LD_LIBRARY_PATH")
-    ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240822/')
-    ROOT.gSystem.Load('libtrk_event_dict.dylib')
-print("---- finish loading libs")
-
     
 #####################################################################################
 #####################################################################################
@@ -133,35 +118,50 @@ def RunNoiseScan(tfilename,tfnoisename):
 #############################################################################
 #############################################################################
 #############################################################################
-
-### get the start time
-st = time.time()
-
-### make directories, copy the input file to the new basedir and return the path to it
-tfilenamein = make_run_dirs(cfg["inputfile"])
-# tfilenamein = cfg["inputfile"]
-
-### noise
-tfnoisename = tfilenamein.replace(".root","_noise.root")
-isnoisefile = os.path.isfile(os.path.expanduser(tfnoisename))
-print("Running on:",tfilenamein)
-print("Noise run file exists?:",isnoisefile)
-if(isnoisefile):
-    redonoise = input("Noise file exists - do you want to rederive it?[y/n]:")
-    if(redonoise=="y" or redonoise=="Y"):
+if __name__ == "__main__":
+    ### get the start time
+    st = time.time()
+    
+    ### see https://root.cern/manual/python
+    print("---- start loading libs")
+    if(os.uname()[1]=="wisett"):
+        print("On DAQ PC (linux): must first add DetectorEvent lib:")
+        print("export LD_LIBRARY_PATH=$HOME/work/eudaq/lib:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/module/inc/')
+        ROOT.gInterpreter.AddIncludePath('../eudaq/user/stave/hardware/inc/')
+        ROOT.gSystem.Load('libeudaq_det_event_dict.so')
+    else:
+        print("On mac: must first add DetectorEvent lib:")
+        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240822:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240822/')
+        ROOT.gSystem.Load('libtrk_event_dict.dylib')
+    print("---- finish loading libs")
+    
+    ### make directories, copy the input file to the new basedir and return the path to it
+    tfilenamein = make_run_dirs(cfg["inputfile"])
+    # tfilenamein = cfg["inputfile"]
+    
+    ### noise
+    tfnoisename = tfilenamein.replace(".root","_noise.root")
+    isnoisefile = os.path.isfile(os.path.expanduser(tfnoisename))
+    print("Running on:",tfilenamein)
+    print("Noise run file exists?:",isnoisefile)
+    if(isnoisefile):
+        redonoise = input("Noise file exists - do you want to rederive it?[y/n]:")
+        if(redonoise=="y" or redonoise=="Y"):
+            RunNoiseScan(tfilenamein,tfnoisename)
+            masked = GetNoiseMask(tfnoisename)
+        else:
+            print("Option not understood - please try again.")
+    else:
         RunNoiseScan(tfilenamein,tfnoisename)
         masked = GetNoiseMask(tfnoisename)
-    else:
-        print("Option not understood - please try again.")
-else:
-    RunNoiseScan(tfilenamein,tfnoisename)
-    masked = GetNoiseMask(tfnoisename)
-print("###################################")
-print("### FINISHED RUNNING NOISE SCAN ###")
-print("###################################")
-quit()
-
-### get the end time and the execution time
-et = time.time()
-elapsed_time = et - st
-print('Execution time:', elapsed_time, 'seconds')
+    print("###################################")
+    print("### FINISHED RUNNING NOISE SCAN ###")
+    print("###################################")
+    quit()
+    
+    ### get the end time and the execution time
+    et = time.time()
+    elapsed_time = et - st
+    print('Execution time:', elapsed_time, 'seconds')

@@ -19,8 +19,10 @@ def trimNoise(h1D,pTrim,zeroSuppression=False):
     arr.sort()
     npixels = len(arr)
     nTrim = int(pTrim*npixels)
-    avg = np.average(arr[:-nTrim]) if(npixels) else -1
-    std = np.std(arr[:-nTrim])     if(npixels) else -1
+    print("nTrim",nTrim)
+    avg = np.average(arr[:-nTrim]) if(npixels and nTrim>0) else -1
+    std = np.std(arr[:-nTrim])     if(npixels and nTrim>0) else -1
+    print("avg,std=",avg,std)
     return avg,std
 
 

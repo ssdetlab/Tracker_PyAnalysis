@@ -65,12 +65,12 @@ class Config:
         return s.split(" ")
     
     def getArrI(self,section,var):
-        s = self.getS(section,var).split(",")
+        s = self.getS(section,var).split(" ")
         i = [int(x) for x in s]
         return i
         
     def getArrF(self,section,var):
-        s = self.getS(section,var).split(",")
+        s = self.getS(section,var).split(" ")
         f = [float(x) for x in s]
         return f
     
@@ -130,6 +130,8 @@ class Config:
         self.add("isCVRroot", self.getB('RUN','isCVRroot'))
         self.add("nprintout", self.getI('RUN','nprintout'))
         self.add("inputfile", self.getS('RUN','inputfile'))
+        
+        self.add("runnums", self.getArrI('MULTIRUN','runnums'))
 
         self.add("npix_x", self.getI('CHIP','npix_x'))
         self.add("npix_y", self.getI('CHIP','npix_y'))

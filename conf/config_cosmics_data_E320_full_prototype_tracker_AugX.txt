@@ -33,7 +33,14 @@ nprintout      = 20
 ### Arduino TTL, 1kHz, threshold ~104e
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_02_2024_21_39_47_Run128.root
 ### Arduino TTL, 1kHz, threshold ~117e, Vertical (ALPIDE_0, chip #8 up)
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_03_2024_14_25_55_Run129.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_03_2024_14_25_55_Run129.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_04_2024_23_05_31_Run130.root
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_07_2024_12_16_16_Run131.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_Run136.root ### noise run, with multiple files per one run
+
+
+[MULTIRUN]
+runnums = 129 130 131
 
 
 [CHIP]
@@ -83,7 +90,7 @@ naligniter    = 200
 alignmentbounds = dx:min=-1.0,max=+1.0 dy:min=-1.0,max=1.0 theta:min=-0.2,max=+0.2
 worldmargins  = 0.1
 worldscales   = x:1.2,1.2 y:1.5,1.5 z:1,1
-worldcenter   = 0,0,54.8
+worldcenter   = 0 0 54.8
 worldradius   = (84.07-0.00)*0.7
 
 [FIT]

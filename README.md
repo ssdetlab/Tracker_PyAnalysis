@@ -45,6 +45,7 @@ Run analysis:
 - run analysis serially OR in parallel:
   - `python3 serial_analyzer.py -conf conf/config_file_name.txt`
   - `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
+- look at the histograms in the new root file
 
 Run alignment with cosmics:
 - run noise scan (see above)
@@ -64,7 +65,16 @@ Run alignment with cosmics:
 - step 5: run step 1 again, but with the new (non-zero wherever relevant) `misalignment` parameters in the config file (from step 3)
 - step 6: check the residuals and the chi2 histograms
 
-Plot some histos and fit the residuals:
+Plot some postprocessing histos and fit the residuals:
 - step 1: run the alignment as discussed above
 - step 2: `python3 postproc_analyzer.py -conf conf/config_file_name.txt`
 - step 3: look at the pdf file created in the dir where the root file is (as listed in the config file)
+
+Run the postprocessing plotting as above but for a few similar runs combined:
+- provide the list of runs in the config file in field named `runnums` under the `MULTIRUN` area
+- run step 2 as in the section above, but with the `-mult 1` flag enabled:
+  - `python3 postproc_analyzer.py -conf conf/config_file_name.txt -mult 1`
+  - the inputfile from the config has to point to one of the runs in the runs list but it will be otherwise not used.
+  - the histograms files belonging to the runs in the list will be hadded
+     - the histogram file of each run must exist individually in its dedicated dir (see "Run analysis" section)
+	  - the plotting will be done with the result as an input

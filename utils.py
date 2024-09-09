@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit
+import glob
 
 import config
 from config import *
@@ -63,6 +64,45 @@ def make_run_dirs(name):
         print(f"Copying input file {name} to run dir {rundir}")
         ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
     return filecopy
+
+
+def make_multirun_dir(name,runs):
+    print(f"Got input file {name}")
+    if(not os.path.isfile(name)):
+        print(f"Input file {name} does not exist. Quitting.")
+        quit()
+    run = get_run_from_file(name)
+    if(run not in runs):
+        print(f"Input run {run} is not in the run list. Quitting.")
+        quit()
+    paths  = name.split("/")
+    rundir = ""
+    for i in range(len(paths)-1): rundir += paths[i]+"/"
+    ### make the list of files to be hadded
+    infiles = ""
+    for r in runs:
+        srun = format_run_number(r)
+        fname = rundir+srun+"/tree_*_multiprocess_histograms.root "
+        if(not len(glob.glob(fname))<1):
+            print(f"Input file {fname} does not exist. Quitting.")
+            quit()
+        infiles += fname+" "
+    ### get the combined rundir
+    runs.sort()
+    sruns = format_run_number(runs[0])
+    for i,r in enumerate(runs):
+        if(i==0): continue
+        srun = str(r)
+        sruns += ("-"+srun)
+    rundir += sruns
+    if(not os.path.isdir(rundir)):
+        print(f"Making dir {rundir}")
+        ROOT.gSystem.Exec(f"/bin/mkdir -p {rundir}")
+    ### hadd the file from scratch in that dir
+    ftarget = f"{rundir}/tree_multiprocess_histograms.root"
+    print(f"hadding input files:")
+    ROOT.gSystem.Exec(f"hadd -f {ftarget} {infiles}")
+    return ftarget
 
 
 def get_human_timestamp(timestamp_ms,fmt="%d/%m/%Y, %H:%M:%S"):
