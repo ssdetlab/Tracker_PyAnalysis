@@ -96,7 +96,10 @@ def analyze(tfilenamein,irange,evt_range,masked):
     tmeta.GetEntry(0)
     runnumber = tmeta.run_meta_data.run_number
     starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
+    endtime   = get_human_timestamp(tmeta.run_meta_data.run_end)
     duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+    meta = Meta(runnumber,starttime,endtime,duration)
+    
     # tfmeta.Close()
     
     ### open the pickle:
@@ -128,7 +131,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ttree.GetEntry(ievt)
         
         ### get the trigger number
-        trigger_number = ttree.event.trg_n
+        trigger = ttree.event.trg_n
 
         ### all events...
         histos["h_events"].Fill(0.5)
@@ -297,7 +300,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
         
         ### fill the event data and add to events
-        eventslist.append( Event(pixels_save,clusters,tracks,mcparticles) )
+        eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks,mcparticles) )
         
     ### end
     pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
@@ -359,6 +362,7 @@ if __name__ == "__main__":
     print( f"\nRun start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
     print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
     print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" )
+    
     
     # Parallelize the analysis
     ### architecture depndent

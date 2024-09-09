@@ -98,13 +98,22 @@ class Track:
     def __str__(self):
         return f"Track: "
 
-
+class Meta:
+    def __init__(self,run,start,end,dur):
+        self.run = run
+        self.start = start
+        self.end = end
+        self.dur = dur
+    def __str__(self):
+        return f"Meta: "
 
 class Event:
-    def __init__(self,pixels,clusters,tracks,mcparticles=None):
+    def __init__(self,meta,trigger,pixels,clusters,tracks,mcparticles=None):
+        self.meta = meta
+        self.trigger = trigger
         self.pixels = pixels
         self.clusters = clusters
         self.tracks = tracks
         self.mcparticles = mcparticles
     def __str__(self):
-        return f"Event: pixels={self.pixels}, clusters={self.clusters}, tracks={self.tracks}, mcparticles={self.mcparticles}"
+        return f"Event: meta={self.meta}, trigger={self.trigger}, pixels={self.pixels}, clusters={self.clusters}, tracks={self.tracks}, mcparticles={self.mcparticles}"
