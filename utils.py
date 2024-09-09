@@ -80,13 +80,16 @@ def make_multirun_dir(name,runs):
     for i in range(len(paths)-1): rundir += paths[i]+"/"
     ### make the list of files to be hadded
     infiles = ""
+    pklfiles = []
     for r in runs:
         srun = format_run_number(r)
         fname = rundir+srun+"/tree_*_multiprocess_histograms.root "
+        pname = rundir+srun+"/tree_*.pkl"
         if(not len(glob.glob(fname))<1):
             print(f"Input file {fname} does not exist. Quitting.")
             quit()
         infiles += fname+" "
+        pklfiles.extend( glob.glob(pname) )
     ### get the combined rundir
     runs.sort()
     sruns = format_run_number(runs[0])
@@ -102,7 +105,7 @@ def make_multirun_dir(name,runs):
     ftarget = f"{rundir}/tree_multiprocess_histograms.root"
     print(f"hadding input files:")
     ROOT.gSystem.Exec(f"hadd -f {ftarget} {infiles}")
-    return ftarget
+    return ftarget, pklfiles
 
 
 def get_human_timestamp(timestamp_ms,fmt="%d/%m/%Y, %H:%M:%S"):

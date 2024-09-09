@@ -26,9 +26,11 @@ import argparse
 parser = argparse.ArgumentParser(description='serial_analyzer.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
 parser.add_argument('-ref', metavar='reference detector', required=False,  help='reference detector')
+parser.add_argument('-mult', metavar='multi run?',  required=False, help='is this a multirun? [0/1]')
 argus = parser.parse_args()
 configfile = argus.conf
-refdet = argus.ref if(argus.ref is not None) else ""
+refdet     = argus.ref if(argus.ref is not None) else ""
+ismutirun  = argus.mult if(argus.mult is not None and int(argus.mult)==1) else False
 
 import config
 from config import *
@@ -246,10 +248,16 @@ if __name__ == "__main__":
         print("Unknown detector:",refdet," --> quitting")
         quit()
     
-    # tfilenamein = cfg["inputfile"]
-    tfilenamein = make_run_dirs(cfg["inputfile"])
-    files = getfiles(tfilenamein)
+    ### get all the files
+    tfilenamein = ""
+    files = []
+    if(ismutirun):
+        tfilenamein,files = make_multirun_dir(cfg["inputfile"],cfg["runnums"])
+    else:
+        tfilenamein = make_run_dirs(cfg["inputfile"])
+        files = getfiles(tfilenamein)
     
+    ###
     axes       = cfg["axes2align"]
     ndet2align = len(cfg["detectors"])-1 if(refdet!="") else len(cfg["detectors"])
     
