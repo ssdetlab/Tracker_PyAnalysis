@@ -28,19 +28,23 @@ nprintout      = 20
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_08_27_2024_06_01_02_Run122.root
 ### eighth run taken from IL, Arduino TTL, 1kHz, threshold ~130e
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_08_29_2024_07_50_40_Run124.root ### bad run
-# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_08_31_2024_11_01_53_Run125.root ### ok
-# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_01_2024_23_46_17_Run127.root ### ok
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_08_31_2024_11_01_53_Run125.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_01_2024_23_46_17_Run127.root
 ### Arduino TTL, 1kHz, threshold ~104e
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_02_2024_21_39_47_Run128.root
+
 ### Arduino TTL, 1kHz, threshold ~117e, Vertical (ALPIDE_0, chip #8 up)
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_03_2024_14_25_55_Run129.root
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_04_2024_23_05_31_Run130.root
-inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_07_2024_12_16_16_Run131.root
+# inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_07_2024_12_16_16_Run131.root
+### power outage run:
+inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_09_09_2024_x_Run139.root
+
 # inputfile      = test_data/full_e320_prototype_at_SLAC/runs/tree_Run136.root ### noise run, with multiple files per one run
 
 
 [MULTIRUN]
-runnums = 129 130 131
+runnums = 129 130 131 139
 
 
 [CHIP]

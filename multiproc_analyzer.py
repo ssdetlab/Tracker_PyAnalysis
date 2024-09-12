@@ -93,11 +93,20 @@ def analyze(tfilenamein,irange,evt_range,masked):
     ### the metadata:
     tfmeta = ROOT.TFile(tfilenamein,"READ")
     tmeta = tfmeta.Get("MyTreeMeta")
-    tmeta.GetEntry(0)
-    runnumber = tmeta.run_meta_data.run_number
-    starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
-    endtime   = get_human_timestamp(tmeta.run_meta_data.run_end)
-    duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+    runnumber = -1
+    starttime = -1
+    endtime   = -1
+    duration  = -1
+    if(tmeta is not None):
+        tmeta.GetEntry(0)
+        try:
+            runnumber = tmeta.run_meta_data.run_number
+            starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
+            endtime   = get_human_timestamp(tmeta.run_meta_data.run_end)
+            duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+        except:
+            print("Problem with Meta tree.")
+            runnumber = get_run_from_file(tfilenamein) #TODO: can also be taken from the event tree itself later
     meta = Meta(runnumber,starttime,endtime,duration)
     
     # tfmeta.Close()
@@ -358,10 +367,14 @@ if __name__ == "__main__":
     ### meta data:
     tfmeta = ROOT.TFile(tfilenamein,"READ")
     tmeta = tfmeta.Get("MyTreeMeta")
-    tmeta.GetEntry(0)
-    print( f"\nRun start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
-    print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
-    print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" )
+    if(tmeta is not None):
+        tmeta.GetEntry(0)
+        try:
+            print( f"\nRun start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
+            print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
+            print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" )
+        except:
+            print("Problem with Meta tree, continuing without it.")
     
     
     # Parallelize the analysis

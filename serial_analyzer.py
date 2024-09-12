@@ -85,11 +85,19 @@ def Run(tfilename,tfnoisename,tfo,histos):
     ### the metadata:
     tfmeta = ROOT.TFile(tfilename,"READ")
     tmeta = tfmeta.Get("MyTreeMeta")
-    tmeta.GetEntry(0)
-    runnumber = tmeta.run_meta_data.run_number
-    starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
-    duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
-    # tfmeta.Close()
+    runnumber = -1
+    starttime = -1
+    duration  = -1
+    if(tmeta is not None):
+        tmeta.GetEntry(0)
+        try:
+            runnumber = tmeta.run_meta_data.run_number
+            starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
+            duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+        except:
+            print("Problem with Meta tree.")
+            runnumber = get_run_from_file(tfilename) #TODO: can also be taken from the event tree itself later
+        # tfmeta.Close()
     
     ### get the tree
     tfile,ttree = GetTree(tfilename)
