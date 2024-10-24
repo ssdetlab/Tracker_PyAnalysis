@@ -98,12 +98,16 @@ def analyze(tfilenamein,irange,evt_range,masked):
     endtime   = -1
     duration  = -1
     if(tmeta is not None):
-        tmeta.GetEntry(0)
         try:
+            nmeta = tmeta.GetEntries()
+            tmeta.GetEntry(0)
             runnumber = tmeta.run_meta_data.run_number
-            starttime = get_human_timestamp(tmeta.run_meta_data.run_start)
-            endtime   = get_human_timestamp(tmeta.run_meta_data.run_end)
-            duration  = get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)
+            ts_start  = tmeta.run_meta_data.run_start
+            starttime = get_human_timestamp(ts_start)
+            if(nmeta>1): tmeta.GetEntry(nmeta-1)
+            ts_end    = tmeta.run_meta_data.run_end
+            endtime   = get_human_timestamp(ts_end)
+            duration  = get_run_length(ts_start,ts_end)
         except:
             print("Problem with Meta tree.")
             runnumber = get_run_from_file(tfilenamein) #TODO: can also be taken from the event tree itself later
@@ -345,8 +349,8 @@ if __name__ == "__main__":
         ROOT.gSystem.Load('libeudaq_det_event_dict.so')
     else:
         print("On mac: must first add DetectorEvent lib:")
-        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240822:$LD_LIBRARY_PATH")
-        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240822/')
+        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240911:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240911/')
         ROOT.gSystem.Load('libtrk_event_dict.dylib')
     print("---- finish loading libs")
     
@@ -368,11 +372,15 @@ if __name__ == "__main__":
     tfmeta = ROOT.TFile(tfilenamein,"READ")
     tmeta = tfmeta.Get("MyTreeMeta")
     if(tmeta is not None):
-        tmeta.GetEntry(0)
         try:
-            print( f"\nRun start:    {get_human_timestamp(tmeta.run_meta_data.run_start)}" )
-            print( f"Run end:      {get_human_timestamp(tmeta.run_meta_data.run_end)}" )
-            print( f"Run duration: {get_run_length(tmeta.run_meta_data.run_start,tmeta.run_meta_data.run_end)}" )
+            nmeta = tmeta.GetEntries()
+            tmeta.GetEntry(0)
+            ts_starttime = tmeta.run_meta_data.run_start
+            print( f"\nRun start:  {get_human_timestamp(ts_starttime)}" )
+            if(nmeta>1): tmeta.GetEntry(nmeta-1)
+            ts_endtime = tmeta.run_meta_data.run_end
+            print( f"Run end:      {get_human_timestamp(ts_endtime)}" )
+            print( f"Run duration: {get_run_length(ts_starttime,ts_endtime)}" )
         except:
             print("Problem with Meta tree, continuing without it.")
     

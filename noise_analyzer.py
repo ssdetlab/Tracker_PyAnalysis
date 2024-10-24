@@ -100,6 +100,7 @@ def RunNoiseScan(tfilename,tfnoisename):
 
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(evt,h2D_noise,cfg["isCVRroot"])
+        
         for det in cfg["detectors"]:
             for pix in pixels[det]:
                 i = h2D_noise[det].FindBin(pix.x,pix.y)
@@ -132,8 +133,8 @@ if __name__ == "__main__":
         ROOT.gSystem.Load('libeudaq_det_event_dict.so')
     else:
         print("On mac: must first add DetectorEvent lib:")
-        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240822:$LD_LIBRARY_PATH")
-        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240822/')
+        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240911:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240911/')
         ROOT.gSystem.Load('libtrk_event_dict.dylib')
     print("---- finish loading libs")
     

@@ -242,7 +242,7 @@ if __name__ == "__main__":
     detectors = cfg["detectors"]
 
     histprefx_glb = ["h_cutflow", "h_nSeeds", "h_nTracks", "h_nTracks_success", "h_nTracks_goodchi2", "h_3Dchi2err_full",  "h_3Dchi2err", "h_3Dchi2err_zoom" ]
-    histprefx_det = ["h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
+    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
     
     # get the start time
     tfilenameout = tfilenamein.replace(".root","_postprocessplots.root")
@@ -261,10 +261,11 @@ if __name__ == "__main__":
     plot_1D_histos(pdf,    "h_3Dchi2err",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     plot_1D_histos(pdf,    "h_3Dchi2err_zoom",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     
+    plot_2x2_1D_histos(pdf,"h_errors",detectors,logy=False)
     plot_2x2_1D_histos(pdf,"h_pix_occ_1D",detectors,logy=True,addtotitle="unmasked")
     plot_2x2_1D_histos(pdf,"h_pix_occ_1D_masked",detectors,logy=True,addtotitle="masked")
-    # plot_2x2_2D_histos(pdf,"h_pix_occ_2D",detectors,logz=True,addtotitle="unmasked")
-    # plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",detectors,logz=True,addtotitle="masked")
+    plot_2x2_2D_histos(pdf,"h_pix_occ_2D",detectors,logz=True,addtotitle="unmasked")
+    plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",detectors,logz=True,addtotitle="masked")
     
     plot_2x2_histos(pdf,"h_cls_size",detectors)
     
