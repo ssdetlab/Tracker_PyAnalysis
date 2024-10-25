@@ -174,6 +174,12 @@ def analyze(tfilenamein,irange,evt_range,masked):
         n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,cfg["isCVRroot"])
         for det in cfg["detectors"]:
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
+        
+        ### non-empty events
+        if(n_active_chips==0): continue  ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("Non-empty") )
+        
+        ### all layers are active
         if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         

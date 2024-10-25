@@ -2,18 +2,18 @@
 isMC           = 0
 isCVMFS        = 0
 doVtx          = 0
-runtype        = cosmics
+runtype        = facetii
 pdgIdMatch     = 13
 nmax2process   = 10000000000000
 nmax2processMP = 10000000000000
 nCPU           = 10
 doplot         = 0
 doDiagnostics  = 0
-# doNoiseScan    = 0
 isCVRroot      = 0
 nprintout      = 20
-### FACET trigger, 10 Hz, threshold ~117e, Horizontal (ALPIDE_0, chip #8 up), after re-installation
-inputfile = test_data/full_e320_prototype_at_SLAC/runs/tree_10_24_2024_x_Run255.root
+### FACET trigger, 10 Hz, threshold ~117e, Horizontal (ALPIDE_0, chip #8 facing the window), after re-installation
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_x_Run258.root
+inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_19_2024_x_Run160.root
 
 
 
@@ -79,5 +79,5 @@ method0 = Powell
 method1 = Nelder-Mead Powell
 
 [CUTS]
-cuts = All 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
+cuts = All Non-empty 0Err N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
 cut_chi2dof = 1
