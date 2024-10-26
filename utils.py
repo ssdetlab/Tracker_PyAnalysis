@@ -124,7 +124,7 @@ def get_run_length(run_start,run_end,fmt="hours"):
     return run_length_X
 
 
-def transform_to_real_space(v,translatez=True):
+def transform_to_real_space(v):
     thetaz = -90.*np.pi/180.
     # Rx = [[1,0,0], [0,math.cos(thetax), -math.sin(thetax)], [0,math.sin(thetax), math.cos(thetax)]]
     # Ry = [[math.cos(thetay),0,math.sin(thetay)], [0,1,0], [-math.sin(thetay),0,math.cos(thetay)]]
@@ -135,13 +135,12 @@ def transform_to_real_space(v,translatez=True):
     r[1] = Rz[1][0]*v[0]+Rz[1][1]*v[1]+Rz[1][2]*v[2]
     r[2] = Rz[2][0]*v[0]+Rz[2][1]*v[1]+Rz[2][2]*v[2]
     ### introduce the offset
-    if(translatez):
-        xOffset = 0.              ## mm
-        yOffset = 5.8*10+9.525+40.5/2. ## mm (5.8cm=Ymin of the window, 9.525mm=DeltaY(window bottom, bottom of box), 40.5mm=DeltaY(midle of chip, bottom of box))
-        zOffset = (11.43+2.01)*10 ## mm (11.43cm=DeltaZ(window, box face), 2.01cm=DeltaZ(box face, first chip))
-        r[0] += xOffset
-        r[1] += yOffset
-        r[2] += zOffset
+    xOffset = 0.                   ## mm
+    yOffset = 5.8*10+9.525+40.5/2. ## mm (5.8cm=Ymin of the window, 9.525mm=DeltaY(window bottom, bottom of box), 40.5mm=DeltaY(midle of chip, bottom of box))
+    zOffset = (11.43+2.01)*10      ## mm (11.43cm=DeltaZ(window, box face), 2.01cm=DeltaZ(box face, first chip))
+    r[0] += xOffset
+    r[1] += yOffset
+    r[2] += zOffset
     return r
 
 
@@ -277,13 +276,13 @@ def getChips(translatez=True):
         y0 = r[1]
         z0 = r[2]
         ### (x,y) in the chip frame are (y,x) in the lab frame
-        chipX = cfg["chipY"]
-        chipY = cfg["chipX"]
+        chipXLabFrame = cfg["chipY"]
+        chipYLabFrame = cfg["chipX"]
         
-        L1verts.append( np.array([ [x0-chipX/2.,y0-chipY/2.,z0],
-                                   [x0-chipX/2.,y0+chipY/2.,z0],
-                                   [x0+chipX/2.,y0+chipY/2.,z0],
-                                   [x0+chipX/2.,y0-chipY/2.,z0] ]) )
+        L1verts.append( np.array([ [x0-chipXLabFrame/2.,y0-chipYLabFrame/2.,z0],
+                                   [x0-chipXLabFrame/2.,y0+chipYLabFrame/2.,z0],
+                                   [x0+chipXLabFrame/2.,y0+chipYLabFrame/2.,z0],
+                                   [x0+chipXLabFrame/2.,y0-chipYLabFrame/2.,z0] ]) )
     return L1verts
 
 def getWindowRealSpace():
