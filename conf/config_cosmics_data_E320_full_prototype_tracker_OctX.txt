@@ -43,8 +43,7 @@ ezCls = 0.1
 
 
 [WORLD]
-lineScaleUp = 70
-lineScaleDn = 50
+worldbounds = x:-125,125 y:0,250 z:0,250
 
 
 [NOISE]
@@ -69,15 +68,34 @@ maxchi2align  = 1
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-1.0,max=+1.0 dy:min=-1.0,max=1.0 theta:min=-0.2,max=+0.2
-worldmargins  = 0.1
-worldscales   = x:1.2,1.2 y:1.5,1.5 z:1,1
-worldcenter   = 0 0 54.8
-worldradius   = (84.07-0.00)*0.7
+
+
+[WINDOW]
+zWindow       = 0.
+xWindowWidth  = 50.038
+yWindowHeight = 119.888
+xWindow       = 0.
+yWindowMin    = 58.
+
+
+[BEAMPIPE]
+Rpipe = 304.8
+
+
+[TRANSFORMATIONS]
+thetaz = -90.
+xOffset = 0.
+yBoxBot2WinBot = 9.525
+yMidChip2BoxBot = 40.5
+zWin2Box = 114.3
+zBox2chip = 20.1
+
 
 [FIT]
 fast = 1
 method0 = Powell
 method1 = Nelder-Mead Powell
+
 
 [CUTS]
 cuts = All 0Err Non-empty N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX

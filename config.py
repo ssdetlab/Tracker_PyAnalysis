@@ -149,8 +149,12 @@ class Config:
 
         self.add("ezCls", self.getF('CLUSTER','ezCls'))
 
-        self.add("lineScaleUp", self.getF('WORLD','lineScaleUp'))
-        self.add("lineScaleDn", self.getF('WORLD','lineScaleDn'))
+        self.add("worldbounds", self.getMap2ArrF('WORLD','worldbounds'))
+        world = {}
+        for axis,bound in self.map["worldbounds"].items():
+            bounds = [ bound[0], bound[1] ]
+            world.update( {axis:bounds} )            
+        self.add("world", world)
 
         self.add("pTrim", self.getF('NOISE','pTrim'))
         self.add("zeroSupp", self.getB('NOISE','zeroSupp'))
@@ -163,36 +167,30 @@ class Config:
         self.add("maxchi2align", self.getF('DETECTOR','maxchi2align'))
         self.add("axes2align", self.getS('DETECTOR','axes2align'))
         self.add("naligniter", self.getI('DETECTOR','naligniter'))
-        # self.add("alignmentbins", self.getMap2MapF('DETECTOR','alignmentbins'))
         self.add("alignmentbounds", self.getMap2MapF('DETECTOR','alignmentbounds'))
         
         firstdet = self.map["detectors"][0]
         lastdet  = self.map["detectors"][-1]
         
-        # detectorslist = list(self.map["detectors"])
-        # rdetectorslist = detectorslist.reverse()
-        # self.add("detectorslist", detectorslist)
-        # self.add("rdetectorslist", detectorslist)
+        self.add("zWindow",       self.getF('WINDOW','zWindow'))
+        self.add("xWindow",       self.getF('WINDOW','xWindow'))
+        self.add("yWindowMin",    self.getF('WINDOW','yWindowMin'))
+        self.add("xWindowWidth",  self.getF('WINDOW','xWindowWidth'))
+        self.add("yWindowHeight", self.getF('WINDOW','yWindowHeight'))
         
-        self.add("worldmargins", self.getF('DETECTOR','worldmargins'))
-        # self.add("zFirst", self.map["zVtx"]*(1-self.map["worldmargins"]))
-        # self.add("zLast", self.map["rdetectors"]["ALPIDE_2"][2]*(1+self.map["worldmargins"]))
-        if(self.map["doVtx"]):
-            self.add("zFirst", self.map["zVtx"]*(1-self.map["worldmargins"]))
-        else:
-            self.add("zFirst", self.map["rdetectors"][firstdet][2]*(1-self.map["worldmargins"]))
-        self.add("zLast", self.map["rdetectors"][lastdet][2]*(1+self.map["worldmargins"]))
-        self.add("worldscales", self.getMap2ArrF('DETECTOR','worldscales'))
-        self.add("worldcenter", self.getArrF('DETECTOR','worldcenter'))
-        self.add("worldradius",  self.getF('DETECTOR','worldradius'))
-        world = {}
-        for axis,scales in self.map["worldscales"].items():
-            bounds = -9999
-            if(axis=="x"): bounds = [ -self.map["chipX"]*scales[0],+self.map["chipX"]*scales[1] ]
-            if(axis=="y"): bounds = [ -self.map["chipY"]*scales[0],+self.map["chipY"]*scales[1] ]
-            if(axis=="z"): bounds = [ self.map["zFirst"]*scales[0], self.map["zLast"]*scales[1] ]
-            world.update( {axis:bounds} )
-        self.add("world", world)
+        self.add("Rpipe", self.getF('BEAMPIPE','Rpipe'))
+        
+        thetaz = self.getF('TRANSFORMATIONS','thetaz')*np.pi/180.
+        self.add("thetaz", thetaz)
+        self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
+        self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
+        self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
+        self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
+        self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
+        yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]/2.
+        zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
+        self.add("yOffset", yOffset)
+        self.add("zOffset", zOffset)
         
         offsets_x = {}
         offsets_y = {}

@@ -75,10 +75,6 @@ def book_histos(tfo):
     histos.update( { "h_Chi2_theta"          : ROOT.TH1D("h_Chi2_theta",";Chi2 fit: #theta;Tracks",100,0,np.pi) } )
     histos.update( { "h_Chi2_theta_weighted" : ROOT.TH1D("h_Chi2_theta_weighted",";Chi2 fit: #theta weighted;Tracks",100,0,np.pi) } )
     
-    histos.update( { "h_3Dsphere"   : ROOT.TH3D("h_3Dsphere",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
-    histos.update( { "h_3Dsphere_a" : ROOT.TH3D("h_3Dsphere_a",";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
-    histos.update( { "h_3Dsphere_b" : ROOT.TH3D("h_3Dsphere_b",";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
-    
     histos.update( { "h_tru_3D"   : ROOT.TH3D("h_tru_3D",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
     histos.update( { "h_cls_3D"   : ROOT.TH3D("h_cls_3D",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
     histos.update( { "h_fit_3D"   : ROOT.TH3D("h_fit_3D",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )

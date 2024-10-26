@@ -125,22 +125,16 @@ def get_run_length(run_start,run_end,fmt="hours"):
 
 
 def transform_to_real_space(v):
-    thetaz = -90.*np.pi/180.
-    # Rx = [[1,0,0], [0,math.cos(thetax), -math.sin(thetax)], [0,math.sin(thetax), math.cos(thetax)]]
-    # Ry = [[math.cos(thetay),0,math.sin(thetay)], [0,1,0], [-math.sin(thetay),0,math.cos(thetay)]]
-    Rz = [[math.cos(thetaz),-math.sin(thetaz),0], [math.sin(thetaz),math.cos(thetaz),0], [0,0,1]]
+    Rz = [[math.cos(cfg["thetaz"]),-math.sin(cfg["thetaz"]),0], [math.sin(cfg["thetaz"]),math.cos(cfg["thetaz"]),0], [0,0,1]]
     ### rotate x to y
     r = [0,0,0]
     r[0] = Rz[0][0]*v[0]+Rz[0][1]*v[1]+Rz[0][2]*v[2]
     r[1] = Rz[1][0]*v[0]+Rz[1][1]*v[1]+Rz[1][2]*v[2]
     r[2] = Rz[2][0]*v[0]+Rz[2][1]*v[1]+Rz[2][2]*v[2]
     ### introduce the offset
-    xOffset = 0.                   ## mm
-    yOffset = 5.8*10+9.525+40.5/2. ## mm (5.8cm=Ymin of the window, 9.525mm=DeltaY(window bottom, bottom of box), 40.5mm=DeltaY(midle of chip, bottom of box))
-    zOffset = (11.43+2.01)*10      ## mm (11.43cm=DeltaZ(window, box face), 2.01cm=DeltaZ(box face, first chip))
-    r[0] += xOffset
-    r[1] += yOffset
-    r[2] += zOffset
+    r[0] += cfg["zOffset"]
+    r[1] += cfg["yOffset"]
+    r[2] += cfg["zOffset"]
     return r
 
 
@@ -268,9 +262,6 @@ def getChips(translatez=True):
     ### draw the chips: https://stackoverflow.com/questions/67410270/how-to-draw-a-flat-3d-rectangle-in-matplotlib
     L1verts = []
     for det in cfg["detectors"]:
-        # x0 = cfg["rdetectors"][det][0]
-        # y0 = cfg["rdetectors"][det][1]
-        # z0 = cfg["rdetectors"][det][2]
         r = transform_to_real_space([cfg["rdetectors"][det][0],cfg["rdetectors"][det][1],cfg["rdetectors"][det][2]],translatez)
         x0 = r[0]
         y0 = r[1]
@@ -278,7 +269,7 @@ def getChips(translatez=True):
         ### (x,y) in the chip frame are (y,x) in the lab frame
         chipXLabFrame = cfg["chipY"]
         chipYLabFrame = cfg["chipX"]
-        
+        ### set the chips
         L1verts.append( np.array([ [x0-chipXLabFrame/2.,y0-chipYLabFrame/2.,z0],
                                    [x0-chipXLabFrame/2.,y0+chipYLabFrame/2.,z0],
                                    [x0+chipXLabFrame/2.,y0+chipYLabFrame/2.,z0],
@@ -286,23 +277,16 @@ def getChips(translatez=True):
     return L1verts
 
 def getWindowRealSpace():
-    zWindow       = 0.         ## mm
-    xWindowWidth  = 5.0038*10  ## mm
-    yWindowHeight = 11.9888*10 ## mm
-    xWindow       = 0.
-    yWindowMin    = 5.8*10
+    zWindow       = cfg["zWindow"]
+    xWindowWidth  = cfg["xWindowWidth"]
+    yWindowHeight = cfg["yWindowHeight"]
+    xWindow       = cfg["xWindow"]
+    yWindowMin    = cfg["yWindowMin"]
     window = np.array([ [xWindow-xWindowWidth/2., yWindowMin,               zWindow],
                         [xWindow-xWindowWidth/2., yWindowMin+yWindowHeight, zWindow],
                         [xWindow+xWindowWidth/2., yWindowMin+yWindowHeight, zWindow],
                         [xWindow+xWindowWidth/2., yWindowMin,               zWindow] ])
     return [window]
-
-
-def getRealSpaceLimit(axis,edge):
-    limits = { "x":{"min":-125,"max":+125},
-               "y":{"min":20,  "max":+250},
-               "z":{"min":0,   "max":+250} }
-    return limits[axis][edge]
 
 
 def InitCutflow():

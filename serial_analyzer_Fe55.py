@@ -324,12 +324,6 @@ def Run(tfilename,tfnoisename,tfo,histos):
             centroid_Chi2  = best_Chi2["centroid"]
             chi2ndof_Chi2  = best_Chi2["chi2ndof"]
             params_Chi2    = best_Chi2["params"]
-            if(cfg["doplot"]):
-                for det in cfg["detectors"]:
-                    dx,dy = res_track2cluster(det,points_SVD,direction_Chi2,centroid_Chi2)
-                    print(det,"-->",dx,dy)
-                plot_3d_chi2err(norigevents,points_Chi2,params_Chi2,cfg["doplot"])
-                print("")
 
             ### fill some histos
             histos["h_3Dchi2err"].Fill(chi2ndof_Chi2)

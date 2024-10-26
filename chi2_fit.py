@@ -85,168 +85,13 @@ def fit_3d_chi2err(points,errors):
     ez = errors[2]
     params,chisq,ndof,success = fit_line_3d_chi2err(x,y,z,ex,ey,ez)
     # Plot the points and the fitted line
-    x0,y0,z0 = line(cfg["zFirst"], params)
-    x1,y1,z1 = line(cfg["zLast"],  params)
+    x0,y0,z0 = line(cfg["world"]["z"][0], params)
+    x1,y1,z1 = line(cfg["world"]["z"][1], params)
     #TODO: need to check this:
-    xm,ym,zm = line((cfg["zLast"]-cfg["zFirst"])/2., params) #TODO
+    xm,ym,zm = line((cfg["world"]["z"][1]-cfg["world"]["z"][0])/2., params) #TODO
     centroid  = [xm,ym,zm]                     #TODO
     direction = [x1-x0,y1-y0,z1-z0]            #TODO
     return chisq,ndof,direction,centroid,params,success
-
-
-def plot_3d_chi2err(evt,points,params,show=False):
-    if(not show): return
-    x = points[0]
-    y = points[1]
-    z = points[2]
-    # Plot the points and the fitted line
-    x0,y0,z0 = line(cfg["zFirst"], params)
-    x1,y1,z1 = line(cfg["zLast"],  params)
-    #TODO: need to check this:
-    xm,ym,zm = line((cfg["zLast"]-cfg["zFirst"])/2., params) #TODO
-    centroid  = [xm,ym,zm]                     #TODO
-    direction = [x1-x0,y1-y0,z1-z0]            #TODO
-    # Plot the data and the fit
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(x, y, z, c='r', marker='o')
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-    zlim = ax.get_zlim()
-    ax.plot([x0, x1], [y0, y1], [z0, z1], c='b')            
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_zlim(zlim)
-    plt.xlim(cfg["world"]["x"])
-    plt.ylim(cfg["world"]["y"])
-    ax.set_zlim(cfg["world"]["z"])
-    ax.set_xlabel("x [mm]")
-    ax.set_ylabel("y [mm]")
-    ax.set_zlabel("z [mm]")
-    L1verts = getChips()
-    ax.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=1, edgecolors='g', alpha=.20))
-    ax.axes.set_aspect('equal') if(not cfg["isCVMFS"]) else ax.axes.set_aspect('auto')
-    plt.title("Chi2 w/err fit (evt #"+str(evt)+")", fontdict=None, loc='center', pad=None)
-    plt.show()
-
-    
-# def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
-#     if(len(tracks)<1): return
-#     ### turn interactive plotting off
-#     plt.ioff()
-#     matplotlib.use('Agg')
-#     ### define the plot
-#     fig = plt.figure(figsize=(8,4),frameon=False)
-#     plt.title(f"Run {run}, Start: {start}, Duration: ~{duration} [h], Event {evt}", fontdict=None, loc='center', pad=None)
-#     plt.box(False)
-#     plt.axis('off')
-#
-#     ## the views
-#     ax1 = fig.add_subplot(111, projection='3d')
-#     ax1.set_xlabel("x [mm]")
-#     ax1.set_ylabel("y [mm]")
-#     ax1.set_zlabel("z [mm]")
-#     ### the chips
-#     L1verts = getChips()
-#     ax1.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
-#     # ax1.axes.set_aspect('equal')
-#     ax1.set_box_aspect((1, 1, 1))
-#
-#     window = getWindowRealSpace()
-#     ax1.add_collection3d(Poly3DCollection(window, facecolors='gray', linewidths=0.5, edgecolors='k', alpha=.20))
-#
-#     ### print all clusters
-#     clsx = []
-#     clsy = []
-#     clsz = []
-#     for det in cfg["detectors"]:
-#         for cluster in clusters[det]:
-#             # clsx.append( cluster.xmm )
-#             # clsy.append( cluster.ymm )
-#             # clsz.append( cluster.zmm )
-#             r = transform_to_real_space([cluster.xmm,cluster.ymm,cluster.zmm])
-#             clsx.append( r[0] )
-#             clsy.append( r[1] )
-#             clsz.append( r[2] )
-#     ax1.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
-#     ### then the track
-#     trkcols = ['r','b','m','c','y','k','g']
-#     goodtrk = 0
-#     for track in tracks:
-#         if(track.chi2ndof>chi2threshold): continue
-#         trkcol = trkcols[goodtrk]
-#         goodtrk += 1
-#
-#         # x = track.points[0]
-#         # y = track.points[1]
-#         # z = track.points[2]
-#         r = transform_to_real_space([track.points[0],track.points[1],track.points[2]])
-#         x = r[0]
-#         y = r[1]
-#         z = r[2]
-#
-#         # Plot the points and the fitted line
-#         x0,y0,z0 = line(cfg["zFirst"], track.params)
-#         x1,y1,z1 = line(cfg["zLast"],  track.params)
-#         x2,y2,z2 = line(getRealSpaceLimit("z","min")-(11.43+2.01)*10,  track.params)
-#         r0 = transform_to_real_space([x0,y0,z0])
-#         r1 = transform_to_real_space([x1,y1,z1])
-#         r2 = transform_to_real_space([x2,y2,z2])
-#         x0 = r0[0]
-#         y0 = r0[1]
-#         z0 = r0[2]
-#         x1 = r1[0]
-#         y1 = r1[1]
-#         z1 = r1[2]
-#         x2 = r2[0]
-#         y2 = r2[1]
-#         z2 = r2[2]
-#
-#         # plot the tracks clusters
-#         ax1.scatter(x,y,z,s=0.92,c='r',marker='o')
-#         ### plot the tracks lines
-#         ax1.plot([x0, x1], [y0, y1], [z0, z1], c=trkcol, linewidth=0.7)
-#         ### plot the extrapolated tracks lines
-#         ax1.plot([x1, x2], [y1, y2], [z1, z2], c=trkcol, linewidth=0.7, linestyle='dashed')
-#
-#     ### add beampipe
-#     us = np.linspace(0, 2 * np.pi, 100)
-#     zs = np.linspace(getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max"), 100)
-#     us, zs = np.meshgrid(us,zs)
-#     Radius = 304.8 #180
-#     xs = Radius * np.cos(us)
-#     ys = Radius * np.sin(us)
-#     ys = ys-Radius+5.8*10
-#     ax1.plot_surface(xs, ys, zs, color='b',alpha=0.3)
-#
-#     ## world limits
-#     # ax1.set_xlim(cfg["world"]["x"])
-#     # ax1.set_ylim(cfg["world"]["y"])
-#     # ax1.set_zlim(cfg["world"]["z"])
-#     ax1.set_xlim([getRealSpaceLimit("x","min"),getRealSpaceLimit("x","max")])
-#     ax1.set_ylim([getRealSpaceLimit("y","min"),getRealSpaceLimit("y","max")])
-#     ax1.set_zlim([getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max")])
-#
-#
-#     # ### add some text to ax1
-#     # stracks = "tracks" if(goodtrk>1) else "track"
-#     # ax1.text(+15,-15,0,f"{goodtrk} {stracks}", fontsize=7)
-#     # for det in cfg["detectors"]:
-#     #     z = cfg["rdetectors"][det][2]
-#     #     n = len(clusters[det])
-#     #     ax1.text(-30,-20,z,f"{det}", fontsize=7)
-#     #     ax1.text(+15,+10,z,f"{n} clusters", fontsize=7)
-#
-#     ### change view of the 2nd plot
-#     ### x-y view:
-#     # ax1.elev = 90
-#     # ax1.azim = 270
-#     ax1.elev = 40
-#     ax1.azim = 230 #270  # 270 is xz view, 0 is yz view, and -90 is xy view
-#
-#     ### finish
-#     plt.savefig(fname)
-#     plt.close(fig)
 
 
 
@@ -342,9 +187,9 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         z = r[2]
         
         # Plot the points and the fitted line
-        x0,y0,z0 = line(cfg["zFirst"], track.params)
-        x1,y1,z1 = line(cfg["zLast"],  track.params)
-        x2,y2,z2 = line(getRealSpaceLimit("z","min")-(11.43+2.01)*10,  track.params)
+        x0,y0,z0 = line(cfg["world"]["z"][0], track.params)
+        x1,y1,z1 = line(cfg["world"]["z"][1], track.params)
+        x2,y2,z2 = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
         r0 = transform_to_real_space([x0,y0,z0])
         r1 = transform_to_real_space([x1,y1,z1])
         r2 = transform_to_real_space([x2,y2,z2])
@@ -376,12 +221,12 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     
     ### add beampipe
     us = np.linspace(0, 2 * np.pi, 100)
-    zs = np.linspace(getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max"), 100)
+    zs = np.linspace(cfg["world"]["z"][0],cfg["world"]["z"][1], 100)
     us, zs = np.meshgrid(us,zs)
-    Radius = 304.8 #180
+    Radius = cfg["Rpipe"]
     xs = Radius * np.cos(us)
     ys = Radius * np.sin(us)
-    ys = ys-Radius+5.8*10
+    ys = ys-cfg["Rpipe"]+cfg["yWindowMin"]
     # ax1.plot_surface(xs, ys, zs, color='b',alpha=0.3)
     ax2.plot_surface(xs, ys, zs, color='b',alpha=0.3)
     ax3.plot_surface(xs, ys, zs, color='b',alpha=0.3)
@@ -391,21 +236,21 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     # ax1.set_xlim(cfg["world"]["x"])
     # ax1.set_ylim(cfg["world"]["y"])
     # ax1.set_zlim(cfg["world"]["z"])
-    ax1.set_xlim([getRealSpaceLimit("x","min"),getRealSpaceLimit("x","max")])
-    ax1.set_ylim([getRealSpaceLimit("y","min"),getRealSpaceLimit("y","max")])
-    ax1.set_zlim([getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max")])
+    ax1.set_xlim(cfg["world"]["x"])
+    ax1.set_ylim(cfg["world"]["y"])
+    ax1.set_zlim(cfg["world"]["z"])
     
-    ax2.set_xlim([getRealSpaceLimit("x","min"),getRealSpaceLimit("x","max")])
-    ax2.set_ylim([getRealSpaceLimit("y","min"),getRealSpaceLimit("y","max")])
-    ax2.set_zlim([getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max")])
+    ax2.set_xlim(cfg["world"]["x"])
+    ax2.set_ylim(cfg["world"]["y"])
+    ax2.set_zlim(cfg["world"]["z"])
     
-    ax3.set_xlim([getRealSpaceLimit("x","min"),getRealSpaceLimit("x","max")])
-    ax3.set_ylim([getRealSpaceLimit("y","min"),getRealSpaceLimit("y","max")])
-    ax3.set_zlim([getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max")])
+    ax3.set_xlim(cfg["world"]["x"])
+    ax3.set_ylim(cfg["world"]["y"])
+    ax3.set_zlim(cfg["world"]["z"])
     
-    ax4.set_xlim([getRealSpaceLimit("x","min"),getRealSpaceLimit("x","max")])
-    ax4.set_ylim([getRealSpaceLimit("y","min"),getRealSpaceLimit("y","max")])
-    ax4.set_zlim([getRealSpaceLimit("z","min"),getRealSpaceLimit("z","max")])
+    ax4.set_xlim(cfg["world"]["x"])
+    ax4.set_ylim(cfg["world"]["y"])
+    ax4.set_zlim(cfg["world"]["z"])
     
     
     # ### add some text to ax1
