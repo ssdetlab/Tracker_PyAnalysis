@@ -162,7 +162,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
             # clsx.append( cluster.xmm )
             # clsy.append( cluster.ymm )
             # clsz.append( cluster.zmm )
-            r = transform_to_real_space([cluster.xmm,cluster.ymm,cluster.zmm])
+            r = transform_to_real_space( [cluster.xmm,cluster.ymm,cluster.zmm] )
             clsx.append( r[0] )
             clsy.append( r[1] )
             clsz.append( r[2] )
@@ -181,7 +181,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         # x = track.points[0]
         # y = track.points[1]
         # z = track.points[2]
-        r = transform_to_real_space([track.points[0],track.points[1],track.points[2]])
+        r = transform_to_real_space( [track.points[0],track.points[1],track.points[2]] )
         x = r[0]
         y = r[1]
         z = r[2]
@@ -190,9 +190,9 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         x0,y0,z0 = line(cfg["world"]["z"][0], track.params)
         x1,y1,z1 = line(cfg["world"]["z"][1], track.params)
         x2,y2,z2 = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
-        r0 = transform_to_real_space([x0,y0,z0])
-        r1 = transform_to_real_space([x1,y1,z1])
-        r2 = transform_to_real_space([x2,y2,z2])
+        r0 = transform_to_real_space( [x0,y0,z0] )
+        r1 = transform_to_real_space( [x1,y1,z1] )
+        r2 = transform_to_real_space( [x2,y2,z2] )
         x0 = r0[0]
         y0 = r0[1]
         z0 = r0[2]
@@ -220,13 +220,15 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         ax4.plot([x1, x2], [y1, y2], [z1, z2], c=trkcol, linewidth=0.7, linestyle='dashed')
     
     ### add beampipe
-    us = np.linspace(0, 2 * np.pi, 100)
+    us = np.linspace(0, 2.*np.pi, 100)
     zs = np.linspace(cfg["world"]["z"][0],cfg["world"]["z"][1], 100)
     us, zs = np.meshgrid(us,zs)
     Radius = cfg["Rpipe"]
     xs = Radius * np.cos(us)
     ys = Radius * np.sin(us)
     ys = ys-cfg["Rpipe"]+cfg["yWindowMin"]
+    # yMidWindow = cfg["yWindowMin"]+cfg["yWindowHeight"]/2.
+    # ys = ys + (yMidWindow-cfg["yMidWin2PipeCenter"])
     # ax1.plot_surface(xs, ys, zs, color='b',alpha=0.3)
     ax2.plot_surface(xs, ys, zs, color='b',alpha=0.3)
     ax3.plot_surface(xs, ys, zs, color='b',alpha=0.3)

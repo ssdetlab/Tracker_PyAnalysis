@@ -4,7 +4,6 @@ import math
 import array
 import numpy as np
 import ROOT
-# from ROOT import *
 
 import objects
 from objects import *
@@ -90,4 +89,10 @@ def GetNoiseMask(tfnoisename):
         masked.update( {det:getPixels2Mask(h1D_noise[det],h2D_noise[det],noise_threshold[det])} )
         print("Masked pixels for threshold of",noise_threshold[det],"in",det,"is:",masked[det])
         # fnoisetxt.write("Masked pixels for threshold of",noise_threshold[det],"in",det,"is:",masked[det])
+    return masked
+
+
+def GetNoiseMaskEmpty():
+    masked = {}
+    for det in cfg["detectors"]: masked.update( {det:{}} )
     return masked

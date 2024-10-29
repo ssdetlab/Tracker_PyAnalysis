@@ -129,6 +129,7 @@ class Config:
         # self.add("doNoiseScan", self.getB('RUN','doNoiseScan'))
         self.add("isCVRroot", self.getB('RUN','isCVRroot'))
         self.add("nprintout", self.getI('RUN','nprintout'))
+        self.add("skipmasking", self.getB('RUN','skipmasking'))
         self.add("inputfile", self.getS('RUN','inputfile'))
         
         self.add("runnums", self.getArrI('MULTIRUN','runnums'))
@@ -179,6 +180,7 @@ class Config:
         self.add("yWindowHeight", self.getF('WINDOW','yWindowHeight'))
         
         self.add("Rpipe", self.getF('BEAMPIPE','Rpipe'))
+        self.add("yMidWin2PipeCenter", self.getF('BEAMPIPE','yMidWin2PipeCenter'))
         
         thetaz = self.getF('TRANSFORMATIONS','thetaz')*np.pi/180.
         self.add("thetaz", thetaz)

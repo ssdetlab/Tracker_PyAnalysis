@@ -10,7 +10,6 @@ import subprocess
 import array
 import numpy as np
 import ROOT
-# from ROOT import *
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -365,8 +364,15 @@ if __name__ == "__main__":
     
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
-    tfnoisename = tfilenamein.replace(".root","_noise.root")
-    masked = GetNoiseMask(tfnoisename)
+    masked = {}
+    if(cfg["skipmasking"]):
+        print("\n----------------------------")
+        print("Skipping/ignoring noise mask")
+        print("----------------------------\n")
+        masked = GetNoiseMaskEmpty()
+    else:
+        tfnoisename = tfilenamein.replace(".root","_noise.root")
+        masked = GetNoiseMask(tfnoisename)
     
     ### the output histos
     tfilenameout = tfilenamein.replace(".root","_multiprocess_histograms.root")
@@ -385,8 +391,8 @@ if __name__ == "__main__":
             print( f"\nRun start:  {get_human_timestamp(ts_starttime)}" )
             if(nmeta>1): tmeta.GetEntry(nmeta-1)
             ts_endtime = tmeta.run_meta_data.run_end
-            print( f"Run end:      {get_human_timestamp(ts_endtime)}" )
-            print( f"Run duration: {get_run_length(ts_starttime,ts_endtime)}" )
+            print( f"Run end:    {get_human_timestamp(ts_endtime)}" )
+            print( f"Run duration [h]: {get_run_length(ts_starttime,ts_endtime)}" )
         except:
             print("Problem with Meta tree, continuing without it.")
     

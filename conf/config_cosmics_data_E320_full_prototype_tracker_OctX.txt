@@ -11,10 +11,14 @@ doplot         = 0
 doDiagnostics  = 0
 isCVRroot      = 0
 nprintout      = 20
+skipmasking    = 1
 ### FACET trigger, 10 Hz, threshold ~117e, Horizontal (ALPIDE_0, chip #8 facing the window), after re-installation
 # inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_x_Run258.root
 # inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_19_2024_x_Run160.root
-inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_Run263.root
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_Run263.root
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_26_2024_Run269.root
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_27_2024_Run272.root
+inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_27_2024_Run274.root
 
 
 
@@ -80,6 +84,7 @@ yWindowMin    = 58.
 
 [BEAMPIPE]
 Rpipe = 304.8
+yMidWin2PipeCenter = 244.094
 
 
 [TRANSFORMATIONS]

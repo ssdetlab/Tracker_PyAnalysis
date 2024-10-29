@@ -132,7 +132,7 @@ def transform_to_real_space(v):
     r[1] = Rz[1][0]*v[0]+Rz[1][1]*v[1]+Rz[1][2]*v[2]
     r[2] = Rz[2][0]*v[0]+Rz[2][1]*v[1]+Rz[2][2]*v[2]
     ### introduce the offset
-    r[0] += cfg["zOffset"]
+    r[0] += cfg["xOffset"]
     r[1] += cfg["yOffset"]
     r[2] += cfg["zOffset"]
     return r
@@ -262,7 +262,7 @@ def getChips(translatez=True):
     ### draw the chips: https://stackoverflow.com/questions/67410270/how-to-draw-a-flat-3d-rectangle-in-matplotlib
     L1verts = []
     for det in cfg["detectors"]:
-        r = transform_to_real_space([cfg["rdetectors"][det][0],cfg["rdetectors"][det][1],cfg["rdetectors"][det][2]],translatez)
+        r = transform_to_real_space( [cfg["rdetectors"][det][0],cfg["rdetectors"][det][1],cfg["rdetectors"][det][2]] )
         x0 = r[0]
         y0 = r[1]
         z0 = r[2]
