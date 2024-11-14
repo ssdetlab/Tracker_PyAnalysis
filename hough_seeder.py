@@ -76,8 +76,8 @@ class HoughSeeder:
         self.xepsilon = 1e-15
         self.fepsilon = 1e-15
         #TODO: this has to be optimized!!!!
-        nclusters = 1
-        for det in cfg["detectors"]: nclusters *= len(clusters[det])
+        nclusters = 0
+        for det in cfg["detectors"]: nclusters += len(clusters[det])
         self.theta_x_scale = cfg["seed_thetax_scale"]
         self.rho_x_scale   = cfg["seed_rhox_scale"]
         self.theta_y_scale = cfg["seed_thetay_scale"]
@@ -356,7 +356,7 @@ class HoughSeeder:
             if(valid):
                 tunnels.append( tunnel )
                 hough_coord.append( (thetax,rhox,thetay,rhoy) )
-            print(f"Cell[{icell}]: valid?{valid} --> tunnel={tunnel}")
+            # print(f"Cell[{icell}]: valid?{valid} --> tunnel={tunnel}")
         return tunnels,hough_coord
     
     def set_seeds(self,clusters):

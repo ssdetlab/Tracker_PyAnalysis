@@ -16,23 +16,33 @@ class LookupTable:
         self.eventid = eventid
         self.LUT = {}
         self.AXS = {}
-        ncls = len(clusters)
+        ncls = 0
+        for det in cfg["detectors"]: ncls += len(clusters[det])
         self.nbinsx = -1
         self.nbinsy = -1
+        self.tunnel_width_x = 0.
+        self.tunnel_width_y = 0.
         if(ncls<20):
             self.nbinsx = cfg["lut_nbinsx_020"]
             self.nbinsy = cfg["lut_nbinsy_020"]
+            self.tunnel_width_x = cfg["lut_widthx_020"]
+            self.tunnel_width_y = cfg["lut_widthy_020"]
         elif(ncls>=20 and ncls<200):
             self.nbinsx = cfg["lut_nbinsx_200"]
             self.nbinsy = cfg["lut_nbinsy_200"]
+            self.tunnel_width_x = cfg["lut_widthx_200"]
+            self.tunnel_width_y = cfg["lut_widthy_200"]
         else:
             self.nbinsx = cfg["lut_nbinsx_inf"]
             self.nbinsy = cfg["lut_nbinsy_inf"]
+            self.tunnel_width_x = cfg["lut_widthx_inf"]
+            self.tunnel_width_y = cfg["lut_widthy_inf"]
+        
         self.chipXmin = -( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
         self.chipXmax = +( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
         self.chipYmin = -( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
         self.chipYmax = +( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
-        # print(f"xlim: [{self.chipXmin},{self.chipXmax}], ylim: [{self.chipYmin},{self.chipYmax}]")
+        print(f"LUT: ncls={ncls}, xlim[{self.chipXmin},{self.chipXmax}], ylim[{self.chipYmin},{self.chipYmax}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
         ### call in the constructor:
         self.init_axs()
         self.init_lut()
@@ -96,20 +106,20 @@ class LookupTable:
             XX = self.k_of_z(zdet,AX,BX)
             YY = self.k_of_z(zdet,AY,BY)
             # print(f"{det} prediction: x={XX}, y={YY}, z={zdet}")
-            xmin = XX-cfg["lut_widthx"]
-            xmax = XX+cfg["lut_widthx"]
-            ymin = YY-cfg["lut_widthy"]
-            ymax = YY+cfg["lut_widthy"]
+            xmin = XX-self.tunnel_width_x
+            xmax = XX+self.tunnel_width_x
+            ymin = YY-self.tunnel_width_y
+            ymax = YY+self.tunnel_width_y
             xbinmin = self.AXS[det].GetXaxis().FindBin(xmin) if(xmin>=self.chipXmin) else 1
-            xbinmax = self.AXS[det].GetXaxis().FindBin(xmax) if(xmax<self.chipXmax)  else self.AXS[det].GetNbinsX()
+            xbinmax = self.AXS[det].GetXaxis().FindBin(xmax) if(xmax<self.chipXmax)  else self.nbinsx
             ybinmin = self.AXS[det].GetYaxis().FindBin(ymin) if(ymin>=self.chipYmin) else 1
-            ybinmax = self.AXS[det].GetYaxis().FindBin(ymax) if(ymax<self.chipYmax)  else self.AXS[det].GetNbinsY()
+            ybinmax = self.AXS[det].GetYaxis().FindBin(ymax) if(ymax<self.chipYmax)  else self.nbinsy
             ### add neighbour bins:
             if(cfg["seed_allow_neigbours"]):
-                xbinmin = xbinmin-1 if(xbinmin>1) else xbinmin
-                xbinmax = xbinmax+1 if(xbinmax<self.AXS[det].GetNbinsX()) else xbinmax
-                ybinmin = ybinmin-1 if(ybinmin>1) else ybinmin
-                ybinmax = ybinmax+1 if(ybinmax<self.AXS[det].GetNbinsY()) else ybinmax
+                xbinmin = xbinmin-1 if(xbinmin>1)           else xbinmin
+                xbinmax = xbinmax+1 if(xbinmax<self.nbinsx) else xbinmax
+                ybinmin = ybinmin-1 if(ybinmin>1)           else ybinmin
+                ybinmax = ybinmax+1 if(ybinmax<self.nbinsy) else ybinmax
             # print(f"{det}: xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}")
             clsidx_in_tnl = []
             for bx in range(xbinmin,xbinmax+1):
