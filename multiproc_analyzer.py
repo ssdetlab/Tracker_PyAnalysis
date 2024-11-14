@@ -15,8 +15,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit
-# from skspatial.objects import Line, Sphere
-# from skspatial.plotting import plot_3d
 import pickle
 
 import argparse
@@ -71,16 +69,24 @@ ROOT.gStyle.SetOptFit(0)
 ### defined below as global
 allhistos = {}
 
+def dump_pixels(fpklname,pixels):
+    fpkl = open(fpklname,"wb")
+    data = {}
+    for det in cfg["detectors"]:
+        flat_pixels = []
+        for pix in pixels[det]:
+            flat_pixels.append( {"x":pix.x, "y":pix.y, "xmm":pix.xmm, "ymm":pix.ymm, "zmm":pix.zmm} )
+        data.update( {det:flat_pixels} )
+    pickle.dump(data, fpkl, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
+    fpkl.close()
 
 def GetTree(tfilename):
     tfile = ROOT.TFile(tfilename,"READ")
     ttree = None
     if(not cfg["isMC"]): ttree = tfile.Get("MyTree")
-    else:
-        if(cfg["isCVRroot"]): ttree = tfile.Get("Pixel")
-        else:          ttree = tfile.Get("tt")
-    return tfile,ttree
-
+    else:                ttree = tfile.Get("tt")
+    nevents = ttree.GetEntries()
+    return tfile,ttree,nevents
 
 def analyze(tfilenamein,irange,evt_range,masked):
     lock = mp.Lock()
@@ -128,8 +134,8 @@ def analyze(tfilenamein,irange,evt_range,masked):
         hist.SetDirectory(0)
     
     ### get the tree
-    tfile,ttree = GetTree(tfilenamein)
-    truth_tree = tfile.Get("MCParticle") if(cfg["isCVRroot"]) else None
+    tfile,ttree,neventsall = GetTree(tfilenamein)
+    # truth_tree = tfile.Get("MCParticle") if(cfg["isCVRroot"]) else None
     
     ### needed below
     hPixMatix = GetPixMatrix()
@@ -161,17 +167,19 @@ def analyze(tfilenamein,irange,evt_range,masked):
             continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("0Err") )
         
-        ### truth particles
-        mcparticles = get_truth_cvr(truth_tree,ievt) if(cfg["isCVRroot"] and truth_tree is not None) else {}
-        if(cfg["isCVRroot"] and truth_tree is not None):
-            for det in cfg["detectors"]:
-                xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
-                histos["h_tru_3D"].Fill( xtru,ytru,ztru )
-                histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
+        # ### truth particles
+        # mcparticles = get_truth_cvr(truth_tree,ievt) if(cfg["isCVRroot"] and truth_tree is not None) else {}
+        # if(cfg["isCVRroot"] and truth_tree is not None):
+        #     for det in cfg["detectors"]:
+        #         xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
+        #         histos["h_tru_3D"].Fill( xtru,ytru,ztru )
+        #         histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
 
         ### get the pixels
-        n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,cfg["isCVRroot"])
+        n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix)
+        print(f"ievt={ievt}: n_active_staves={n_active_staves}, n_active_chips={n_active_chips}")
         for det in cfg["detectors"]:
+            print(f"ievt={ievt}: Npixels[{det}]={len(pixels[det])}")
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
         
         ### non-empty events
@@ -182,37 +190,74 @@ def analyze(tfilenamein,irange,evt_range,masked):
         if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         
+        ### spatial ROI cut
+        # ROI = { "ix":{"min":170,"max":1000}, "iy":{"min":180,"max":300} }
+        ROI = { "ix":{"min":cfg["cut_ROI_xmin"],"max":cfg["cut_ROI_xmax"]}, "iy":{"min":cfg["cut_ROI_ymin"],"max":cfg["cut_ROI_ymax"]} }
+        n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,ROI)
+        print(f"ievt={ievt} in ROI: n_active_staves={n_active_staves}, n_active_chips={n_active_chips}")
+        for det in cfg["detectors"]:
+            print(f"ievt={ievt} in ROI: Npixels[{det}]={len(pixels[det])}")
+        if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}^{ROI}>0") )
+        # dump_pixels(f"pixels_evt_{ievt}.pkl",pixels)
+        
         ### get the non-noisy pixels but this will get emptied during clustering so also keep a duplicate
         pixels_save = {}
         for det in cfg["detectors"]:
-            goodpixels = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])
-            pixels[det] = goodpixels
-            pixels_save.update({det:goodpixels.copy()})
+            if(cfg["skipmasking"]):
+                pixels_save.update({det:pixels.copy()})
+            else:
+                goodpixels  = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])
+                pixels[det] = goodpixels
+                pixels_save.update({det:goodpixels.copy()})
 
         ### run clustering
         clusters = {}
         nclusters = 0
         for det in cfg["detectors"]:
-            det_clusters = GetAllClusters(pixels[det],det)
+            det_clusters = BFS_GetAllClusters(pixels[det],det)
             clusters.update( {det:det_clusters} )
             fillClsHists(det,clusters[det],masked[det],histos)
             if(len(det_clusters)>0): nclusters += 1
+            print(f"ievt={ievt}: nclusters[{det}]={len(det_clusters)}")
         ### at least one cluster per layer
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
         
+        
         ### run the seeding
         seeder = HoughSeeder(clusters,ievt)
+        #################
+        ## TODO
+        if(ievt==0):
+            f = ROOT.TFile("h2Cumulative.root","RECREATE")
+            seeder.h2waves_zx.Write()
+            seeder.h2waves_zy.Write()
+            f.Write()
+            f.Close()
+        ########
+        ### TODO
+        continue
+        ### TODO
+        ########
+        #################
+        
+        
         seed_cuslters = seeder.seed_clusters
         histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
         if(seeder.summary["nplanes"]<len(cfg["detectors"]) or seeder.summary["nseeds"]<1): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )        
         
         ### prepare the clusters for the fit
         det0 = cfg["detectors"][0]
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
         det3 = cfg["detectors"][3]
+        print(f"ievt={ievt}: nseeds[{det0}]={seed_cuslters[det0]}")
+        print(f"ievt={ievt}: nseeds[{det1}]={seed_cuslters[det1]}")
+        print(f"ievt={ievt}: nseeds[{det2}]={seed_cuslters[det2]}")
+        print(f"ievt={ievt}: nseeds[{det3}]={seed_cuslters[det3]}")
+
         seeds = []
         for c0 in seed_cuslters[det0]:
             for c1 in seed_cuslters[det1]:
@@ -400,36 +445,41 @@ if __name__ == "__main__":
     # Parallelize the analysis
     ### architecture depndent
     nCPUs = mp.cpu_count()
-    print("nCPUs available:",nCPUs)
-    print("nCPUs configured:",cfg["nCPU"])
+    print(f'nCPUs available: {nCPUs}')
+    print(f'nCPUs configured: {cfg["nCPU"]}')
     if(cfg["nCPU"]<1):
         print("nCPU config cannot be <1, quitting")
         quit()
     elif(cfg["nCPU"]>=1 and cfg["nCPU"]<=nCPUs):
         nCPUs = cfg["nCPU"]
     else:
-        print("nCPU config cannot be greater than",nCPUs,", quitting")
+        print(f"nCPU config cannot be greater than {nCPUs}, quitting")
         quit()
 
     ### Create a pool of workers
     pool = mp.Pool(nCPUs)
     
     ### start the loop
-    print("\nStarting the loop:")
-    tfile0,ttree0 = GetTree(tfilenamein)
-    neventsintree = ttree0.GetEntries()
-    # nevents = cfg["nmax2processMP"] if(cfg["nmax2processMP"]>0 and cfg["nmax2processMP"]<=neventsintree) else neventsintree
-    nevents = neventsintree
-    if(cfg["nmax2processMP"]>0 and cfg["nmax2processMP"]<=neventsintree):
-        nevents = cfg["nmax2processMP"]
-        print("Going to analyze only",nevents,"events out of the",neventsintree,"available in the tree")
+    print(f"\nStarting the loop with tree file {tfilenamein}:")
+    tfile0,ttree0,nevents0 = GetTree(tfilenamein)
+    firstevent  = cfg["first2process"]
+    max2process = cfg["nmax2process"]
+    print(f"Events in tree: {nevents0}, Starting in event: {firstevent}, Processing maximum {max2process} events")
+    nevents = nevents0-firstevent
+    if(max2process>0 and max2process<=nevents):
+        nevents = max2process
+        print(f"Going to analyze only {nevents} events out of the {nevents0} available in the tree")
     else:
-        print("config nmax2processMP =",cfg["nmax2processMP"],"--> will analyze all events in the tree:",neventsintree)
+        print(f'config nmax2process={max2process} --> will analyze all events in the tree:{nevents}')
     bundle = nCPUs
-    fullrange = range(nevents)
-    ranges = np.array_split(fullrange,bundle)
+    fullrange = range(firstevent,firstevent+nevents)
+    print(fullrange)
+    ranges = np.array_split(fullrange,bundle) if(nevents>=bundle) else [range(firstevent,firstevent+nevents)]
+    for irng,rng in enumerate(ranges): print(f"Range[{irng}]: {rng[0]},...,{rng[-1]}")
+    
+    
     for irng,rng in enumerate(ranges):
-        print("Submitting range["+str(irng)+"]:",rng[0],"...",rng[-1])
+        print(f"Submitting range[{irng}]: {rng[0]},...,{rng[-1]}")
         if(debug):
             histos = analyze(tfilenamein,irng,rng,masked)
         else:

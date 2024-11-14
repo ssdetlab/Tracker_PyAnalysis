@@ -117,17 +117,13 @@ class Config:
         self.read(fname)
         ### set
         self.add("isMC", self.getB('RUN','isMC'))
-        self.add("isCVMFS", self.getB('RUN','isCVMFS'))
         self.add("doVtx", self.getB('RUN','doVtx'))
         self.add("runtype", self.getS('RUN','runtype'))
         self.add("pdgIdMatch", self.getI('RUN','pdgIdMatch'))
         self.add("nmax2process", self.getI('RUN','nmax2process'))
-        self.add("nmax2processMP", self.getI('RUN','nmax2processMP'))
+        self.add("first2process", self.getI('RUN','first2process'))
+        if(self.map["first2process"]<=0): self.map["first2process"] = 0
         self.add("nCPU", self.getI('RUN','nCPU'))
-        self.add("doplot", self.getB('RUN','doplot'))
-        self.add("doDiagnostics", self.getB('RUN','doDiagnostics'))
-        # self.add("doNoiseScan", self.getB('RUN','doNoiseScan'))
-        self.add("isCVRroot", self.getB('RUN','isCVRroot'))
         self.add("nprintout", self.getI('RUN','nprintout'))
         self.add("skipmasking", self.getB('RUN','skipmasking'))
         self.add("inputfile", self.getS('RUN','inputfile'))
@@ -140,6 +136,29 @@ class Config:
         self.add("pix_y",  self.getF('CHIP','pix_y'))
         self.add("chipX",  self.map["npix_x"]*self.map["pix_x"])
         self.add("chipY",  self.map["npix_y"]*self.map["pix_y"])
+        
+        self.add("seed_allow_neigbours", self.getB('SEED','seed_allow_neigbours'))
+        self.add("seed_thetax_scale", self.getF('SEED','seed_thetax_scale'))
+        self.add("seed_rhox_scale", self.getF('SEED','seed_rhox_scale'))
+        self.add("seed_thetay_scale", self.getF('SEED','seed_thetay_scale'))
+        self.add("seed_rhoy_scale", self.getF('SEED','seed_rhoy_scale'))
+        self.add("seed_nbins_theta_020", self.getI('SEED','seed_nbins_theta_020'))
+        self.add("seed_nbins_theta_200", self.getI('SEED','seed_nbins_theta_200'))
+        self.add("seed_nbins_theta_inf", self.getI('SEED','seed_nbins_theta_inf'))
+        self.add("seed_nbins_rho_020", self.getI('SEED','seed_nbins_rho_020'))
+        self.add("seed_nbins_rho_200", self.getI('SEED','seed_nbins_rho_200'))
+        self.add("seed_nbins_rho_inf", self.getI('SEED','seed_nbins_rho_inf'))
+        
+        self.add("lut_nbinsx_020", self.getI('LUT','lut_nbinsx_020'))
+        self.add("lut_nbinsy_020", self.getI('LUT','lut_nbinsy_020'))
+        self.add("lut_nbinsx_200", self.getI('LUT','lut_nbinsx_200'))
+        self.add("lut_nbinsy_200", self.getI('LUT','lut_nbinsy_200'))
+        self.add("lut_nbinsx_inf", self.getI('LUT','lut_nbinsx_inf'))
+        self.add("lut_nbinsy_inf", self.getI('LUT','lut_nbinsy_inf'))
+        self.add("lut_scaleX", self.getF('LUT','lut_scaleX'))
+        self.add("lut_scaleY", self.getF('LUT','lut_scaleY'))
+        self.add("lut_widthx", self.getF('LUT','lut_widthx'))
+        self.add("lut_widthy", self.getF('LUT','lut_widthy'))
 
         self.add("xVtx", self.getF('VTX','xVtx'))
         self.add("yVtx", self.getF('VTX','yVtx'))
@@ -149,6 +168,7 @@ class Config:
         self.add("ezVtx", self.getF('VTX','exVtx'))
 
         self.add("ezCls", self.getF('CLUSTER','ezCls'))
+        self.add("allow_diagonals", self.getB('CLUSTER','allow_diagonals'))
 
         self.add("worldbounds", self.getMap2ArrF('WORLD','worldbounds'))
         world = {}
@@ -208,6 +228,10 @@ class Config:
         
         self.add("cuts", self.getArrS('CUTS','cuts'))
         self.add("cut_chi2dof", self.getF('CUTS','cut_chi2dof'))
+        self.add("cut_ROI_xmin", self.getF('CUTS','cut_ROI_xmin'))
+        self.add("cut_ROI_xmax", self.getF('CUTS','cut_ROI_xmax'))
+        self.add("cut_ROI_ymin", self.getF('CUTS','cut_ROI_ymin'))
+        self.add("cut_ROI_ymax", self.getF('CUTS','cut_ROI_ymax'))
     
         if(doprint):
             print("Configuration map:")

@@ -90,6 +90,6 @@ def plot_3d_SVD(evt,points,direction,centroid,show=False):
     ax.set_zlim(world["z"])
     L1verts = getChips()
     ax.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=1, edgecolors='g', alpha=.20))
-    ax.axes.set_aspect('equal') if(not isCVMFS) else ax.axes.set_aspect('auto')
+    ax.axes.set_aspect('equal')
     plt.title("SVD fit (evt #"+str(evt)+")", fontdict=None, loc='center', pad=None)
     plt.show()

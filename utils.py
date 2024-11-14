@@ -60,9 +60,11 @@ def make_run_dirs(name):
     if(not os.path.isdir(evtdir)):
         print(f"Making dir {evtdir}")
         ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdir}")
-    if(not os.path.isfile(filecopy)):
-        print(f"Copying input file {name} to run dir {rundir}")
-        ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
+    # if(not os.path.isfile(filecopy)):
+    #     print(f"Copying input file {name} to run dir {rundir}")
+    #     ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
+    print(f"Always(!) copying input file {name} to run dir {rundir}")
+    ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
     return filecopy
 
 

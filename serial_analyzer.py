@@ -68,9 +68,7 @@ def GetTree(tfilename):
     tfile = ROOT.TFile(tfilename,"READ")
     ttree = None
     if(not cfg["isMC"]): ttree = tfile.Get("MyTree")
-    else:
-        if(cfg["isCVRroot"]): ttree = tfile.Get("Pixel")
-        else:                 ttree = tfile.Get("tt")
+    else:                ttree = tfile.Get("tt")
     print("Events in tree:",ttree.GetEntries())
     if(cfg["nmax2process"]>0): print("Will process only",cfg["nmax2process"],"events")
     return tfile,ttree
@@ -107,8 +105,8 @@ def Run(tfilename,tfnoisename,tfo,histos):
     ### get the tree
     tfile,ttree = GetTree(tfilename)
     truth_tree = None
-    if(cfg["isCVRroot"]):
-        truth_tree = tfile.Get("MCParticle")
+    # if(cfg["isCVRroot"]):
+    #     truth_tree = tfile.Get("MCParticle")
     
     ### get the noise masking
     masked = GetNoiseMask(tfnoisename)
@@ -148,14 +146,14 @@ def Run(tfilename,tfnoisename,tfo,histos):
             continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("0Err") )
         
-        ### truth particles
-        mcparticles = {}
-        if(cfg["isCVRroot"] and truth_tree is not None):
-            mcparticles = get_truth_cvr(truth_tree,ientry)
-            for det in cfg["detectors"]:
-                xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
-                histos["h_tru_3D"].Fill( xtru,ytru,ztru )
-                histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
+        # ### truth particles
+        # mcparticles = {}
+        # if(cfg["isCVRroot"] and truth_tree is not None):
+        #     mcparticles = get_truth_cvr(truth_tree,ientry)
+        #     for det in cfg["detectors"]:
+        #         xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
+        #         histos["h_tru_3D"].Fill( xtru,ytru,ztru )
+        #         histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
         
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(evt,hPixMatix,cfg["isCVRroot"])
@@ -175,7 +173,7 @@ def Run(tfilename,tfnoisename,tfo,histos):
         clusters = {}
         nclusters = 0
         for det in cfg["detectors"]:
-            det_clusters = GetAllClusters(pixels[det],det)
+            det_clusters = BFS_GetAllClusters(pixels[det],det)
             clusters.update( {det:det_clusters} )
             fillClsHists(det,clusters[det],masked[det],histos)
             if(len(det_clusters)>0): nclusters += 1

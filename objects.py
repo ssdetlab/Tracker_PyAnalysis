@@ -12,19 +12,18 @@ from utils import *
 
 
 class Hit:
-    def __init__(self,det,x,y,raw,q=-1):
+    def __init__(self,det,x,y,q=-1):
         self.x = x
         self.y = y
         self.q = q
-        self.raw = raw
         self.xmm = self.x*cfg["pix_x"]-cfg["chipX"]/2.
         self.ymm = self.y*cfg["pix_y"]-cfg["chipY"]/2.
         self.zmm = cfg["rdetectors"][det][2]
     def __str__(self):
-        return f"Pixel: x={self.x}, y={self.y}, raw={self.raw}, q={self.q}, r=({self.xmm,self.ymm,self.zmm}) [mm]"
+        return f"Pixel: x={self.x}, y={self.y}, q={self.q}, r=({self.xmm,self.ymm,self.zmm}) [mm]"
 
 class Cls:
-    def __init__(self,pixels,det,CID):
+    def __init__(self,det,pixels,CID):
         self.det = det
         self.CID = CID
         self.DID = cfg["detectors"].index(det)

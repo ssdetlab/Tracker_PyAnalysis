@@ -75,9 +75,9 @@ def book_histos(tfo):
     histos.update( { "h_Chi2_theta"          : ROOT.TH1D("h_Chi2_theta",";Chi2 fit: #theta;Tracks",100,0,np.pi) } )
     histos.update( { "h_Chi2_theta_weighted" : ROOT.TH1D("h_Chi2_theta_weighted",";Chi2 fit: #theta weighted;Tracks",100,0,np.pi) } )
     
-    histos.update( { "h_tru_3D"   : ROOT.TH3D("h_tru_3D",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
-    histos.update( { "h_cls_3D"   : ROOT.TH3D("h_cls_3D",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
-    histos.update( { "h_fit_3D"   : ROOT.TH3D("h_fit_3D",  ";x [mm];y [mm];z [mm]",50,1.2*cfg["world"]["x"][0],1.2*cfg["world"]["x"][1], 50,1.2*cfg["world"]["y"][0],1.2*cfg["world"]["y"][1], 50,1.2*cfg["world"]["z"][0],1.2*cfg["world"]["z"][1]) } )
+    histos.update( { "h_tru_3D"   : ROOT.TH3D("h_tru_3D",  ";x [mm];y [mm];z [mm]",128,cfg["world"]["x"][0],cfg["world"]["x"][1], 64,cfg["world"]["y"][0],cfg["world"]["y"][1], 50,cfg["world"]["z"][0],cfg["world"]["z"][1]) } )
+    histos.update( { "h_cls_3D"   : ROOT.TH3D("h_cls_3D",  ";x [mm];y [mm];z [mm]",128,cfg["world"]["x"][0],cfg["world"]["x"][1], 64,cfg["world"]["y"][0],cfg["world"]["y"][1], 50,cfg["world"]["z"][0],cfg["world"]["z"][1]) } )
+    histos.update( { "h_fit_3D"   : ROOT.TH3D("h_fit_3D",  ";x [mm];y [mm];z [mm]",128,cfg["world"]["x"][0],cfg["world"]["x"][1], 64,cfg["world"]["y"][0],cfg["world"]["y"][1], 50,cfg["world"]["z"][0],cfg["world"]["z"][1]) } )
     
     histos.update( { "h_csize_vs_trupos" : ROOT.TH2D("h_csize_vs_trupos",";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
     histos.update( { "h_ntrks_vs_trupos" : ROOT.TH2D("h_ntrks_vs_trupos",";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
@@ -113,6 +113,22 @@ def book_histos(tfo):
         
         histos.update( { "h_cls_occ_2D_"+det        : ROOT.TH2D("h_cls_occ_2D_"+det,";x;y;Clusters",cfg["npix_x"]+1,-cfg["chipX"]/2.,+cfg["chipX"]/2., cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2.) } )
         histos.update( { "h_cls_occ_2D_masked_"+det : ROOT.TH2D("h_cls_occ_2D_masked_"+det,";x;y;Clusters",cfg["npix_x"]+1,-cfg["chipX"]/2.,+cfg["chipX"]/2., cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2.) } )
+        
+        histos.update( { "h_ncls_"+det          : ROOT.TH1D("h_ncls_"+det,";Number of clusters;Events",1,0,1) } )
+        histos.update( { "h_ncls_masked_"+det   : ROOT.TH1D("h_ncls_masked_"+det,";Number of clusters;Events",1,0,1) } )
+
+        histos.update( { "h_cls_size_"+det        : ROOT.TH1D("h_cls_size_"+det,";Cluster size;Events",100,0.5,100.5) } )
+        histos.update( { "h_cls_size_masked_"+det : ROOT.TH1D("h_cls_size_masked_"+det,";Cluster size;Events",100,0.5,100.5) } )
+
+        histos.update( { "h_cls_size_ncol_"+det :        ROOT.TH1D("h_cls_size_ncol_"+det,";Cluster size in x;Events",50,0.5,50.5) } )
+        histos.update( { "h_cls_size_ncol_masked_"+det : ROOT.TH1D("h_cls_size_ncol_masked_"+det,";Cluster size in x;Events",50,0.5,50.5) } )
+        histos.update( { "h_cls_size_nrow_"+det :        ROOT.TH1D("h_cls_size_nrow_"+det,";Cluster size in y;Events",50,0.5,50.5) } )                
+        histos.update( { "h_cls_size_nrow_masked_"+det : ROOT.TH1D("h_cls_size_nrow_masked_"+det,";Cluster size in y;Events",50,0.5,50.5) } )
+        
+        histos.update( { "h_csize_vs_x_"+det        : ROOT.TH2D("h_csize_vs_x_"+det,";x;Cluster size;Clusters",cfg["npix_x"]+1,-cfg["chipX"]/2.,+cfg["chipX"]/2., 100,0.5,100.5) } )
+        histos.update( { "h_csize_vs_x_masked_"+det : ROOT.TH2D("h_csize_vs_x_masked_"+det,";x;Cluster size;Clusters",cfg["npix_x"]+1,-cfg["chipX"]/2.,+cfg["chipX"]/2., 100,0.5,100.5) } )
+        histos.update( { "h_csize_vs_y_"+det        : ROOT.TH2D("h_csize_vs_y_"+det,";y;Cluster size;Clusters",cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2., 100,0.5,100.5) } )
+        histos.update( { "h_csize_vs_y_masked_"+det : ROOT.TH2D("h_csize_vs_y_masked_"+det,";y;Cluster size;Clusters",cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2., 100,0.5,100.5) } )
         
         histos.update( { "h_csize_vs_trupos_"+det : ROOT.TH2D("h_csize_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
         histos.update( { "h_ntrks_vs_trupos_"+det : ROOT.TH2D("h_ntrks_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
@@ -155,16 +171,6 @@ def book_histos(tfo):
         
         histos.update( { "h_Chi2fit_res_trk2tru_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_x_full_"+det,";"+det+" x_{trk}-x_{tru} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
         histos.update( { "h_Chi2fit_res_trk2tru_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_y_full_"+det,";"+det+" y_{trk}-y_{tru} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )    
-        
-        histos.update( { "h_ncls_"+det          : ROOT.TH1D("h_ncls_"+det,";Number of clusters;Events",10,0,10) } )
-        histos.update( { "h_cls_size_"+det      : ROOT.TH1D("h_cls_size_"+det,";Cluster size;Events",10,0.5,10.5) } )
-        histos.update( { "h_cls_size_ncol_"+det : ROOT.TH1D("h_cls_size_ncol_"+det,";Cluster size in x;Events",10,0.5,10.5) } )
-        histos.update( { "h_cls_size_nrow_"+det : ROOT.TH1D("h_cls_size_nrow_"+det,";Cluster size in y;Events",10,0.5,10.5) } )
-                
-        histos.update( { "h_ncls_masked_"+det          : ROOT.TH1D("h_ncls_masked_"+det,";Number of clusters;Events",10,0.5,10.5) } )
-        histos.update( { "h_cls_size_masked_"+det      : ROOT.TH1D("h_cls_size_masked_"+det,";Cluster size;Events",10,0.5,10.5) } )
-        histos.update( { "h_cls_size_ncol_masked_"+det : ROOT.TH1D("h_cls_size_ncol_masked_"+det,";Cluster size in x;Events",10,0.5,10.5) } )
-        histos.update( { "h_cls_size_nrow_masked_"+det : ROOT.TH1D("h_cls_size_nrow_masked_"+det,";Cluster size in y;Events",10,0.5,10.5) } )
             
     for hname,hist in histos.items():
         hist.SetLineColor(ROOT.kBlack)
@@ -203,26 +209,31 @@ def fillPixOcc(det,pixels,masked,histos):
 
 
 def fillClsHists(det,clusters,masked,histos):
-    histos["h_ncls_"+det].Fill(len(clusters))
     for c in clusters:
         noisy = False
-        for pix in c.pixels:
-            i = histos["h_pix_occ_2D_"+det].FindBin(pix.x,pix.y)
-            if(i in masked):
-                noisy = True
-                break
+        if(not cfg["skipmasking"]):
+            for pix in c.pixels:
+                i = histos["h_pix_occ_2D_"+det].FindBin(pix.x,pix.y)
+                if(i in masked):
+                    noisy = True
+                    break
         histos["h_cls_3D"].Fill( c.xmm,c.ymm,c.zmm )
-        
         ### not masked
-        histos["h_cls_size_"+det].Fill(len(c.pixels))
+        histos["h_ncls_"+det].Fill(0.5,len(clusters))
+        histos["h_cls_occ_2D_"+det].Fill(c.xmm,c.ymm)
+        histos["h_cls_size_"+det].Fill(c.n)
         histos["h_cls_size_ncol_"+det].Fill(c.dx)
         histos["h_cls_size_nrow_"+det].Fill(c.dy)
-        histos["h_cls_occ_2D_"+det].Fill(c.xmm,c.ymm)
+        histos["h_csize_vs_x_"+det].Fill(c.xmm,c.n)
+        histos["h_csize_vs_y_"+det].Fill(c.ymm,c.n)
         if(not noisy):
-            histos["h_cls_size_masked_"+det].Fill(len(c.pixels))
+            histos["h_ncls_masked_"+det].Fill(0.5,len(clusters))
+            histos["h_cls_occ_2D_masked_"+det].Fill(c.xmm,c.ymm)
+            histos["h_cls_size_masked_"+det].Fill(c.n)
             histos["h_cls_size_ncol_masked_"+det].Fill(c.dx)
             histos["h_cls_size_nrow_masked_"+det].Fill(c.dy)
-            histos["h_cls_occ_2D_masked_"+det].Fill(c.xmm,c.ymm)
+            histos["h_csize_vs_x_masked_"+det].Fill(c.xmm,c.n)
+            histos["h_csize_vs_y_masked_"+det].Fill(c.ymm,c.n)
 
 
 def fillFitOcc(params,hname2,hname3,histos):

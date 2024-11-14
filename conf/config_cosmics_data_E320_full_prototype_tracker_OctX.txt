@@ -1,30 +1,33 @@
 [RUN]
 isMC           = 0
-isCVMFS        = 0
 doVtx          = 0
-runtype        = facetii
 pdgIdMatch     = 13
-nmax2process   = 10000000000000
-nmax2processMP = 10000000000000
+runtype        = beam
+# first2process  = 3015
+# first2process  = 160
+first2process  = 355664
+# first2process  = 0
+# nmax2process = 10000000000000
+# nmax2process   = 250
+nmax2process   = 1
 nCPU           = 10
-doplot         = 0
-doDiagnostics  = 0
-isCVRroot      = 0
 nprintout      = 20
 skipmasking    = 1
 ### FACET trigger, 10 Hz, threshold ~117e, Horizontal (ALPIDE_0, chip #8 facing the window), after re-installation
 # inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_x_Run258.root
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_19_2024_x_Run160.root
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_Run263.root
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_26_2024_Run269.root
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_27_2024_Run272.root
-inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_27_2024_Run274.root
-
-
+### old cosmics run
+inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_19_2024_x_Run160.root
+### long positron run with the foil and the blob in the middle of the chips
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run404.root
+### short positron run with the foil and the blob in the middle of the chips
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run405.root
+### last run with positrons towards the end
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run446.root
+### background only run
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_04_2024_Run409.root
 
 [MULTIRUN]
 runnums = 255
-
 
 [CHIP]
 npix_x = 1024
@@ -32,6 +35,30 @@ npix_y = 512
 pix_x = 0.02924
 pix_y = 0.02688
 
+[SEED]
+seed_allow_neigbours = 1
+seed_thetax_scale = 0.60
+seed_rhox_scale   = 0.90
+seed_thetay_scale = 0.35
+seed_rhoy_scale   = 0.80
+seed_nbins_theta_020 = 200
+seed_nbins_theta_200 = 600
+seed_nbins_theta_inf = 1200
+seed_nbins_rho_020   = 200
+seed_nbins_rho_200   = 600
+seed_nbins_rho_inf   = 1200
+
+[LUT]
+lut_nbinsx_020 = 500
+lut_nbinsx_200 = 1000
+lut_nbinsx_inf = 1400
+lut_nbinsy_020 = 250
+lut_nbinsy_200 = 500
+lut_nbinsy_inf = 700
+lut_scaleX = 0.15
+lut_scaleY = 0.15
+lut_widthx = 0.15
+lut_widthy = 0.15
 
 [VTX]
 xVtx  = 0
@@ -44,10 +71,11 @@ ezVtx = 0.05
 
 [CLUSTER]
 ezCls = 0.1
+allow_diagonals = 0
 
 
 [WORLD]
-worldbounds = x:-125,125 y:0,250 z:0,250
+worldbounds = x:-25,+25 y:-8,+8 z:-10,+95
 
 
 [NOISE]
@@ -63,11 +91,11 @@ rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,36.03 ALPIDE_2:0,0,60.05 ALPIDE_3
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
 ### measured at WIS prior to sending the detector to SLAC:
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.5191531681709917,dy=-0.46595050424595746,theta=0.0009213194795836727 ALPIDE_2:dx=-0.7029308767047607,dy=-0.6681298502851433,theta=-0.001983609179703054 ALPIDE_3:dx=-0.8148037396883998,dy=-0.7457714668355226,theta=-0.00024245376925574271
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.519,dy=-0.466,theta=0.000921 ALPIDE_2:dx=-0.702931,dy=-0.66813,theta=-0.001984 ALPIDE_3:dx=-0.8148,dy=-0.74577,theta=-0.000242
 ### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158, no reference plane:
-# misalignment  = ALPIDE_0:dx=0.5877657432986126,dy=0.6887289122749767,theta=-0.029977436646106168 ALPIDE_1:dx=0.031476609088512734,dy=-0.14121531738245868,theta=-0.02943671220795129 ALPIDE_2:dx=-0.19353168937333684,dy=-0.5870858292302896,theta=-0.032315630342566876 ALPIDE_3:dx=-0.31687575309390403,dy=-0.9243642344053534,theta=-0.031121601638024788
+# misalignment  = ALPIDE_0:dx=0.5878,dy=0.6887,theta=-0.029977 ALPIDE_1:dx=0.0314766,dy=-0.141215,theta=-0.0294367 ALPIDE_2:dx=-0.19353,dy=-0.5871,theta=-0.032316 ALPIDE_3:dx=-0.31688,dy=-0.92436,theta=-0.03112
 ### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158, with reference plane being ALPIDE_0:
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.004419375550717815,dy=-0.510465246156942,theta=0.0005415970127366041 ALPIDE_2:dx=0.13544533605980363,dy=-0.7393680139578888,theta=-0.002332128356144626 ALPIDE_3:dx=0.37347611252822704,dy=-0.8564276640808913,theta=-0.0011386898082472103
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.00442,dy=-0.5104,theta=0.000542 ALPIDE_2:dx=0.13544,dy=-0.7394,theta=-0.00233 ALPIDE_3:dx=0.373476,dy=-0.85643,theta=-0.0011387
 maxchi2align  = 1
 axes2align    = xytheta
 naligniter    = 200
@@ -103,5 +131,13 @@ method1 = Nelder-Mead Powell
 
 
 [CUTS]
-cuts = All 0Err Non-empty N_{hits/det}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
+cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
 cut_chi2dof = 1
+# cut_ROI_xmin = 170
+cut_ROI_xmin = 0
+# cut_ROI_xmax = 1000
+cut_ROI_xmax = 1024
+# cut_ROI_ymin = 180
+cut_ROI_ymin = 0
+# cut_ROI_ymax = 300
+cut_ROI_ymax = 512

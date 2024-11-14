@@ -5,6 +5,8 @@ import array
 import numpy as np
 import ROOT
 
+import config
+from config import *
 import objects
 from objects import *
 
