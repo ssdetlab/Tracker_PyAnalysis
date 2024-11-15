@@ -264,24 +264,17 @@ def analyze(tfilenamein,irange,evt_range,masked):
                 trkseed["dy"].update({ det:clusters[det][icls].dymm })
             seeds.append(trkseed)
         histos["h_nSeeds"].Fill(len(seeds))
-        print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters[det0])} in {det0}, {len(clusters[det1])} in {det1}, {len(clusters[det2])} in {det2}, {len(clusters[det3])} in {det3}")
-        if(len(seeds)>0):
-            print(f"{det0}:")
-            for i,c in enumerate(clusters[det0]): print(f"  [{i}]: {c}")
-            print(f"{det1}:")
-            for i,c in enumerate(clusters[det1]): print(f"  [{i}]: {c}")
-            print(f"{det2}:")
-            for i,c in enumerate(clusters[det2]): print(f"  [{i}]: {c}")
-            print(f"{det3}:")
-            for i,c in enumerate(clusters[det3]): print(f"  [{i}]: {c}")
-            print("")
-
-        ########
-        ### TODO
-        # continue
-        ### TODO
-        ########
-        #################
+        # print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters[det0])} in {det0}, {len(clusters[det1])} in {det1}, {len(clusters[det2])} in {det2}, {len(clusters[det3])} in {det3}")
+        # if(len(seeds)>0):
+        #     print(f"{det0}:")
+        #     for i,c in enumerate(clusters[det0]): print(f"  [{i}]: {c}")
+        #     print(f"{det1}:")
+        #     for i,c in enumerate(clusters[det1]): print(f"  [{i}]: {c}")
+        #     print(f"{det2}:")
+        #     for i,c in enumerate(clusters[det2]): print(f"  [{i}]: {c}")
+        #     print(f"{det3}:")
+        #     for i,c in enumerate(clusters[det3]): print(f"  [{i}]: {c}")
+        #     print("")
         
 
         ### get the event tracks

@@ -165,11 +165,12 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax3.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
     ax4.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
     ### then the track
-    trkcols = ['r','b','m','c','y','k','g']
+    # trkcols = ['r','b','m','c','y','k','g']
     goodtrk = 0
+    trkcol = 'r'
     for track in tracks:
         if(track.chi2ndof>chi2threshold): continue
-        trkcol = trkcols[goodtrk]
+        # trkcol = trkcols[goodtrk]
         goodtrk += 1
         
         r = transform_to_real_space( [track.points[0],track.points[1],track.points[2]] )
@@ -205,20 +206,20 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         ax3.scatter(x,y,z,s=0.92,c='r',marker='o')
         ax4.scatter(x,y,z,s=0.92,c='r',marker='o')
         ### plot the tracks lines in the detector volume only
-        ax1.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.7)
-        ax2.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.7)
-        ax3.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.7)
-        ax4.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.7)
+        ax1.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.5)
+        ax2.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.5)
+        ax3.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.5)
+        ax4.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=0.5)
         ### plot the extrapolated tracks lines to the window direction
-        ax1.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.7, linestyle='dashed')
-        ax2.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.7, linestyle='dashed')
-        ax3.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.7, linestyle='dashed')
-        ax4.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.7, linestyle='dashed')
+        ax1.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.5, linestyle='dashed')
+        ax2.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.5, linestyle='dashed')
+        ax3.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.5, linestyle='dashed')
+        ax4.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=0.5, linestyle='dashed')
         ### plot the extrapolated tracks lines to the dump direction
-        ax1.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.7, linestyle='dashed')
-        ax2.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.7, linestyle='dashed')
-        ax3.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.7, linestyle='dashed')
-        ax4.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.7, linestyle='dashed')
+        ax1.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.5, linestyle='dashed')
+        ax2.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.5, linestyle='dashed')
+        ax3.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.5, linestyle='dashed')
+        ax4.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=0.5, linestyle='dashed')
     
     ### add beampipe
     us = np.linspace(0, 2.*np.pi, 100)
