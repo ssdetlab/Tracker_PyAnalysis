@@ -26,48 +26,32 @@ class HoughSeeder:
     def __init__(self,clusters,eventid=0):
         ### for not having memory leaks with the TH2D
         self.eventid = eventid
+        nclusters = 0
+        for det in cfg["detectors"]: nclusters += len(clusters[det])
         ### colors
         self.zcols = [ROOT.kRed, ROOT.kBlack, ROOT.kGreen-2, ROOT.kMagenta]
         ### the clusters per detector
-        self.x0 = []
-        self.x1 = []
-        self.x2 = []
-        self.x3 = []
-        self.y0 = []
-        self.y1 = []
-        self.y2 = []
-        self.y3 = []
-        self.z0 = []
-        self.z1 = []
-        self.z2 = []
-        self.z3 = []
-        self.clsid0 = []
-        self.clsid1 = []
-        self.clsid2 = []
-        self.clsid3 = []
-        self.detid0 = []
-        self.detid1 = []
-        self.detid2 = []
-        self.detid3 = []
+        n0 = len(clusters[cfg["detectors"][0]])
+        n1 = len(clusters[cfg["detectors"][1]])
+        n2 = len(clusters[cfg["detectors"][2]])
+        n3 = len(clusters[cfg["detectors"][3]])
+        self.x0 = np.zeros(n0)
+        self.x1 = np.zeros(n1)
+        self.x2 = np.zeros(n2)
+        self.x3 = np.zeros(n3)
+        self.y0 = np.zeros(n0)
+        self.y1 = np.zeros(n1)
+        self.y2 = np.zeros(n2)
+        self.y3 = np.zeros(n3)
+        self.z0 = np.zeros(n0)
+        self.z1 = np.zeros(n1)
+        self.z2 = np.zeros(n2)
+        self.z3 = np.zeros(n3)
         ### all the clusters together
-        self.clsid = []
-        self.detid = []
-        self.x = []
-        self.y = []
-        self.z = []
-        ### the seed
-        self.clsid_seed = []
-        self.detid_seed = []
-        self.x_seed = []
-        self.y_seed = []
-        self.z_seed = []
-        ### the seed clusters per detector
-        self.seed_clusters = {}
-        self.seed_clusters_per_detector = {}
-        self.nseeds = []
-        for det in cfg["detectors"]:
-            self.seed_clusters.update({det:[]})
-            self.seed_clusters_per_detector.update({det:0})
+        self.x = None
+        self.y = None
+        self.z = None
+        ### all seed clusters
         ### other constants
         self.npix_x = cfg["npix_x"]
         self.npix_y = cfg["npix_y"]
@@ -76,8 +60,6 @@ class HoughSeeder:
         self.xepsilon = 1e-15
         self.fepsilon = 1e-15
         #TODO: this has to be optimized!!!!
-        nclusters = 0
-        for det in cfg["detectors"]: nclusters += len(clusters[det])
         self.theta_x_scale = cfg["seed_thetax_scale"]
         self.rho_x_scale   = cfg["seed_rhox_scale"]
         self.theta_y_scale = cfg["seed_thetay_scale"]
@@ -122,14 +104,13 @@ class HoughSeeder:
         ### 
         self.LUT = LookupTable(clusters,eventid)
         self.tunnels,self.hough_coord = self.get_tunnels()
-        self.nseeds_per_tunnel = self.set_seeds(clusters)
+        self.tunnel_nsseds, self.seeds = self.set_seeds(clusters)
+        self.nseeds = len(self.seeds)
         print(f"Got {len(self.tunnels)} valid tunnels out of {len(self.cells)} tunnels.")
-        print(f"N seeds per tunnel:\n{self.nseeds_per_tunnel}")
+        print(f"N seeds per tunnel:\n{self.tunnel_nsseds}.")
+        print(f"Total of {len(self.seeds)} seeds.")
         
         '''
-        ### the hough candidates
-        self.hough_points_zx,self.zx_cls = self.candidates("zx")
-        self.hough_points_zy,self.zy_cls = self.candidates("zy")
         ### clear memory if there are no seeds
         if(self.summary["nseeds"]==0):
             self.clear_h2Freq()
@@ -141,36 +122,26 @@ class HoughSeeder:
 
     def set_clusters(self,clusters):
         for det in cfg["detectors"]:
-            for c in clusters[det]:
+            for i,c in enumerate(clusters[det]):
                 if(det=="ALPIDE_0"):
-                    self.clsid0.append( c.CID )
-                    self.detid0.append( c.DID )
-                    self.x0.append( c.xmm )
-                    self.y0.append( c.ymm )
-                    self.z0.append( c.zmm )
+                    self.x0[i] = c.xmm
+                    self.y0[i] = c.ymm
+                    self.z0[i] = c.zmm
                 if(det=="ALPIDE_1"):
-                    self.clsid1.append( c.CID )
-                    self.detid1.append( c.DID )
-                    self.x1.append( c.xmm )
-                    self.y1.append( c.ymm )
-                    self.z1.append( c.zmm )
+                    self.x1[i] = c.xmm
+                    self.y1[i] = c.ymm
+                    self.z1[i] = c.zmm
                 if(det=="ALPIDE_2"):
-                    self.clsid2.append( c.CID )
-                    self.detid2.append( c.DID )
-                    self.x2.append( c.xmm )
-                    self.y2.append( c.ymm )
-                    self.z2.append( c.zmm )
+                    self.x2[i] = c.xmm
+                    self.y2[i] = c.ymm
+                    self.z2[i] = c.zmm
                 if(det=="ALPIDE_3"):
-                    self.clsid3.append( c.CID )
-                    self.detid3.append( c.DID )
-                    self.x3.append( c.xmm )
-                    self.y3.append( c.ymm )
-                    self.z3.append( c.zmm )
-        self.clsid = self.clsid0+self.clsid1+self.clsid2+self.clsid3
-        self.detid = self.detid0+self.detid1+self.detid2+self.detid3
-        self.x = self.x0+self.x1+self.x2+self.x3
-        self.y = self.y0+self.y1+self.y2+self.y3
-        self.z = self.z0+self.z1+self.z2+self.z3
+                    self.x3[i] = c.xmm
+                    self.y3[i] = c.ymm
+                    self.z3[i] = c.zmm
+        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3),axis=0)
+        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3),axis=0)
+        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3),axis=0)
 
     def color(self,zref):
         col = -1
@@ -207,21 +178,6 @@ class HoughSeeder:
         mg.GetXaxis().SetLimits(zlim[0],zlim[1])
         mg.GetYaxis().SetLimits(klim[0],klim[1])
         return mg
-
-    def candidates(self,name):
-        hough_points = []
-        arr_clusters = []
-        for bx in range(1,h2.GetNbinsX()+1):
-            for by in range(1,h2.GetNbinsY()+1):
-                if(h2.GetBinContent(bx,by)>=self.minintersections):
-                    theta = h2.GetXaxis().GetBinCenter(bx)
-                    rho   = h2.GetYaxis().GetBinCenter(by)
-                    hough_points.append({"theta":theta,"rho":rho,"imap":imap[(bx,by)]})
-                    for k in imap[(bx,by)]:
-                        for l in k:
-                            if(l in arr_clusters): continue
-                            arr_clusters.append(l) 
-        return hough_points,arr_clusters
 
     def set_function(self,name,z,k,thetamin,thetamax):
         ### rho = k*sin(theta) + z*cos(theta)
@@ -312,13 +268,31 @@ class HoughSeeder:
     def search_in_neighbours(self,key):
         neigbours_vals = 0
         neighbours = [-1,0,+1]
+        neigbours_avg = [0,0,0,0]
         for d0 in neighbours:
             for d1 in neighbours:
                 for d2 in neighbours:
                     for d3 in neighbours:
                         nighbourkey = (key[0]+d0, key[1]+d1, key[2]+d2, key[3]+d3)
-                        neigbours_vals += self.accumulator.get(nighbourkey,0)
-        return neigbours_vals
+                        neigbours_val = self.accumulator.get(nighbourkey,0)
+                        neigbours_vals += neigbours_val
+                        if(neigbours_val>0):
+                            neigbours_avg[0] += (key[0]+d0)*neigbours_val
+                            neigbours_avg[1] += (key[1]+d1)*neigbours_val
+                            neigbours_avg[2] += (key[2]+d2)*neigbours_val
+                            neigbours_avg[3] += (key[3]+d3)*neigbours_val
+        for i in range(len(neigbours_avg)):
+            ### get the average
+            bin_avg = int(round(float(neigbours_avg[i])/float(neigbours_vals)))
+            ### correct if out of bounds
+            if((i==0 or i==2) and bin_avg<1):                bin_avg = 1 ### rho x/y
+            if((i==0 or i==2) and bin_avg>self.nbins_rho):   bin_avg = self.nbins_rho ### rho x/y
+            if((i==1 or i==3) and bin_avg<1):                bin_avg = 1 ### theta x/y
+            if((i==1 or i==3) and bin_avg>self.nbins_theta): bin_avg = self.nbins_theta ### theta x/y
+            ### assign corrected value
+            neigbours_avg[i] = bin_avg
+        neigbours_avg_key = (neigbours_avg[0],neigbours_avg[1],neigbours_avg[2],neigbours_avg[3])
+        return neigbours_vals, neigbours_avg_key
     
     # def get_seed_coordinates(self):
     #     cells = [x for x,y in self.accumulator.items() if(y>=self.minintersections)]
@@ -333,9 +307,11 @@ class HoughSeeder:
                 cells.append(key)
             ### if a bit too low: have only 4 intersectiosn
             if(cfg["seed_allow_neigbours"] and (val<self.minintersections and val>=(self.minintersections-2))):
-                neigbours_vals = self.search_in_neighbours(key)
+                neigbours_vals,neigbours_avg_key = self.search_in_neighbours(key)
                 if(neigbours_vals>=self.minintersections):
-                    cells.append(key)
+                    # cells.append(key)
+                    cells.append(neigbours_avg_key)
+                    if(key!=neigbours_avg_key): print(f"key={key} --> corrected key={neigbours_avg_key}")
             ### otherwise don't bother
         print(f"cumulator size: {len(self.accumulator)}, good cells: {len(cells)}")
         return cells
@@ -360,18 +336,25 @@ class HoughSeeder:
         return tunnels,hough_coord
     
     def set_seeds(self,clusters):
-        nseeds_per_tunnel = [1]*len(self.tunnels)
-        for itunnel,tunnel in enumerate(self.tunnels):
-            for det in cfg["detectors"]:
-                nclusters = len(tunnel[det])
-                self.seed_clusters_per_detector[det] += nclusters
-                nseeds_per_tunnel[itunnel] *= nclusters
-                for cidx in tunnel[det]:
-                    self.seed_clusters[det].append( clusters[det][cidx] )
-                    self.x_seed.append( clusters[det][cidx].xmm )
-                    self.y_seed.append( clusters[det][cidx].ymm )
-                    self.z_seed.append( clusters[det][cidx].zmm )
-        return nseeds_per_tunnel
+        tunnel_nsseds = [1]*len(self.tunnels)
+        seeds = []
+        det0 = cfg["detectors"][0]
+        det1 = cfg["detectors"][1]
+        det2 = cfg["detectors"][2]
+        det3 = cfg["detectors"][3]
+        for itnl,tunnel in enumerate(self.tunnels):
+            candidate = []
+            n0 = len(tunnel[det0])
+            n1 = len(tunnel[det1])
+            n2 = len(tunnel[det2])
+            n3 = len(tunnel[det3])
+            tunnel_nsseds[itnl] = n0*n1*n2*n3
+            for c0 in tunnel[det0]:
+                for c1 in tunnel[det1]:
+                    for c2 in tunnel[det2]:
+                        for c3 in tunnel[det3]:
+                            seeds.append( [c0,c1,c2,c3] )
+        return tunnel_nsseds, seeds
     
     def plot_seeder(self,name):
         ROOT.gErrorIgnoreLevel = ROOT.kError
@@ -485,8 +468,8 @@ class HoughSeeder:
         ROOT.gPad.RedrawAxis()
         cnv.SaveAs(plotname)
 
-        zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.z_seed,self.x_seed,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
-        zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope y vs z;z [mm];y [mm]",self.z_seed,self.y_seed,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
+        zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.seed_z,self.seed_x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
+        zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope y vs z;z [mm];y [mm]",self.seed_z,self.seed_y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
         cnv = ROOT.TCanvas("cnv_frequency","",1000,500)
         cnv.Divide(2,1)
         cnv.cd(1)

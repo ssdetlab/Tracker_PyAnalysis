@@ -235,17 +235,11 @@ def analyze(tfilenamein,irange,evt_range,masked):
             seeder.h2waves_zy.Write()
             f.Write()
             f.Close()
-        ########
-        ### TODO
-        continue
-        ### TODO
-        ########
         #################
         
         
-        seed_cuslters = seeder.seed_clusters
-        histos["h_nSeeds"].Fill(seeder.summary["nseeds"])
-        if(seeder.summary["nplanes"]<len(cfg["detectors"]) or seeder.summary["nseeds"]<1): continue ### CUT!!!
+        histos["h_nSeeds"].Fill(seeder.nseeds)
+        if(seeder.nseeds<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )        
         
         ### prepare the clusters for the fit
@@ -253,56 +247,42 @@ def analyze(tfilenamein,irange,evt_range,masked):
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
         det3 = cfg["detectors"][3]
-        print(f"ievt={ievt}: nseeds[{det0}]={seed_cuslters[det0]}")
-        print(f"ievt={ievt}: nseeds[{det1}]={seed_cuslters[det1]}")
-        print(f"ievt={ievt}: nseeds[{det2}]={seed_cuslters[det2]}")
-        print(f"ievt={ievt}: nseeds[{det3}]={seed_cuslters[det3]}")
+        # print(f"ievt={ievt}: nseeds[{det0}]={seed_cuslters[det0]}")
+        # print(f"ievt={ievt}: nseeds[{det1}]={seed_cuslters[det1]}")
+        # print(f"ievt={ievt}: nseeds[{det2}]={seed_cuslters[det2]}")
+        # print(f"ievt={ievt}: nseeds[{det3}]={seed_cuslters[det3]}")
 
         seeds = []
-        for c0 in seed_cuslters[det0]:
-            for c1 in seed_cuslters[det1]:
-                for c2 in seed_cuslters[det2]:
-                    for c3 in seed_cuslters[det3]:
-                        ###
-                        seed = { "x":{}, "y":{}, "z":{}, "dx":{}, "dy":{} }
-                        ###
-                        seed["x"].update({det0:c0.xmm})
-                        seed["y"].update({det0:c0.ymm})
-                        seed["z"].update({det0:c0.zmm})
-                        seed["dx"].update({det0:c0.dxmm})
-                        seed["dy"].update({det0:c0.dymm})
-                        ###
-                        seed["x"].update({det1:c1.xmm})
-                        seed["y"].update({det1:c1.ymm})
-                        seed["z"].update({det1:c1.zmm})
-                        seed["dx"].update({det1:c1.dxmm})
-                        seed["dy"].update({det1:c1.dymm})
-                        ###
-                        seed["x"].update({det2:c2.xmm})
-                        seed["y"].update({det2:c2.ymm})
-                        seed["z"].update({det2:c2.zmm})
-                        seed["dx"].update({det2:c2.dxmm})
-                        seed["dy"].update({det2:c2.dymm})
-                        ###
-                        seed["x"].update({det3:c3.xmm})
-                        seed["y"].update({det3:c3.ymm})
-                        seed["z"].update({det3:c3.zmm})
-                        seed["dx"].update({det3:c3.dxmm})
-                        seed["dy"].update({det3:c3.dymm})
-                        ###
-                        seeds.append(seed)
+        for seed in seeder.seeds:
+            trkseed = { "x":{}, "y":{}, "z":{}, "dx":{}, "dy":{} }
+            for idet,det in enumerate(cfg["detectors"]):
+                icls = seed[idet]
+                trkseed["x"].update({  det:clusters[det][icls].xmm  })
+                trkseed["y"].update({  det:clusters[det][icls].ymm  })
+                trkseed["z"].update({  det:clusters[det][icls].zmm  })
+                trkseed["dx"].update({ det:clusters[det][icls].dxmm })
+                trkseed["dy"].update({ det:clusters[det][icls].dymm })
+            seeds.append(trkseed)
         histos["h_nSeeds"].Fill(len(seeds))
-        # print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters[det0])} in {det0}, {len(clusters[det1])} in {det1}, {len(clusters[det2])} in {det2}, {len(clusters[det3])} in {det3}")
-        # if(len(seeds)>100):
-        #     print(f"{det0}:")
-        #     for i,c in enumerate(clusters[det0]): print(f"  [{i}]: {c}")
-        #     print(f"{det1}:")
-        #     for i,c in enumerate(clusters[det1]): print(f"  [{i}]: {c}")
-        #     print(f"{det2}:")
-        #     for i,c in enumerate(clusters[det2]): print(f"  [{i}]: {c}")
-        #     print(f"{det3}:")
-        #     for i,c in enumerate(clusters[det3]): print(f"  [{i}]: {c}")
-        #     print("")
+        print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters[det0])} in {det0}, {len(clusters[det1])} in {det1}, {len(clusters[det2])} in {det2}, {len(clusters[det3])} in {det3}")
+        if(len(seeds)>0):
+            print(f"{det0}:")
+            for i,c in enumerate(clusters[det0]): print(f"  [{i}]: {c}")
+            print(f"{det1}:")
+            for i,c in enumerate(clusters[det1]): print(f"  [{i}]: {c}")
+            print(f"{det2}:")
+            for i,c in enumerate(clusters[det2]): print(f"  [{i}]: {c}")
+            print(f"{det3}:")
+            for i,c in enumerate(clusters[det3]): print(f"  [{i}]: {c}")
+            print("")
+
+        ########
+        ### TODO
+        # continue
+        ### TODO
+        ########
+        #################
+        
 
         ### get the event tracks
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -356,14 +336,15 @@ def analyze(tfilenamein,irange,evt_range,masked):
         
         ### plot everything which is fitted but the function will only put the track line if it passes the chi2 cut
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
-        seeder.plot_seeder(fevtdisplayname)
+        # seeder.plot_seeder(fevtdisplayname)
         plot_event(runnumber,starttime,duration,ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
         
         if(n_goodchi2_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
         
         ### fill the event data and add to events
-        eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks,mcparticles) )
+        # eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks,mcparticles) )
+        eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks) )
         
     ### end
     pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle

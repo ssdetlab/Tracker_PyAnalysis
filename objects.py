@@ -62,7 +62,7 @@ class Cls:
         return x,y,dx,dy
     def __str__(self):
         # for p in self.pixels: print(p)
-        return f"Cluster: x={self.x}, y={self.y}, r=({self.xmm,self.ymm,self.zmm}) [mm], size={self.n}"
+        return f"Cluster: xy={self.x,self.y} [pixels], r={self.xmm,self.ymm,self.zmm} [mm], size={self.n}"
 
 
 class MCparticle:
