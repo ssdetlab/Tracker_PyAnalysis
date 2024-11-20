@@ -68,14 +68,10 @@ class HoughSeeder:
         self.thetamax_x = np.pi/2+self.theta_x_scale*np.pi/2.
         self.thetamin_y = np.pi/2-self.theta_y_scale*np.pi/2.
         self.thetamax_y = np.pi/2+self.theta_y_scale*np.pi/2.
-        self.nbins_theta = -1
-        if(nclusters<=20):                     self.nbins_theta = cfg["seed_nbins_theta_020"]
-        elif(nclusters>20 and nclusters<=200): self.nbins_theta = cfg["seed_nbins_theta_200"]
-        elif(nclusters>200):                   self.nbins_theta = cfg["seed_nbins_theta_inf"]
-        self.nbins_rho = -1
-        if(nclusters<=20):                     self.nbins_rho = cfg["seed_nbins_rho_020"]
-        elif(nclusters>20 and nclusters<=200): self.nbins_rho = cfg["seed_nbins_rho_200"]
-        elif(nclusters>200):                   self.nbins_rho = cfg["seed_nbins_rho_inf"]
+        self.nbins_thetarho = -1
+        if(nclusters<=20):                     self.nbins_thetarho = cfg["seed_nbins_thetarho_020"]
+        elif(nclusters>20 and nclusters<=200): self.nbins_thetarho = cfg["seed_nbins_thetarho_200"]
+        elif(nclusters>200):                   self.nbins_thetarho = cfg["seed_nbins_thetarho_inf"]
         self.minintersections = math.comb(len(cfg["detectors"]),2) ### all pairs out of for detectors w/o repetitions
         ### set the clusters
         self.set_clusters(clusters)
@@ -94,28 +90,29 @@ class HoughSeeder:
         ### define the wave parameter space
         self.h2waves_zx = self.define_theta_rho_axes("zx",self.thetamin_x,self.thetamax_x,self.rhomin_x,self.rhomax_x)
         self.h2waves_zy = self.define_theta_rho_axes("zy",self.thetamin_y,self.thetamax_y,self.rhomin_y,self.rhomax_y)
-        ### the data 4D structure 
-        self.accumulator = {}
+        ### allow only positive y-z seeds:
+        self.LUT = LookupTable(clusters,eventid)
+        ### the data 4D structure for 6 possible detector pairings
+        self.accumulator = [{},{},{},{},{},{}]
+        self.naccumulators = len(self.accumulator)
         ### fill the accumulator
         self.fill_4d_wave_intersections(clusters)
         ### get the 4D bin numbers of the good coordinates
         self.cells = self.get_seed_coordinates()
         del self.accumulator
-        ### 
-        self.LUT = LookupTable(clusters,eventid)
+        ### check the accumulator against the LookupTable
+        # self.LUT = LookupTable(clusters,eventid)
+        self.LUT.fill_lut(clusters)
         self.tunnels,self.hough_coord = self.get_tunnels()
-        self.tunnel_nsseds, self.seeds = self.set_seeds(clusters)
+        self.tunnel_nsseds, self.tnlid, self.seeds = self.set_seeds(clusters)
         self.nseeds = len(self.seeds)
-        print(f"Got {len(self.tunnels)} valid tunnels out of {len(self.cells)} tunnels.")
-        print(f"N seeds per tunnel:\n{self.tunnel_nsseds}.")
-        print(f"Total of {len(self.seeds)} seeds.")
+        del self.h2waves_zx
+        del self.h2waves_zy
+        print(f"eventid={self.eventid}: got {len(self.tunnels)} valid tunnels out of {len(self.cells)} tunnels and a total of {len(self.seeds)} seeds.")
+        print(f"eventid={self.eventid}: N seeds per tunnel: min={min(self.tunnel_nsseds)}, max={max(self.tunnel_nsseds)}, mean={np.mean(self.tunnel_nsseds):.3f}+-{np.std(self.tunnel_nsseds):.3f}.")
         
-        '''
-        ### clear memory if there are no seeds
-        if(self.summary["nseeds"]==0):
-            self.clear_h2Freq()
-            self.clear_functions()
-        '''
+    def __del__(self):
+        print(f"eventid={self.eventid}: deleted HoughSeeder class")
 
     def __str__(self):
         return f"Seeder"
@@ -197,7 +194,7 @@ class HoughSeeder:
         return fmin,fmax
     
     def define_theta_rho_axes(self,name,tmin,tmax,fmin,fmax):
-        h2 = ROOT.TH2D("h2waves_map_"+name,";#theta;#rho;",self.nbins_theta,tmin,tmax,self.nbins_rho,fmin,fmax)
+        h2 = ROOT.TH2D("h2waves_map_"+name,";#theta;#rho;",self.nbins_thetarho,tmin,tmax,self.nbins_thetarho,fmin,fmax)
         return h2
     
     def find_waves_intersect(self,k1,z1,k2,z2):
@@ -218,6 +215,30 @@ class HoughSeeder:
         del flat1,flat2,diff
         return mindiff,theta,rho
 
+    def get_detpair(self,CA,CB):
+        if(CA.DID==0 and CB.DID==1): return 0
+        if(CA.DID==0 and CB.DID==2): return 1
+        if(CA.DID==0 and CB.DID==3): return 2
+        if(CA.DID==1 and CB.DID==2): return 3
+        if(CA.DID==1 and CB.DID==3): return 4
+        if(CA.DID==2 and CB.DID==3): return 5
+        print(f"unknown combination for CA.DID={CA.DID} and CB.DID={CB.DID} - quitting.")
+        quit()
+        return -1
+
+    def encode_key(self,brhox, bthetax, brhoy, bthetay):
+        return (brhox * self.nbins_thetarho**3 + bthetax * self.nbins_thetarho**2 + brhoy * self.nbins_thetarho + bthetay)
+
+    def decode_key(self,encoded_key):
+        bthetay = encoded_key % self.nbins_thetarho
+        encoded_key //= self.nbins_thetarho
+        brhoy = encoded_key % self.nbins_thetarho
+        encoded_key //= self.nbins_thetarho
+        bthetax = encoded_key % self.nbins_thetarho
+        encoded_key //= self.nbins_thetarho
+        brhox = encoded_key
+        return (brhox, bthetax, brhoy, bthetay)
+
     def getbin(self,thetax,rhox,thetay,rhoy):
         bin_thetax = self.h2waves_zx.GetXaxis().FindBin(thetax) if(thetax>=self.thetamin_x and thetax<self.thetamax_x) else -1
         bin_rhox   = self.h2waves_zx.GetYaxis().FindBin(rhox)   if(rhox>=self.rhomin_x     and rhox<self.rhomax_x)     else -1 
@@ -226,16 +247,20 @@ class HoughSeeder:
         valid = (bin_thetax>=0 and bin_rhox>=0 and bin_thetay>=0 and bin_rhoy>=0)
         return valid,bin_thetax,bin_rhox,bin_thetay,bin_rhoy
 
-    def fill_accumulator(self,brhox,bthetax,brhoy,bthetay):
-        key = (brhox,bthetax,brhoy,bthetay)
-        self.accumulator[key] = self.accumulator.get(key,0)+1
+    def fill_accumulator(self,bdetpair,brhox,bthetax,brhoy,bthetay):
+        key = self.encode_key(brhox,bthetax,brhoy,bthetay)
+        self.accumulator[bdetpair][key] = self.accumulator[bdetpair].get(key,0)+1
     
     def get_pair(self,CA,CB):
         thetax,rhox = self.find_waves_intersect(CA.xmm,CA.zmm,CB.xmm,CB.zmm)
-        thetay,rhoy = self.find_waves_intersect(CA.ymm,CA.zmm,CB.ymm,CB.zmm)            
+        thetay,rhoy = self.find_waves_intersect(CA.ymm,CA.zmm,CB.ymm,CB.zmm)
         valid,bthetax,brhox,bthetay,brhoy = self.getbin(thetax,rhox,thetay,rhoy)
-        # print(f"thetax={thetax}, rhox={rhox}, thetay={thetay}, rhoy={rhoy}")
-        if(valid): self.fill_accumulator(brhox,bthetax,brhoy,bthetay)
+        if(not cfg["seed_allow_negative_vertical_inclination"]):
+            AX,BX = self.LUT.get_par_lin(thetax,rhox)
+            if(AX<0.): return
+        detpair = self.get_detpair(CA,CB)
+        # print(f"detpair={detpair}: thetax={thetax}, rhox={rhox}, thetay={thetay}, rhoy={rhoy}")
+        if(valid): self.fill_accumulator(detpair,brhox,bthetax,brhoy,bthetay)
         self.h2waves_zx.Fill(thetax,rhox)
         self.h2waves_zy.Fill(thetay,rhoy)
 
@@ -265,65 +290,44 @@ class HoughSeeder:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c2,c3)
     
-    def search_in_neighbours(self,key):
+    def search_in_neighbours(self,encoded_key):
         neigbours_vals = 0
         neighbours = [-1,0,+1]
-        neigbours_avg = [0,0,0,0]
+        key = self.decode_key(encoded_key)
         for d0 in neighbours:
             for d1 in neighbours:
                 for d2 in neighbours:
                     for d3 in neighbours:
-                        nighbourkey = (key[0]+d0, key[1]+d1, key[2]+d2, key[3]+d3)
-                        neigbours_val = self.accumulator.get(nighbourkey,0)
-                        neigbours_vals += neigbours_val
-                        if(neigbours_val>0):
-                            neigbours_avg[0] += (key[0]+d0)*neigbours_val
-                            neigbours_avg[1] += (key[1]+d1)*neigbours_val
-                            neigbours_avg[2] += (key[2]+d2)*neigbours_val
-                            neigbours_avg[3] += (key[3]+d3)*neigbours_val
-        for i in range(len(neigbours_avg)):
-            ### get the average
-            bin_avg = int(round(float(neigbours_avg[i])/float(neigbours_vals)))
-            ### correct if out of bounds
-            if((i==0 or i==2) and bin_avg<1):                bin_avg = 1 ### rho x/y
-            if((i==0 or i==2) and bin_avg>self.nbins_rho):   bin_avg = self.nbins_rho ### rho x/y
-            if((i==1 or i==3) and bin_avg<1):                bin_avg = 1 ### theta x/y
-            if((i==1 or i==3) and bin_avg>self.nbins_theta): bin_avg = self.nbins_theta ### theta x/y
-            ### assign corrected value
-            neigbours_avg[i] = bin_avg
-        neigbours_avg_key = (neigbours_avg[0],neigbours_avg[1],neigbours_avg[2],neigbours_avg[3])
-        return neigbours_vals, neigbours_avg_key
-    
-    # def get_seed_coordinates(self):
-    #     cells = [x for x,y in self.accumulator.items() if(y>=self.minintersections)]
-    #     print(f"cumulator size: {len(self.accumulator)}, good cells: {len(cells)}")
-    #     return cells
+                        nighbourkey = self.encode_key(key[0]+d0, key[1]+d1, key[2]+d2, key[3]+d3)
+                        for detpair in range(self.naccumulators): ### loop over all layers
+                            neigbours_vals += (self.accumulator[detpair].get(nighbourkey,0)>0)
+        return neigbours_vals
 
     def get_seed_coordinates(self):
         cells = []
-        for key,val in self.accumulator.items():
+        for key,val in self.accumulator[0].items(): ### start with the first layer
             ### all good: have all 6 intersections
-            if(val>=self.minintersections):
+            nintersections = (val>0)
+            # for detpair in range(1,self.naccumulators): nintersections += self.accumulator[detpair].get(key,0)
+            for detpair in range(1,self.naccumulators):
+                nintersections += (self.accumulator[detpair].get(key,0)>0)
+            if(nintersections>=self.minintersections):
                 cells.append(key)
+            
             ### if a bit too low: have only 4 intersectiosn
-            if(cfg["seed_allow_neigbours"] and (val<self.minintersections and val>=(self.minintersections-2))):
-                neigbours_vals,neigbours_avg_key = self.search_in_neighbours(key)
+            if(cfg["seed_allow_neigbours"] and (nintersections<self.minintersections and nintersections>=(self.minintersections-2))):
+                neigbours_vals = self.search_in_neighbours(key)
                 if(neigbours_vals>=self.minintersections):
-                    # cells.append(key)
-                    cells.append(neigbours_avg_key)
-                    if(key!=neigbours_avg_key): print(f"key={key} --> corrected key={neigbours_avg_key}")
+                    cells.append(key)
             ### otherwise don't bother
-        print(f"cumulator size: {len(self.accumulator)}, good cells: {len(cells)}")
+        # print(f"cumulator sizes: {len(self.accumulator[0]),len(self.accumulator[1]),len(self.accumulator[2]),len(self.accumulator[3]),len(self.accumulator[4]),len(self.accumulator[5])}, good cells: {len(cells)}")
         return cells
     
     def get_tunnels(self):
         tunnels = []
         hough_coord = []
         for icell,cell in enumerate(self.cells):
-            brhox   = cell[0]
-            bthetax = cell[1]
-            brhoy   = cell[2]
-            bthetay = cell[3]
+            (brhox,bthetax,brhoy,bthetay) = self.decode_key(cell)
             thetax = self.h2waves_zx.GetXaxis().GetBinCenter(bthetax)
             rhox   = self.h2waves_zx.GetYaxis().GetBinCenter(brhox)
             thetay = self.h2waves_zy.GetXaxis().GetBinCenter(bthetay)
@@ -338,6 +342,7 @@ class HoughSeeder:
     def set_seeds(self,clusters):
         tunnel_nsseds = [1]*len(self.tunnels)
         seeds = []
+        tnlid = []
         det0 = cfg["detectors"][0]
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
@@ -354,7 +359,8 @@ class HoughSeeder:
                     for c2 in tunnel[det2]:
                         for c3 in tunnel[det3]:
                             seeds.append( [c0,c1,c2,c3] )
-        return tunnel_nsseds, seeds
+                            tnlid.append( itnl )
+        return tunnel_nsseds,tnlid,seeds
     
     def plot_seeder(self,name):
         ROOT.gErrorIgnoreLevel = ROOT.kError

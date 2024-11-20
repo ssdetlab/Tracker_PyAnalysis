@@ -3,13 +3,19 @@ isMC           = 0
 doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
-# first2process  = 3015
-# first2process  = 160
+
+### run160 (cosmics):
 # first2process  = 355664
-first2process  = 0
+### run409 (beam-only):
+first2process  = 540
+### run446 (positrons):
+# first2process  = 2749
+### run424 (YAG horizontal scan):
+# first2process  = 6400
+
 # nmax2process = 10000000000000
-# nmax2process   = 250
-nmax2process   = 1
+nmax2process = 1
+
 nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
@@ -25,6 +31,8 @@ skipmasking    = 1
 # inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run446.root
 ### background only run
 inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_04_2024_Run409.root
+### horizontal YAG scan:
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run424.root
 
 [MULTIRUN]
 runnums = 255
@@ -36,34 +44,47 @@ pix_x = 0.02924
 pix_y = 0.02688
 
 [SEED]
+seed_allow_negative_vertical_inclination = 0
 seed_allow_neigbours = 1
 seed_thetax_scale = 0.60
 seed_rhox_scale   = 0.90
 seed_thetay_scale = 0.35
 seed_rhoy_scale   = 0.80
-seed_nbins_theta_020 = 200
-seed_nbins_theta_200 = 800
-seed_nbins_theta_inf = 1600
-seed_nbins_rho_020   = 200
-seed_nbins_rho_200   = 800
-seed_nbins_rho_inf   = 1600
+seed_nbins_thetarho_0020 = 200
+seed_nbins_thetarho_0200 = 300
+seed_nbins_thetarho_2000 = 400
+seed_nbins_thetarho_inf  = 400
 
 [LUT]
-lut_nbinsx_020 = 500
-lut_nbinsx_200 = 750
-lut_nbinsx_inf = 1000
-lut_nbinsy_020 = 250
-lut_nbinsy_200 = 375
-lut_nbinsy_inf = 500
+lut_nbinsx_0020 = 500
+lut_nbinsx_0200 = 750
+lut_nbinsx_4000 = 4000
+lut_nbinsx_inf  = 10000
+lut_nbinsy_0020 = 250
+lut_nbinsy_0200 = 375
+lut_nbinsy_4000 = 2000
+lut_nbinsy_inf  = 5000
 lut_scaleX = 0.15
 lut_scaleY = 0.15
-lut_widthx_020 = 0.20
-lut_widthx_200 = 0.15
-lut_widthx_inf = 0.10
-lut_widthy_020 = 0.20
-lut_widthy_200 = 0.15
-lut_widthy_inf = 0.10
+lut_widthx_0020 = 0.20
+lut_widthx_0200 = 0.15
+lut_widthx_4000 = 0.075
+lut_widthx_inf  = 0.040
+lut_widthy_0020 = 0.20
+lut_widthy_0200 = 0.15
+lut_widthy_4000 = 0.075
+lut_widthy_inf  = 0.040
 
+[CUTS]
+cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
+cut_chi2dof = 0.01
+cut_ROI_xmin = 0
+cut_ROI_xmax = 1024
+# cut_ROI_xmax = 350
+cut_ROI_ymin = 0
+# cut_ROI_ymin = 210
+cut_ROI_ymax = 512
+# cut_ROI_ymax = 275
 
 [VTX]
 xVtx  = 0
@@ -133,16 +154,3 @@ zBox2chip = 20.1
 fast = 1
 method0 = Powell
 method1 = Nelder-Mead Powell
-
-
-[CUTS]
-cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 1
-# cut_ROI_xmin = 170
-cut_ROI_xmin = 0
-# cut_ROI_xmax = 1000
-cut_ROI_xmax = 1024
-# cut_ROI_ymin = 180
-cut_ROI_ymin = 0
-# cut_ROI_ymax = 300
-cut_ROI_ymax = 512

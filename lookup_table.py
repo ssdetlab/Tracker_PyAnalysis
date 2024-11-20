@@ -23,15 +23,20 @@ class LookupTable:
         self.tunnel_width_x = 0.
         self.tunnel_width_y = 0.
         if(ncls<20):
-            self.nbinsx = cfg["lut_nbinsx_020"]
-            self.nbinsy = cfg["lut_nbinsy_020"]
-            self.tunnel_width_x = cfg["lut_widthx_020"]
-            self.tunnel_width_y = cfg["lut_widthy_020"]
+            self.nbinsx = cfg["lut_nbinsx_0020"]
+            self.nbinsy = cfg["lut_nbinsy_0020"]
+            self.tunnel_width_x = cfg["lut_widthx_0020"]
+            self.tunnel_width_y = cfg["lut_widthy_0020"]
         elif(ncls>=20 and ncls<200):
-            self.nbinsx = cfg["lut_nbinsx_200"]
-            self.nbinsy = cfg["lut_nbinsy_200"]
-            self.tunnel_width_x = cfg["lut_widthx_200"]
-            self.tunnel_width_y = cfg["lut_widthy_200"]
+            self.nbinsx = cfg["lut_nbinsx_0200"]
+            self.nbinsy = cfg["lut_nbinsy_0200"]
+            self.tunnel_width_x = cfg["lut_widthx_0200"]
+            self.tunnel_width_y = cfg["lut_widthy_0200"]
+        elif(ncls>=200 and ncls<4000):
+            self.nbinsx = cfg["lut_nbinsx_4000"]
+            self.nbinsy = cfg["lut_nbinsy_4000"]
+            self.tunnel_width_x = cfg["lut_widthx_4000"]
+            self.tunnel_width_y = cfg["lut_widthy_4000"]
         else:
             self.nbinsx = cfg["lut_nbinsx_inf"]
             self.nbinsy = cfg["lut_nbinsy_inf"]
@@ -42,11 +47,14 @@ class LookupTable:
         self.chipXmax = +( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
         self.chipYmin = -( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
         self.chipYmax = +( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
-        print(f"LUT: ncls={ncls}, xlim[{self.chipXmin},{self.chipXmax}], ylim[{self.chipYmin},{self.chipYmax}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
+        print(f"LUT: ncls={ncls}, xlim[{self.chipXmin}:.3f,{self.chipXmax}:.3f], ylim[{self.chipYmin:.3f},{self.chipYmax:.3f}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
         ### call in the constructor:
         self.init_axs()
         self.init_lut()
-        self.fill_lut(clusters)
+        # self.fill_lut(clusters)
+    
+    def __del__(self):
+        print(f"eventid={self.eventid}: deleted LookupTable class")
 
     def init_axs(self):
         for det in cfg["detectors"]:
@@ -55,10 +63,6 @@ class LookupTable:
     def init_lut(self):
         for det in cfg["detectors"]:
             self.LUT.update({ det:{} })
-            for bx in range(1,self.AXS[det].GetNbinsX()+1):
-                for by in range(1,self.AXS[det].GetNbinsY()+1):
-                    axsbin = self.AXS[det].GetBin(bx,by)
-                    self.LUT[det].update( {axsbin:[]} )
     
     def fill_lut(self,clusters):
         for det in cfg["detectors"]:
@@ -71,11 +75,12 @@ class LookupTable:
                     quit()
                 # print(f"{det}: cluster x={cluster.xmm}, y={cluster.ymm}")
                 axsbin = self.AXS[det].FindBin(cluster.xmm,cluster.ymm)
-                self.LUT[det][axsbin].append(clsidx)
+                if(axsbin in self.LUT[det]): self.LUT[det][axsbin].append(clsidx)
+                else:                        self.LUT[det].update( {axsbin:[clsidx]} )
     
     def remove_from_lut(self,det,x,y,clsidx):
         axsbin = self.AXS[det].FindBin(x,y)
-        self.LUT[det][axsbin].remove(clsidx)
+        if(axsbin in self.LUT[det]): self.LUT[det][axsbin].remove(clsidx)
     
     def get_par_lin(self,theta_k,rho_k): ### theta and rho from Hough transform
         if(math.sin(theta_k)==0):
@@ -125,8 +130,9 @@ class LookupTable:
             for bx in range(xbinmin,xbinmax+1):
                 for by in range(ybinmin,ybinmax+1):
                     axsbin = self.AXS[det].GetBin(bx,by)
-                    for c in self.LUT[det][axsbin]:
-                        clsidx_in_tnl.append(c)
+                    if(axsbin in self.LUT[det]):
+                        for c in self.LUT[det][axsbin]:
+                            clsidx_in_tnl.append(c)
             tunnel.update( {det:clsidx_in_tnl} )
             planes += (len(clsidx_in_tnl)>0)
         valid = (planes==len(cfg["detectors"]))

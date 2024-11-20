@@ -55,6 +55,8 @@ import hough_seeder
 from hough_seeder import *
 import errors
 from errors import *
+import evtdisp
+from evtdisp import *
 
 
 ROOT.gROOT.SetBatch(1)
@@ -219,7 +221,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             clusters.update( {det:det_clusters} )
             fillClsHists(det,clusters[det],masked[det],histos)
             if(len(det_clusters)>0): nclusters += 1
-            print(f"ievt={ievt}: nclusters[{det}]={len(det_clusters)}")
+            print(f"ievt={ievt}: Nclusters[{det}]={len(det_clusters)}")
         ### at least one cluster per layer
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
@@ -227,34 +229,29 @@ def analyze(tfilenamein,irange,evt_range,masked):
         
         ### run the seeding
         seeder = HoughSeeder(clusters,ievt)
-        #################
-        ## TODO
-        if(ievt==0):
-            f = ROOT.TFile("h2Cumulative.root","RECREATE")
-            seeder.h2waves_zx.Write()
-            seeder.h2waves_zy.Write()
-            f.Write()
-            f.Close()
-        #################
+        # #################
+       #  ## TODO
+       #  if(ievt==0):
+       #      f = ROOT.TFile("h2Cumulative.root","RECREATE")
+       #      seeder.h2waves_zx.Write()
+       #      seeder.h2waves_zy.Write()
+       #      f.Write()
+       #      f.Close()
+       #  #################
         
-        
-        histos["h_nSeeds"].Fill(seeder.nseeds)
-        if(seeder.nseeds<1): continue ### CUT!!!
+        nSeeds = seeder.nseeds
+        histos["h_nSeeds"].Fill(nSeeds)
+        histos["h_nSeeds_full"].Fill(nSeeds)
+        histos["h_nSeeds_mid"].Fill(nSeeds)
+        histos["h_nSeeds_zoom"].Fill(nSeeds)
+        if(nSeeds<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )        
         
         ### prepare the clusters for the fit
-        det0 = cfg["detectors"][0]
-        det1 = cfg["detectors"][1]
-        det2 = cfg["detectors"][2]
-        det3 = cfg["detectors"][3]
-        # print(f"ievt={ievt}: nseeds[{det0}]={seed_cuslters[det0]}")
-        # print(f"ievt={ievt}: nseeds[{det1}]={seed_cuslters[det1]}")
-        # print(f"ievt={ievt}: nseeds[{det2}]={seed_cuslters[det2]}")
-        # print(f"ievt={ievt}: nseeds[{det3}]={seed_cuslters[det3]}")
-
         seeds = []
-        for seed in seeder.seeds:
-            trkseed = { "x":{}, "y":{}, "z":{}, "dx":{}, "dy":{} }
+        for iseed,seed in enumerate(seeder.seeds):
+            tunnelid = seeder.tnlid[iseed]
+            trkseed = { "tnl":tunnelid, "x":{}, "y":{}, "z":{}, "dx":{}, "dy":{} }
             for idet,det in enumerate(cfg["detectors"]):
                 icls = seed[idet]
                 trkseed["x"].update({  det:clusters[det][icls].xmm  })
@@ -263,19 +260,18 @@ def analyze(tfilenamein,irange,evt_range,masked):
                 trkseed["dx"].update({ det:clusters[det][icls].dxmm })
                 trkseed["dy"].update({ det:clusters[det][icls].dymm })
             seeds.append(trkseed)
-        histos["h_nSeeds"].Fill(len(seeds))
-        # print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters[det0])} in {det0}, {len(clusters[det1])} in {det1}, {len(clusters[det2])} in {det2}, {len(clusters[det3])} in {det3}")
+        del seeder
+        # print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters["ALPIDE_0"])} in {"ALPIDE_0"}, {len(clusters["ALPIDE_1"])} in {"ALPIDE_1"}, {len(clusters["ALPIDE_2"])} in {"ALPIDE_2"}, {len(clusters["ALPIDE_3"])} in {"ALPIDE_3"}")
         # if(len(seeds)>0):
         #     print(f"{det0}:")
-        #     for i,c in enumerate(clusters[det0]): print(f"  [{i}]: {c}")
+        #     for i,c in enumerate(clusters["ALPIDE_0"]): print(f"  [{i}]: {c}")
         #     print(f"{det1}:")
-        #     for i,c in enumerate(clusters[det1]): print(f"  [{i}]: {c}")
+        #     for i,c in enumerate(clusters["ALPIDE_1"]): print(f"  [{i}]: {c}")
         #     print(f"{det2}:")
-        #     for i,c in enumerate(clusters[det2]): print(f"  [{i}]: {c}")
+        #     for i,c in enumerate(clusters["ALPIDE_2"]): print(f"  [{i}]: {c}")
         #     print(f"{det3}:")
-        #     for i,c in enumerate(clusters[det3]): print(f"  [{i}]: {c}")
+        #     for i,c in enumerate(clusters["ALPIDE_3"]): print(f"  [{i}]: {c}")
         #     print("")
-        
 
         ### get the event tracks
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -283,8 +279,10 @@ def analyze(tfilenamein,irange,evt_range,masked):
         
         ### loop over all seeds:
         tracks = []
+        n_tracks            = 0
         n_successful_tracks = 0
         n_goodchi2_tracks   = 0
+        n_selected_tracks   = 0
         for seed in seeds:
             clsx = seed["x"]
             clsy = seed["y"]
@@ -299,20 +297,56 @@ def analyze(tfilenamein,irange,evt_range,masked):
             chi2ndof = chisq/ndof if(ndof>0) else 99999
             track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
             tracks.append(track)
-            if(success):                      n_successful_tracks += 1
-            if(chi2ndof<=cfg["cut_chi2dof"]): n_goodchi2_tracks += 1
+            n_tracks += 1
+            
+            ############################
+            r = transform_to_real_space( [track.points[0],track.points[1],track.points[2]] )
+            x = r[0]
+            y = r[1]
+            z = r[2]
+
+            # Plot the points and the fitted line
+            x0,y0,z0 = line(cfg["rdetectors"]["ALPIDE_0"][2], track.params)
+            x3,y3,z3 = line(cfg["rdetectors"]["ALPIDE_3"][2], track.params)
+            xwin,ywin,zwin = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
+            r0 = transform_to_real_space( [x0,y0,z0] )
+            r3 = transform_to_real_space( [x3,y3,z3] )
+            rw = transform_to_real_space( [xwin,ywin,zwin] )
+            x0 = r0[0]
+            y0 = r0[1]
+            z0 = r0[2]
+            x3 = r3[0]
+            y3 = r3[1]
+            z3 = r3[2]
+            xw = rw[0]
+            yw = rw[1]
+            zw = rw[2]
+            xWinL = cfg["xWindow"]-cfg["xWindowWidth"]/2.
+            xWinR = cfg["xWindow"]+cfg["xWindowWidth"]/2.
+            yWinB = cfg["yWindowMin"]
+            yWinT = cfg["yWindowMin"]+cfg["yWindowHeight"]            
+            pass_inclination_yz = (y3>=y0)
+            pass_vertexatpdc    = ((xw>=xWinL and xw<=xWinR) and (yw>=yWinB and yw<=yWinT))
+            pass_selection      = (pass_inclination_yz and pass_vertexatpdc)
+            ##########################
+            
+            if(success):                                                     n_successful_tracks += 1
+            if(success and chi2ndof<=cfg["cut_chi2dof"]):                    n_goodchi2_tracks += 1
+            if(success and chi2ndof<=cfg["cut_chi2dof"] and pass_selection): n_selected_tracks += 1
             
             # if(n_active_chips==4): print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
 
             histos["h_3Dchi2err"].Fill(chi2ndof)
             histos["h_3Dchi2err_full"].Fill(chi2ndof)
             histos["h_3Dchi2err_zoom"].Fill(chi2ndof)
+            histos["h_3Dchi2err_0to1"].Fill(chi2ndof)
             histos["h_Chi2_phi"].Fill(track.phi)
             histos["h_Chi2_theta"].Fill(track.theta)
             if(abs(np.sin(track.theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( track.theta,abs(1/(2*np.pi*np.sin(track.theta))) )
             
             ### Chi2 track to cluster residuals
-            fill_trk2cls_residuals(points_SVD,direction,centroid,"h_Chi2fit_res_trk2cls",histos)
+            fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls",histos)
+            fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls_pass",histos,chi2threshold=cfg["cut_chi2dof"])
             # fill_trk2cls_residuals(points_SVD,direction_SVD,centroid_SVD,"h_Chi2fit_res_trk2cls",histos)
             ### Chi2 track to truth residuals
             if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
@@ -320,9 +354,24 @@ def analyze(tfilenamein,irange,evt_range,masked):
             fillFitOcc(params,"h_fit_occ_2D", "h_fit_3D",histos)
             ### Chi2 track to vertex residuals
             if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
-        histos["h_nTracks"].Fill(len(tracks))
+            
+        histos["h_nTracks"].Fill( n_tracks )
+        histos["h_nTracks_mid"].Fill( n_tracks )
+        histos["h_nTracks_full"].Fill( n_tracks )
+        histos["h_nTracks_zoom"].Fill( n_tracks )
         histos["h_nTracks_success"].Fill( n_successful_tracks )
+        histos["h_nTracks_success_full"].Fill( n_successful_tracks )
+        histos["h_nTracks_success_mid"].Fill( n_successful_tracks )
+        histos["h_nTracks_success_zoom"].Fill( n_successful_tracks )
         histos["h_nTracks_goodchi2"].Fill( n_goodchi2_tracks )
+        histos["h_nTracks_goodchi2_full"].Fill( n_goodchi2_tracks )
+        histos["h_nTracks_goodchi2_mid"].Fill( n_goodchi2_tracks )
+        histos["h_nTracks_goodchi2_zoom"].Fill( n_goodchi2_tracks )
+        histos["h_nTracks_selected"].Fill( n_selected_tracks )
+        histos["h_nTracks_selected_full"].Fill( n_selected_tracks )
+        histos["h_nTracks_selected_mid"].Fill( n_selected_tracks )
+        histos["h_nTracks_selected_zoom"].Fill( n_selected_tracks )
+        print(f"eventid={ievt} Tracking: Seeds={nSeeds}, AllTracks={n_tracks}, Success={n_successful_tracks}, GoodChi2={n_goodchi2_tracks}, Selected={n_selected_tracks}")
         
         if(n_successful_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )

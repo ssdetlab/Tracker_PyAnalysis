@@ -55,6 +55,14 @@ from candidate import *
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 ROOT.gStyle.SetOptStat(0)
+# ROOT.gStyle.SetPalette(ROOT.kDarkBodyRadiator)
+ROOT.gStyle.SetPalette(ROOT.kRust)
+# ROOT.gStyle.SetPalette(ROOT.kRainbow)
+ROOT.gStyle.SetPadBottomMargin(0.15)
+ROOT.gStyle.SetPadLeftMargin(0.13)
+ROOT.gStyle.SetPadRightMargin(0.16)
+
+
 
 mm2um = 1000
 histos = {}
@@ -150,7 +158,31 @@ def fit3(h,col):
     return f3
 
 
-def plot_2x2_histos(pdf,prefix,dets):
+# def plot_2x2_1D_histos(pdf,prefix,dets):
+#     for idet,det in enumerate(dets):
+#         hname = prefix+"_"+det
+#         histos[hname].SetLineColor(ROOT.kBlack)
+#         histos[hname].SetMarkerColor(ROOT.kBlack)
+#         histos[hname].SetMarkerSize(1)
+#         histos[hname].SetMarkerStyle(20)
+#         integral = histos[hname].Integral()
+#         if(integral>0): histos[hname].Scale(1./integral)
+#         histos[hname].SetTitle(det)
+#         histos[hname].GetYaxis().SetTitle("Normalized")
+#
+#     cnv = ROOT.TCanvas("cnv","",1200,1000)
+#     cnv.Divide(2,2)
+#     for count1,det in enumerate(dets):
+#         p = cnv.cd(count1+1)
+#         p.SetTicks(1,1)
+#         # if("cls_size" in prefix): p.SetLogy()
+#
+#         hname = prefix+"_"+det
+#         histos[hname].Draw("e1p")
+#     cnv.SaveAs(pdf)
+
+
+def plot_2x2_FIT_histos(pdf,prefix,dets,xfitmin,xfitmax):
     for idet,det in enumerate(dets):
         hname = prefix+"_"+det
         histos[hname].SetLineColor(ROOT.kBlack)
@@ -173,7 +205,7 @@ def plot_2x2_histos(pdf,prefix,dets):
         histos[hname].Draw("e1p")
         ### fit
         if("h_Chi2fit_res_trk2cls" in prefix):
-            func = fit1(histos[hname],ROOT.kRed,-0.012,+0.012)
+            func = fit1(histos[hname],ROOT.kRed,xfitmin,xfitmax)
             s = ROOT.TLatex()
             s.SetNDC(1);
             s.SetTextAlign(13);
@@ -183,19 +215,57 @@ def plot_2x2_histos(pdf,prefix,dets):
             s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
             s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
             if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        p.RedrawAxis()
+    cnv.Update()
     cnv.SaveAs(pdf)
 
-def plot_1D_histos(pdf,hname,logy,cnvx=500,cnvy=500,drawopt="hist",addtotitle=""):
+def plot_1D_histos(pdf,hname,logy,cnvx=500,cnvy=500,drawopt="hist",rebin=-1,addtotitle=""):
     cnv = ROOT.TCanvas("cnv","",cnvx,cnvy)
+    cnv.SetTicks(1,1)
     if(logy): cnv.SetLogy()
     if(addtotitle!=""): histos[hname].SetTitle(addtotitle)
+    if(rebin>0):        histos[hname].Rebin(rebin)
     histos[hname].Draw(drawopt)
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(pdf)
+
+def overlay_1D_histos(pdf,hnames,legnd,cols,logy,cnvx=500,cnvy=500,drawopt="hist",rebin=-1,titles=""):
+    cnv = ROOT.TCanvas("cnv","",cnvx,cnvy)
+    cnv.SetTicks(1,1)
+    if(logy): cnv.SetLogy()
+    
+    leg = ROOT.TLegend(0.5,0.6,0.8,0.8)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    
+    hmax = -1
+    for hname in hnames:
+        if(titles!=""): histos[hname].SetTitle(titles)
+        if(rebin>0):    histos[hname].Rebin(rebin)
+        y = gethmax(histos[hname],False)
+        if(y>hmax): hmax = y
+    for ih,hname in enumerate(hnames):
+        histos[hname].SetMaximum(hmax*2)
+        histos[hname].SetLineColor(cols[ih])
+        histos[hname].SetFillColorAlpha(cols[ih],0.4)
+        if(ih==0): histos[hname].Draw(drawopt)
+        else:      histos[hname].Draw(drawopt+" same")
+        if(len(legnd)): leg.AddEntry(histos[hname],legnd[ih],"f")
+    if(len(legnd)): leg.Draw("same")
+    cnv.RedrawAxis()
     cnv.SaveAs(pdf)
     
-def plot_2x2_1D_histos(pdf,prefix,dets,logy,addtotitle=""):
+def plot_2x2_1D_histos(pdf,prefix,dets,logy,drawopt="hist",addtotitle=""):
     for idet,det in enumerate(dets):
         hname = prefix+"_"+det
         histos[hname].SetLineColor(ROOT.kBlack)
+        if(drawopt=="e1p"):
+            histos[hname].SetMarkerColor(ROOT.kBlack)
+            histos[hname].SetMarkerSize(1)
+            histos[hname].SetMarkerStyle(20)
         title = det
         if(addtotitle!=""): title += " "+addtotitle
         histos[hname].SetTitle(title)
@@ -206,7 +276,9 @@ def plot_2x2_1D_histos(pdf,prefix,dets,logy,addtotitle=""):
         p.SetTicks(1,1)
         if(logy): p.SetLogy()
         hname = prefix+"_"+det
-        histos[hname].Draw("hist")
+        histos[hname].Draw(drawopt)
+        p.RedrawAxis()
+    cnv.Update()
     cnv.SaveAs(pdf)
 
 def plot_2x2_2D_histos(pdf,prefix,dets,logz,addtotitle=""):
@@ -223,6 +295,8 @@ def plot_2x2_2D_histos(pdf,prefix,dets,logz,addtotitle=""):
         if(logz): p.SetLogz()
         hname = prefix+"_"+det
         histos[hname].Draw("colz")
+        p.RedrawAxis()
+    cnv.Update()
     cnv.SaveAs(pdf)
 
 
@@ -241,8 +315,8 @@ if __name__ == "__main__":
     
     detectors = cfg["detectors"]
 
-    histprefx_glb = ["h_cutflow", "h_nSeeds", "h_nTracks", "h_nTracks_success", "h_nTracks_goodchi2", "h_3Dchi2err_full",  "h_3Dchi2err", "h_3Dchi2err_zoom" ]
-    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_size", "h_Chi2fit_res_trk2cls_x", "h_Chi2fit_res_trk2cls_y", ]
+    histprefx_glb = ["h_cutflow", "h_nSeeds","h_nSeeds_mid", "h_nTracks","h_nTracks_mid", "h_nTracks_success","h_nTracks_success_mid", "h_nTracks_goodchi2","h_nTracks_goodchi2_mid", "h_nTracks_selected","h_nTracks_selected_mid", "h_3Dchi2err_full",  "h_3Dchi2err", "h_3Dchi2err_zoom", "h_3Dchi2err_0to1" ]
+    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_occ_2D", "h_cls_occ_2D_masked", "h_cls_size", "h_cls_size_zoom", "h_Chi2fit_res_trk2cls_pass_x", "h_Chi2fit_res_trk2cls_pass_y", ]
     
     # get the start time
     tfilenameout = tfilenamein.replace(".root","_postprocessplots.root")
@@ -253,24 +327,34 @@ if __name__ == "__main__":
     
     ####### plot
     plot_1D_histos(pdf+"(","h_cutflow",logy=True,cnvx=800,cnvy=500,drawopt="hist text0")
-    plot_1D_histos(pdf,    "h_nSeeds",logy=True,cnvx=500,cnvy=500,drawopt="hist text0")
-    plot_1D_histos(pdf,    "h_nTracks",logy=True,cnvx=500,cnvy=500,drawopt="hist text0",addtotitle="All tracks")
-    plot_1D_histos(pdf,    "h_nTracks_success",logy=True,cnvx=500,cnvy=500,drawopt="hist text0",addtotitle="Successfully fitted tracks")
-    plot_1D_histos(pdf,    "h_nTracks_goodchi2",logy=True,cnvx=500,cnvy=500,drawopt="hist text0",addtotitle="Good #chi^{2}/N_{DoF} tracks")
-    plot_1D_histos(pdf,    "h_3Dchi2err_full",logy=True,cnvx=500,cnvy=500,drawopt="hist")
-    plot_1D_histos(pdf,    "h_3Dchi2err",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+
+    # plot_1D_histos(pdf,    "h_nSeeds",logy=False,cnvx=500,cnvy=500,drawopt="hist text0",rebin=-1)
+    # plot_1D_histos(pdf,    "h_nTracks",logy=False,cnvx=500,cnvy=500,drawopt="hist text0",rebin=-1,addtotitle="Successfully fitted tracks")
+    # plot_1D_histos(pdf,    "h_nTracks_goodchi2",logy=False,cnvx=500,cnvy=500,drawopt="hist text0",rebin=-1,addtotitle="Good #chi^{2}/N_{DoF} tracks")
+
+    hnames = ["h_nSeeds", "h_nTracks_goodchi2", "h_nTracks_selected"]
+    hlegnd = ["Seeds",         "Good #chi^{2} tracks",    "Selected tracks"] 
+    cols   = [ROOT.kBlack,  ROOT.kBlue,         ROOT.kRed]
+    overlay_1D_histos(pdf, hnames,hlegnd,cols,logy=True,cnvx=500,cnvy=500,drawopt="hist",rebin=-1,titles="Hough transform based seeding & tracking;N per trigger;Triggers")
+
+    # plot_1D_histos(pdf,    "h_3Dchi2err_full",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    # plot_1D_histos(pdf,    "h_3Dchi2err",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     plot_1D_histos(pdf,    "h_3Dchi2err_zoom",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    plot_1D_histos(pdf,    "h_3Dchi2err_0to1",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     
-    plot_2x2_1D_histos(pdf,"h_errors",detectors,logy=False)
-    plot_2x2_1D_histos(pdf,"h_pix_occ_1D",detectors,logy=True,addtotitle="unmasked")
-    plot_2x2_1D_histos(pdf,"h_pix_occ_1D_masked",detectors,logy=True,addtotitle="masked")
-    plot_2x2_2D_histos(pdf,"h_pix_occ_2D",detectors,logz=True,addtotitle="unmasked")
-    plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",detectors,logz=True,addtotitle="masked")
+    plot_2x2_1D_histos(pdf,"h_errors",detectors,logy=False,drawopt="hist")
+    # plot_2x2_1D_histos(pdf,"h_pix_occ_1D",detectors,logy=True,drawopt="hist",addtotitle="unmasked")
+    plot_2x2_1D_histos(pdf,"h_pix_occ_1D_masked",detectors,logy=True,drawopt="hist",addtotitle="Pixels")
+    # plot_2x2_2D_histos(pdf,"h_pix_occ_2D",detectors,logz=False,addtotitle="unmasked")
+    plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",detectors,logz=False,addtotitle="Pixels")
+    # plot_2x2_2D_histos(pdf,"h_cls_occ_2D",detectors,logz=False,addtotitle="unmasked")
+    plot_2x2_2D_histos(pdf,"h_cls_occ_2D_masked",detectors,logz=False,addtotitle="Clusters")
     
-    plot_2x2_histos(pdf,"h_cls_size",detectors)
+    plot_2x2_1D_histos(pdf,"h_cls_size",detectors,logy=True,drawopt="e1p")
+    plot_2x2_1D_histos(pdf,"h_cls_size_zoom",detectors,logy=False,drawopt="e1p")
     
-    plot_2x2_histos(pdf,"h_Chi2fit_res_trk2cls_x",detectors)
-    plot_2x2_histos(pdf+")","h_Chi2fit_res_trk2cls_y",detectors)
+    plot_2x2_FIT_histos(pdf,    "h_Chi2fit_res_trk2cls_pass_x",detectors,-0.012,+0.012)
+    plot_2x2_FIT_histos(pdf+")","h_Chi2fit_res_trk2cls_pass_y",detectors,-0.012,+0.012)
     
     ####### save in root file
     write_histos(tfo)

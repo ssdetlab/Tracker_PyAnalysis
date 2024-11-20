@@ -64,6 +64,7 @@ for ientry,entry in enumerate(ttree):
     
     y_yag[ientry] = entry.event.epics_frame.yag_hm_rbv
     
+    allhits = 0
     for ichip in range(entry.event.st_ev_buffer[0].ch_ev_buffer.size()):
         detid = entry.event.st_ev_buffer[0].ch_ev_buffer[ichip].chip_id
         detix = detectorids.index(detid)
@@ -71,6 +72,10 @@ for ientry,entry in enumerate(ttree):
         nhits = entry.event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.size()
         hits_vs_trg[det][ientry] = nhits
         hits_vs_ent[det][ientry] = nhits
+        allhits += nhits
+
+    if(trgn==12750):
+        print(f"trgn={trgn}, ientry={ientry}, allhits={allhits}")
 
 #     if(nhits<10000000):
 #         if(len(rng)==0): rng = [i]

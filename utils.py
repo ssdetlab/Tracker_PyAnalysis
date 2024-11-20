@@ -133,7 +133,10 @@ def transform_to_real_space(v):
     r[0] = Rz[0][0]*v[0]+Rz[0][1]*v[1]+Rz[0][2]*v[2]
     r[1] = Rz[1][0]*v[0]+Rz[1][1]*v[1]+Rz[1][2]*v[2]
     r[2] = Rz[2][0]*v[0]+Rz[2][1]*v[1]+Rz[2][2]*v[2]
-    ### introduce the offset
+    ### reflect x in chip's frame 
+    r[0] = -r[0] ### probably can be fixed by changing the rotation matrix -sin(theta) term to +sin(theta)
+    r[1] = -r[1] ### thsis is needed
+    ### introduce the offsets of the real space position of the detector (this is not the alignment offests!)
     r[0] += cfg["xOffset"]
     r[1] += cfg["yOffset"]
     r[2] += cfg["zOffset"]
@@ -169,6 +172,14 @@ def xyofz(r1,r2,z):
     y = yofz(r1,r2,z)
     return x,y
 
+def line(t, params):
+    # a parametric line is defined from 6 parameters but 4 are independent
+    # x0,y0,z0,z1,y1,z1 which are the coordinates of two points on the line
+    # can choose z0 = 0 if line not parallel to x-y plane and z1 = 1;
+    x = params[0] + params[1]*t
+    y = params[2] + params[3]*t
+    z = t
+    return x,y,z
 
 def r1r2(direction, centroid):
     r1 = [centroid[0], centroid[1], centroid[2] ]
