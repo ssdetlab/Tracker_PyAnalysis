@@ -47,7 +47,7 @@ class LookupTable:
         self.chipXmax = +( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
         self.chipYmin = -( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
         self.chipYmax = +( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
-        print(f"LUT: ncls={ncls}, xlim[{self.chipXmin}:.3f,{self.chipXmax}:.3f], ylim[{self.chipYmin:.3f},{self.chipYmax:.3f}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
+        print(f"LUT: ncls={ncls}, xlim[{self.chipXmin:.3f},{self.chipXmax:.3f}], ylim[{self.chipYmin:.3f},{self.chipYmax:.3f}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
         ### call in the constructor:
         self.init_axs()
         self.init_lut()

@@ -10,6 +10,57 @@ from config import *
 import objects
 from objects import *
 
+'''
+SVD points = [  [vtx.x,  vtx.y,  vtx.z],
+                [cls0.x, cls0.y, cls0.z],
+                [cls1.x, cls1.y, cls1.z],
+                [cls2.x, cls2.y, cls2.z],
+                [cls3.x, cls3.y, cls3.z]  ]
+
+Chi2 points = [ [vtx.x,  cls0.x, cls1.x, cls2.x, cls3.x],
+                [vtx.y,  cls0.y, cls1.y, cls2.y, cls3.y],
+                [vtx.z,  cls0.z, cls1.z, cls2.z, cls3.z] ]
+'''
+
+
+def Candudate_SVDtoChi2(points,errors):
+    clusters_x = []
+    clusters_y = []
+    clusters_z = []
+    errors_x   = []
+    errors_y   = []
+    errors_z   = []
+    for point in points:
+        clusters_x.append( point[0] )
+        clusters_y.append( point[1] )
+        clusters_z.append( point[2] )    
+    for error in errors:
+        errors_x.append( point[0] )
+        errors_y.append( point[1] )
+        errors_z.append( point[2] )    
+    points = np.array([ clusters_x, clusters_y, clusters_z ])
+    errors = np.array([ errors_x,   errors_y,   errors_z ])
+    return points,errors
+
+
+def Candudate_Chi2toSVD(points,errors):
+    clusters = []
+    clerrors = []
+    npoints = len(points[0])
+    x = points[0]
+    y = points[1]
+    z = points[2]
+    ex = errors[0]
+    ey = errors[1]
+    ez = errors[2]
+    for i in range(npoints):
+        clusters.append( [x[i],y[i],z[i]] )
+        clerrors.append( [ex[i],ey[i],ez[i]] )
+    points = np.array(clusters)
+    errors = np.array(clerrors)
+    return points,errors
+
+
 
 def SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx=[],evtx=[]):
     isvtx = (len(vtx)>0 and len(evtx)>0)

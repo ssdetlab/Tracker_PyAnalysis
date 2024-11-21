@@ -251,27 +251,9 @@ def analyze(tfilenamein,irange,evt_range,masked):
         seeds = []
         for iseed,seed in enumerate(seeder.seeds):
             tunnelid = seeder.tnlid[iseed]
-            trkseed = { "tnl":tunnelid, "x":{}, "y":{}, "z":{}, "dx":{}, "dy":{} }
-            for idet,det in enumerate(cfg["detectors"]):
-                icls = seed[idet]
-                trkseed["x"].update({  det:clusters[det][icls].xmm  })
-                trkseed["y"].update({  det:clusters[det][icls].ymm  })
-                trkseed["z"].update({  det:clusters[det][icls].zmm  })
-                trkseed["dx"].update({ det:clusters[det][icls].dxmm })
-                trkseed["dy"].update({ det:clusters[det][icls].dymm })
+            trkseed = TrackSeed(seed,tunnelid,clusters)
             seeds.append(trkseed)
         del seeder
-        # print(f"Event #{ievt} with {len(seeds)} seeds for {len(clusters["ALPIDE_0"])} in {"ALPIDE_0"}, {len(clusters["ALPIDE_1"])} in {"ALPIDE_1"}, {len(clusters["ALPIDE_2"])} in {"ALPIDE_2"}, {len(clusters["ALPIDE_3"])} in {"ALPIDE_3"}")
-        # if(len(seeds)>0):
-        #     print(f"{det0}:")
-        #     for i,c in enumerate(clusters["ALPIDE_0"]): print(f"  [{i}]: {c}")
-        #     print(f"{det1}:")
-        #     for i,c in enumerate(clusters["ALPIDE_1"]): print(f"  [{i}]: {c}")
-        #     print(f"{det2}:")
-        #     for i,c in enumerate(clusters["ALPIDE_2"]): print(f"  [{i}]: {c}")
-        #     print(f"{det3}:")
-        #     for i,c in enumerate(clusters["ALPIDE_3"]): print(f"  [{i}]: {c}")
-        #     print("")
 
         ### get the event tracks
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -283,19 +265,20 @@ def analyze(tfilenamein,irange,evt_range,masked):
         n_successful_tracks = 0
         n_goodchi2_tracks   = 0
         n_selected_tracks   = 0
-        for seed in seeds:
-            clsx = seed["x"]
-            clsy = seed["y"]
-            clsz = seed["z"]
-            clsdx = seed["dx"]
-            clsdy = seed["dy"]
+        for seed in seeds:            
+            points_SVD,errors_SVD = SVD_candidate(seed.x,seed.y,seed.z,seed.dx,seed.dy,vtx,evtx)
+            points_Chi2,errors_Chi2 = Chi2_candidate(seed.x,seed.y,seed.z,seed.dx,seed.dy,vtx,evtx)
+
+            # chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2)
+            # chi2ndof = chisq/ndof if(ndof>0) else 99999
             
-            points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-            points_Chi2,errors_Chi2 = Chi2_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-            chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2)
             chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
-            chi2ndof = chisq/ndof if(ndof>0) else 99999
-            track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
+            params_SVD = get_pars_from_centroid_and_direction(centroid_SVD,direction_SVD)
+            chi2ndof = chisq_SVD/ndof_SVD if(ndof_SVD>0) else 99999
+            success_SVD = True
+
+            track = Track(clusters,points_Chi2,errors_Chi2,chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD,params_SVD,success_SVD)
+            # track = Track(clusters,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
             tracks.append(track)
             n_tracks += 1
             
@@ -330,11 +313,9 @@ def analyze(tfilenamein,irange,evt_range,masked):
             pass_selection      = (pass_inclination_yz and pass_vertexatpdc)
             ##########################
             
-            if(success):                                                     n_successful_tracks += 1
-            if(success and chi2ndof<=cfg["cut_chi2dof"]):                    n_goodchi2_tracks += 1
-            if(success and chi2ndof<=cfg["cut_chi2dof"] and pass_selection): n_selected_tracks += 1
-            
-            # if(n_active_chips==4): print(f"n_goodchi2_tracks={n_goodchi2_tracks}, chi2ndof={chi2ndof}")
+            if(success_SVD):                                                     n_successful_tracks += 1
+            if(success_SVD and chi2ndof<=cfg["cut_chi2dof"]):                    n_goodchi2_tracks += 1
+            if(success_SVD and chi2ndof<=cfg["cut_chi2dof"] and pass_selection): n_selected_tracks += 1
 
             histos["h_3Dchi2err"].Fill(chi2ndof)
             histos["h_3Dchi2err_full"].Fill(chi2ndof)
@@ -345,15 +326,22 @@ def analyze(tfilenamein,irange,evt_range,masked):
             if(abs(np.sin(track.theta))>1e-10): histos["h_Chi2_theta_weighted"].Fill( track.theta,abs(1/(2*np.pi*np.sin(track.theta))) )
             
             ### Chi2 track to cluster residuals
-            fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls",histos)
-            fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls_pass",histos,chi2threshold=cfg["cut_chi2dof"])
+            # fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls",histos)
+            # fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls_pass",histos,chi2threshold=cfg["cut_chi2dof"])
+            fill_trk2cls_residuals(points_SVD,direction_SVD,centroid_SVD,chi2ndof,"h_Chi2fit_res_trk2cls",histos)
+            fill_trk2cls_residuals(points_SVD,direction_SVD,centroid_SVD,chi2ndof,"h_Chi2fit_res_trk2cls_pass",histos,chi2threshold=cfg["cut_chi2dof"])
+            
             # fill_trk2cls_residuals(points_SVD,direction_SVD,centroid_SVD,"h_Chi2fit_res_trk2cls",histos)
+
             ### Chi2 track to truth residuals
             if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
             ### Chi2 fit points on laters
-            fillFitOcc(params,"h_fit_occ_2D", "h_fit_3D",histos)
+            # fillFitOcc(params,"h_fit_occ_2D", "h_fit_3D",histos)
+            fillFitOcc(params_SVD,"h_fit_occ_2D", "h_fit_3D",histos)
+            
             ### Chi2 track to vertex residuals
-            if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
+            # if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
+            if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction_SVD,centroid_SVD,"h_Chi2fit_res_trk2vtx",histos)
             
         histos["h_nTracks"].Fill( n_tracks )
         histos["h_nTracks_mid"].Fill( n_tracks )

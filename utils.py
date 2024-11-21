@@ -181,6 +181,22 @@ def line(t, params):
     z = t
     return x,y,z
 
+def get_pars_from_points(kA,kB,zA,zB):
+    p1 = (kB-kA)/(zB-zA)
+    p0 = ((kB+kA)-p1*(zB+zA))/2.
+    return p0,p1
+    
+def get_pars_from_centroid_and_direction(centroid,direction):
+    xA = centroid[0]
+    xB = centroid[0]+direction[0]
+    yA = centroid[1]
+    yB = centroid[1]+direction[1]
+    zA = centroid[2]
+    zB = centroid[2]+direction[2]
+    p0x,p1x = get_pars_from_points(xA,xB,zA,zB)
+    p0y,p1y = get_pars_from_points(yA,yB,zA,zB)
+    return [p0x,p1x,p0y,p1y]
+
 def r1r2(direction, centroid):
     r1 = [centroid[0], centroid[1], centroid[2] ]
     r2 = [centroid[0]+direction[0], centroid[1]+direction[1], centroid[2]+direction[2] ]

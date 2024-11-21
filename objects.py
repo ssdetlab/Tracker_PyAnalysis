@@ -55,8 +55,8 @@ class Cls:
             xmax = pixel.x if(pixel.x>=xmax) else xmax
             ymin = pixel.y if(pixel.y<=ymin) else ymin
             ymax = pixel.y if(pixel.y>=ymax) else ymax
-        dx = xmax-xmin if(self.n>0 and (xmax-xmin)>0) else 1
-        dy = ymax-ymin if(self.n>0 and (ymax-ymin)>0) else 1
+        dx = (xmax-xmin)/2. if(self.n>0 and (xmax-xmin)>0) else 1./2.
+        dy = (ymax-ymin)/2. if(self.n>0 and (ymax-ymin)>0) else 1./2.
         x = x/self.n if(self.n>0) else -99999
         y = y/self.n if(self.n>0) else -99999
         return x,y,dx,dy
@@ -73,6 +73,24 @@ class MCparticle:
     def __str__(self):
         return f"MCparticle: pdg={self.pdg}, pos1=({self.pos1.X(),self.pos1.Y(),self.pos1.Z()}), pos2=({self.pos2.X(),self.loc_end.Y(),self.pos2.Z()})"
 
+
+class TrackSeed:
+    def __init__(self,seed,tunnelid,clusters):
+        self.tunnelid = tunnelid
+        self.x  = {}
+        self.y  = {}
+        self.z  = {}
+        self.dx = {}
+        self.dy = {}
+        for idet,det in enumerate(cfg["detectors"]):
+            icls = seed[idet]
+            self.x.update({  det:clusters[det][icls].xmm  })
+            self.y.update({  det:clusters[det][icls].ymm  })
+            self.z.update({  det:clusters[det][icls].zmm  })
+            self.dx.update({ det:clusters[det][icls].dxmm })
+            self.dy.update({ det:clusters[det][icls].dymm })
+    def __str__(self):
+        return f"TrackSeed: "
 
 class Track:
     def __init__(self,cls,points,errors,chisq,ndof,direction,centroid,params,success):

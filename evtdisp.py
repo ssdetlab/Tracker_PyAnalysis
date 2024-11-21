@@ -16,6 +16,9 @@ import config
 from config import *
 import utils
 from utils import *
+import objects
+from objects import *
+
 
 def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     if(len(tracks)<1): return

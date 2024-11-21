@@ -8,6 +8,8 @@ import ROOT
 
 import config
 from config import *
+import objects
+from objects import *
 import lookup_table
 from lookup_table import *
 
@@ -361,7 +363,7 @@ class HoughSeeder:
                             seeds.append( [c0,c1,c2,c3] )
                             tnlid.append( itnl )
         return tunnel_nsseds,tnlid,seeds
-    
+            
     def plot_seeder(self,name):
         ROOT.gErrorIgnoreLevel = ROOT.kError
         # ROOT.gErrorIgnoreLevel = ROOT.kWarning
