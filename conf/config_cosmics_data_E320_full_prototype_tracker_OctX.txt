@@ -45,21 +45,32 @@ npix_y = 512
 pix_x = 0.02924
 pix_y = 0.02688
 
+### for cosmics/alignment
+# [SEED]
+# seed_allow_negative_vertical_inclination = 1
+# seed_allow_neigbours = 1
+# seed_thetax_scale = 0.95
+# seed_rhox_scale   = 1.00
+# seed_thetay_scale = 0.95
+# seed_rhoy_scale   = 1.00
+# seed_nbins_thetarho_0020 = 20
+# seed_nbins_thetarho_0200 = 300
+# seed_nbins_thetarho_2000 = 400
+# seed_nbins_thetarho_inf  = 400
+
+### for beam
 [SEED]
-seed_allow_negative_vertical_inclination = 1
+seed_allow_negative_vertical_inclination = 0
 seed_allow_neigbours = 1
-# seed_thetax_scale = 0.60
-# seed_rhox_scale   = 0.90
-# seed_thetay_scale = 0.35
-# seed_rhoy_scale   = 0.80
-seed_thetax_scale = 0.95
-seed_rhox_scale   = 1.00
-seed_thetay_scale = 0.95
-seed_rhoy_scale   = 1.00
+seed_thetax_scale = 0.60
+seed_rhox_scale   = 0.90
+seed_thetay_scale = 0.35
+seed_rhoy_scale   = 0.80
 seed_nbins_thetarho_0020 = 20
 seed_nbins_thetarho_0200 = 300
 seed_nbins_thetarho_2000 = 400
 seed_nbins_thetarho_inf  = 400
+
 
 [LUT]
 lut_nbinsx_0020 = 400
@@ -83,7 +94,7 @@ lut_widthy_inf  = 0.040
 
 [CUTS]
 cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 20
+cut_chi2dof = 5
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
 # cut_ROI_xmax = 350

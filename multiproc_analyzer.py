@@ -377,7 +377,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
     ### end
     pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
     fpickle.close()
-    print("Worker of",irange,"is done!")
+    print(f"Worker {irange} is done!")
     lock.release()
     return histos
 
