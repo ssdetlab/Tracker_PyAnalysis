@@ -19,6 +19,14 @@ from utils import *
 
 ### similar to https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d
 
+'''
+SVD points = [  [vtx.x,  vtx.y,  vtx.z],
+                [cls0.x, cls0.y, cls0.z],
+                [cls1.x, cls1.y, cls1.z],
+                [cls2.x, cls2.y, cls2.z],
+                [cls3.x, cls3.y, cls3.z],
+                ...  ]
+'''
 def calculateSVDchi2(points, errors, direction, centroid):
     r1,r2 = r1r2(direction, centroid)
     x  = points[:,0]
@@ -26,18 +34,19 @@ def calculateSVDchi2(points, errors, direction, centroid):
     z  = points[:,2]
     ex = errors[:,0]
     ey = errors[:,1]
-    ## From CVR: https://gitlab.cern.ch/corryvreckan/corryvreckan/-/blob/master/src/objects/StraightLineTrack.cpp
-    ## There's a 2D offset(x0,y0) and slope (dx,dy).
-    ## Each hit provides two measurements.
-    ## We also have the vertex constraint (the collimator) as another point
-    ## ndof = 2*num_points - 4
+    ## There are four independent parameters: a 2D offset(x0,y0) and slope (dx,dy).
+    ## Each point (hit / vertex) provides two measurements.
+    ## ndof = 2*num_points - N_pars = 2*(4 or 5) - 4
     ndof = 2*len(points)-4
     chisq = 0
     for i in range(len(z)):
         xonline,yonline = xyofz(r1,r2,z[i])
         dx = xonline-x[i]
         dy = yonline-y[i]
-        chisq += (dx*dx/(ex[i]*ex[i])+dy*dy/(ey[i]*ey[i]))
+        err2 = (ex[i]**2 + ey[i]**2)
+        # chisq += (dx**2 + dy**2)/err2 if(err2>0) else 250.
+        chisq += (dx**2)/(ex[i]**2) + (dy**2)/(ex[i]**2) if(ex[i]>0 and ey[i]>0) else 250.
+        # chisq += (dx*dx/(ex[i]*ex[i])+dy*dy/(ey[i]*ey[i]))
         # chisq += (dx*dx + dy*dy)
     return chisq,ndof
 

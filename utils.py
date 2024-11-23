@@ -287,6 +287,25 @@ def res_track2vertex(vertex, direction, centroid):
     return dx,dy
 
 
+def get_track_point_at_extremes(track):
+    det0 = cfg["detectors"][0]
+    detN = cfg["detectors"][ len(cfg["detectors"])-1 ]
+    x0,y0,z0 = line(cfg["rdetectors"][det0][2], track.params)
+    xN,yN,zN = line(cfg["rdetectors"][detN][2], track.params)
+    xwin,ywin,zwin = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
+    r0 = transform_to_real_space( [x0,y0,z0] )
+    rN = transform_to_real_space( [xN,yN,zN] )
+    rW = transform_to_real_space( [xwin,ywin,zwin] )
+    return r0,rN,rW
+    
+
+def get_pdc_window_bounds():
+    xWinL = cfg["xWindow"]-cfg["xWindowWidth"]/2.
+    xWinR = cfg["xWindow"]+cfg["xWindowWidth"]/2.
+    yWinB = cfg["yWindowMin"]
+    yWinT = cfg["yWindowMin"]+cfg["yWindowHeight"]
+    return xWinL,xWinR,yWinB,yWinT
+
 def getChips(translatez=True):
     ### draw the chips: https://stackoverflow.com/questions/67410270/how-to-draw-a-flat-3d-rectangle-in-matplotlib
     L1verts = []

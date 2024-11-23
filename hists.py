@@ -93,9 +93,9 @@ def book_histos(tfo):
     histos.update( { "h_Chi2_theta"           : ROOT.TH1D("h_Chi2_theta",";Chi2 fit: #theta;Tracks",100,0,np.pi) } )
     histos.update( { "h_Chi2_theta_weighted"  : ROOT.TH1D("h_Chi2_theta_weighted",";Chi2 fit: #theta weighted;Tracks",100,0,np.pi) } )
     
-    histos.update( { "h_tru_3D"   : ROOT.TH3D("h_tru_3D",  ";x [mm];y [mm];z [mm]",128,cfg["world"]["x"][0],cfg["world"]["x"][1], 64,cfg["world"]["y"][0],cfg["world"]["y"][1], 50,cfg["world"]["z"][0],cfg["world"]["z"][1]) } )
-    histos.update( { "h_cls_3D"   : ROOT.TH3D("h_cls_3D",  ";x [mm];y [mm];z [mm]",128,cfg["world"]["x"][0],cfg["world"]["x"][1], 64,cfg["world"]["y"][0],cfg["world"]["y"][1], 50,cfg["world"]["z"][0],cfg["world"]["z"][1]) } )
-    histos.update( { "h_fit_3D"   : ROOT.TH3D("h_fit_3D",  ";x [mm];y [mm];z [mm]",128,cfg["world"]["x"][0],cfg["world"]["x"][1], 64,cfg["world"]["y"][0],cfg["world"]["y"][1], 50,cfg["world"]["z"][0],cfg["world"]["z"][1]) } )
+    histos.update( { "h_tru_3D"   : ROOT.TH3D("h_tru_3D",  ";x [mm];y [mm];z [mm]",100,-20,+20, 50,-10,+10, 50,-5,95) } )
+    histos.update( { "h_cls_3D"   : ROOT.TH3D("h_cls_3D",  ";x [mm];y [mm];z [mm]",100,-20,+20, 50,-10,+10, 50,-5,95) } )
+    histos.update( { "h_fit_3D"   : ROOT.TH3D("h_fit_3D",  ";x [mm];y [mm];z [mm]",100,-20,+20, 50,-10,+10, 50,-5,95) } )
     
     histos.update( { "h_csize_vs_trupos" : ROOT.TH2D("h_csize_vs_trupos",";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
     histos.update( { "h_ntrks_vs_trupos" : ROOT.TH2D("h_ntrks_vs_trupos",";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
@@ -150,6 +150,11 @@ def book_histos(tfo):
         histos.update( { "h_csize_vs_x_masked_"+det : ROOT.TH2D("h_csize_vs_x_masked_"+det,";x;Cluster size;Clusters",cfg["npix_x"]+1,-cfg["chipX"]/2.,+cfg["chipX"]/2., 100,0.5,100.5) } )
         histos.update( { "h_csize_vs_y_"+det        : ROOT.TH2D("h_csize_vs_y_"+det,";y;Cluster size;Clusters",cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2., 100,0.5,100.5) } )
         histos.update( { "h_csize_vs_y_masked_"+det : ROOT.TH2D("h_csize_vs_y_masked_"+det,";y;Cluster size;Clusters",cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2., 100,0.5,100.5) } )
+        
+        histos.update( { "h_response_x_"+det : ROOT.TH1D("h_response_x_"+det,";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",100,-5,+5) } )
+        histos.update( { "h_response_y_"+det : ROOT.TH1D("h_response_y_"+det,";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",100,-5,+5) } )
+        histos.update( { "h_response_x_vs_csize_"+det : ROOT.TH2D("h_response_x_vs_csize_"+det,";Cluster size in x;#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",10,1,11, 50,-5,+5) } )
+        histos.update( { "h_response_y_vs_csize_"+det : ROOT.TH2D("h_response_y_vs_csize_"+det,";Cluster size in y;#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",10,1,11, 50,-5,+5) } )
         
         histos.update( { "h_csize_vs_trupos_"+det : ROOT.TH2D("h_csize_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
         histos.update( { "h_ntrks_vs_trupos_"+det : ROOT.TH2D("h_ntrks_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
@@ -254,20 +259,20 @@ def fillClsHists(det,clusters,masked,histos):
         histos["h_cls_occ_2D_"+det].Fill(c.xmm0,c.ymm0)
         histos["h_cls_size_"+det].Fill(c.n)
         histos["h_cls_size_zoom_"+det].Fill(c.n)
-        histos["h_cls_size_ncol_"+det].Fill(c.dx)
-        histos["h_cls_size_nrow_"+det].Fill(c.dy)
-        histos["h_csize_vs_x_"+det].Fill(c.xmm,c.n)
-        histos["h_csize_vs_y_"+det].Fill(c.ymm,c.n)
+        histos["h_cls_size_ncol_"+det].Fill(c.nx)
+        histos["h_cls_size_nrow_"+det].Fill(c.ny)
+        histos["h_csize_vs_x_"+det].Fill(c.xmm0,c.n)
+        histos["h_csize_vs_y_"+det].Fill(c.ymm0,c.n)
         if(not noisy):
             histos["h_ncls_masked_"+det].Fill(0.5,len(clusters))
             # histos["h_cls_occ_2D_masked_"+det].Fill(c.xmm,c.ymm)
             histos["h_cls_occ_2D_masked_"+det].Fill(c.xmm0,c.ymm0)
             histos["h_cls_size_masked_"+det].Fill(c.n)
             histos["h_cls_size_zoom_masked_"+det].Fill(c.n)
-            histos["h_cls_size_ncol_masked_"+det].Fill(c.dx)
-            histos["h_cls_size_nrow_masked_"+det].Fill(c.dy)
-            histos["h_csize_vs_x_masked_"+det].Fill(c.xmm,c.n)
-            histos["h_csize_vs_y_masked_"+det].Fill(c.ymm,c.n)
+            histos["h_cls_size_ncol_masked_"+det].Fill(c.nx)
+            histos["h_cls_size_nrow_masked_"+det].Fill(c.ny)
+            histos["h_csize_vs_x_masked_"+det].Fill(c.xmm0,c.n)
+            histos["h_csize_vs_y_masked_"+det].Fill(c.ymm0,c.n)
 
 
 def fillFitOcc(params,hname2,hname3,histos):
@@ -275,6 +280,18 @@ def fillFitOcc(params,hname2,hname3,histos):
         x,y,z = line(cfg["rdetectors"][det][2],params)
         histos[hname2+"_"+det].Fill(x,y)
         histos[hname3].Fill(x,y,z)
+
+
+def fill_trk2cls_response(points,errors,direction,centroid,nxs,nys,trkchi2dof,hname,histos,chi2threshold=100.):
+    for idet,det in enumerate(cfg["detectors"]):
+        if(trkchi2dof>chi2threshold): continue
+        resx,resy = res_track2clusterErr(det,points,errors,direction,centroid)
+        histos[hname+"_x_"+det].Fill(resx)
+        histos[hname+"_y_"+det].Fill(resy)
+        xsize = nxs[idet]
+        ysize = nys[idet]
+        histos[hname+"_x_vs_csize_"+det].Fill(xsize,resx)
+        histos[hname+"_y_vs_csize_"+det].Fill(ysize,resy)
 
 
 def fill_trk2cls_residuals(points,direction,centroid,trkchi2dof,hname,histos,chi2threshold=1.):

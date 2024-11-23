@@ -48,9 +48,13 @@ Run analysis:
 - look at the histograms in the new root file
 
 Run alignment with cosmics:
-- run noise scan (see above)
-- step 1: `python3 multiproc_analyzer.py -conf conf/config_file_name.txt` with all `misalignment` parameters set to 0 in the config file
-- step 2: aligning wrt e.g. ALPIDE_0 or all at once after adjusting the parameters in the config: `maxchi2align`, `axes2align`, `naligniter`.
+The process currently uses only one track per event so better do it with cosmics. The process is somewhat cyclic, that is, you first run the analysis with no alignment corrections, select only the good-chi2 tracks to do the alignment fit while removing the large outliers ones, run the alignment fit with this subset of tracks, update the alignment parameters and rerun the analysis to see the behaviour after the correction is applied.
+- step 1:
+  - set all `misalignment` parameters set to 0 in the config file
+  - set the `fit_large_clserr_for_algnmnt` parameter to 1
+  - get the tracks `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
+  - look at the chi2 histogram in the root file and adjust the `maxchi2align` value to remove the large outliers
+- step 2: aligning wrt e.g. ALPIDE_0 or all at once by adjusting the parameters in the config:`axes2align` and `naligniter`:
   - [option A.1] `python3 alignment_fitter.py -conf conf/config_file_name.txt -ref ALPIDE_0` or
   - [option A.2] `python3 alignment_fitter.py -conf conf/config_file_name.txt`
 - step 3: choosing the fit strategy

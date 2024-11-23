@@ -191,11 +191,13 @@ class Config:
         self.add("detectors", self.getArrS('DETECTOR','detectors'))
         self.add("plane2det", self.getMapI2S('DETECTOR','plane2det'))
         self.add("rdetectors", self.getMap2ArrF('DETECTOR','rdetectors'))
-        self.add("misalignment", self.getMap2MapF('DETECTOR','misalignment'))
-        self.add("maxchi2align", self.getF('DETECTOR','maxchi2align'))
-        self.add("axes2align", self.getS('DETECTOR','axes2align'))
-        self.add("naligniter", self.getI('DETECTOR','naligniter'))
-        self.add("alignmentbounds", self.getMap2MapF('DETECTOR','alignmentbounds'))
+        
+        
+        self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
+        self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
+        self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
+        self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
+        self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
         
         firstdet = self.map["detectors"][0]
         lastdet  = self.map["detectors"][-1]
@@ -229,9 +231,11 @@ class Config:
         self.add("offsets_x", offsets_x)
         self.add("offsets_y", offsets_y)
         
-        self.add("fast",    self.getB('FIT','fast'))
-        self.add("method0", self.getS('FIT','method0'))
-        self.add("method1", self.getArrS('FIT','method1'))
+        self.add("fit_large_clserr_for_algnmnt", self.getB('FIT','fit_large_clserr_for_algnmnt'))
+        self.add("fit_method",       self.getArrS('FIT','fit_method'))
+        self.add("fit_chi2_fast",    self.getB('FIT',   'fit_chi2_fast'))
+        self.add("fit_chi2_method0", self.getS('FIT',   'fit_chi2_method0'))
+        self.add("fit_chi2_method1", self.getArrS('FIT','fit_chi2_method1'))
         
         self.add("cuts", self.getArrS('CUTS','cuts'))
         self.add("cut_chi2dof", self.getF('CUTS','cut_chi2dof'))

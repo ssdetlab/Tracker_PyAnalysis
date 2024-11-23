@@ -92,7 +92,7 @@ def getfiles(tfilenamein):
     return files
 
 
-def fitSVD(event,dx,dy,theta,refdet=""):
+def fitSVD(track,dx,dy,theta,refdet=""):
     clsx  = {}
     clsy  = {}
     clsz  = {}
@@ -111,12 +111,18 @@ def fitSVD(event,dx,dy,theta,refdet=""):
         Theta.update({det:theta[i]})
         i += 1
     
-    ### prepare the clusters with misalignments
+    ### prepare the track's clusters with misalignments
+    x = -9999
+    y = -9999
+    z = -9999
+    ex = -9999
+    ey = -9999
     for det in cfg["detectors"]:
-        x = event.clusters[det][0].xmm
-        y = event.clusters[det][0].ymm
-        z = event.clusters[det][0].zmm
-        
+        x = track.trkcls[det].xmm
+        y = track.trkcls[det].ymm
+        z = track.trkcls[det].zmm
+        ex = track.trkcls[det].xsizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dx
+        ey = track.trkcls[det].ysizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dy
         ### only for the non-reference detectors or all detectors?
         if(refdet!=""):
             if(det!=refdet):
@@ -127,12 +133,11 @@ def fitSVD(event,dx,dy,theta,refdet=""):
             x,y = rotate(Theta[det],x,y)
             x = x+dX[det]
             y = y+dY[det]
-        
         clsx.update({det:x})
         clsy.update({det:y})
         clsz.update({det:z})
-        clsdx.update({det:event.clusters[det][0].dxmm})
-        clsdy.update({det:event.clusters[det][0].dymm})
+        clsdx.update({det:ex})
+        clsdy.update({det:ey})
     vtx  = [cfg["xVtx"], cfg["yVtx"],  cfg["zVtx"]]  if(cfg["doVtx"]) else []
     evtx = [cfg["exVtx"],cfg["eyVtx"], cfg["ezVtx"]] if(cfg["doVtx"]) else []
     points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
@@ -141,6 +146,7 @@ def fitSVD(event,dx,dy,theta,refdet=""):
     dabs = 0
     for det in cfg["detectors"]:
         dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
+        # dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
         dabs += math.sqrt(dx*dx + dy*dy)
     chi2ndof = chisq_SVD/ndof_SVD if(ndof_SVD>0) else -99999
     return chi2ndof,dabs,dx,dy
@@ -192,14 +198,17 @@ def fit_misalignment(events,ndet2align,refdet,axes):
         sum_dy = 0
         sum_dabs = 0
         sum_chi2 = 0
+        nvalidevents = 0
         for event in events:
-            chisq,dabs,dX,dY = fitSVD(event,dx,dy,dt,refdet)
+            if(len(event.tracks)!=1): continue
+            nvalidevents += 1
+            chisq,dabs,dX,dY = fitSVD(event.tracks[0],dx,dy,dt,refdet)
             sum_dabs += dabs
             sum_dx += dX
             sum_dy += dY
             sum_chi2 += chisq
-        # return sum_chi2/len(events)
-        return sum_dabs/len(events)
+        # return sum_chi2/nvalidevents
+        return sum_dabs/nvalidevents
     
     nparperdet = -1
     if  (axes=="xytheta"):                                nparperdet = 3
@@ -276,11 +285,10 @@ if __name__ == "__main__":
             for event in data:
                 if(allevents%50==0 and allevents>0): print("Reading event #",allevents)
                 allevents += 1
-                
+
                 ### TODO: one track per event. need to adapt the code to take all tracks...
                 if(len(event.tracks)!=1): continue
-                
-                chi2dof,dabs,dX,dY = fitSVD(event,[0]*ndet2align,[0]*ndet2align,[0]*ndet2align,refdet)
+                chi2dof,dabs,dX,dY = fitSVD(event.tracks[0],[0]*ndet2align,[0]*ndet2align,[0]*ndet2align,refdet)
                 chi2dof_werr = event.tracks[0].chi2ndof 
                 # if(chi2dof>cfg["maxchi2align"]): continue
                 if(chi2dof_werr>cfg["maxchi2align"]): continue
@@ -311,15 +319,17 @@ if __name__ == "__main__":
     allevents1 = 0
     dxFinal,dyFinal,thetaFinal,nparperdet = init_params(axes,ndet2align,params)
     for event in events:
-        chi2dof,dabs,dX,dY = fitSVD(event,dxFinal,dyFinal,thetaFinal,refdet)
+        if(len(event.tracks)!=1): continue
+        allevents1 += 1
+        chi2dof,dabs,dX,dY = fitSVD(event.tracks[0],dxFinal,dyFinal,thetaFinal,refdet)
         chisq1 += chi2dof
         dabs1  += dabs
         dX1    += dX
         dY1    += dY
-    chisq1 = chisq1/len(events)
-    dabs1  = dabs1/len(events)
-    dX1    = dX1/len(events)
-    dY1    = dY1/len(events)
+    chisq1 = chisq1/allevents1
+    dabs1  = dabs1/allevents1
+    dX1    = dX1/allevents1
+    dY1    = dY1/allevents1
     
     ### sumarize
     print("\n----------------------------------------")

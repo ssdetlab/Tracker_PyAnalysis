@@ -71,9 +71,10 @@ class HoughSeeder:
         self.thetamin_y = np.pi/2-self.theta_y_scale*np.pi/2.
         self.thetamax_y = np.pi/2+self.theta_y_scale*np.pi/2.
         self.nbins_thetarho = -1
-        if(nclusters<=20):                     self.nbins_thetarho = cfg["seed_nbins_thetarho_020"]
-        elif(nclusters>20 and nclusters<=200): self.nbins_thetarho = cfg["seed_nbins_thetarho_200"]
-        elif(nclusters>200):                   self.nbins_thetarho = cfg["seed_nbins_thetarho_inf"]
+        if(nclusters<=20):                       self.nbins_thetarho = cfg["seed_nbins_thetarho_0020"]
+        elif(nclusters>20  and nclusters<=200):  self.nbins_thetarho = cfg["seed_nbins_thetarho_0200"]
+        elif(nclusters>200 and nclusters<=4000): self.nbins_thetarho = cfg["seed_nbins_thetarho_2000"]
+        elif(nclusters>200):                     self.nbins_thetarho = cfg["seed_nbins_thetarho_inf"]
         self.minintersections = math.comb(len(cfg["detectors"]),2) ### all pairs out of for detectors w/o repetitions
         ### set the clusters
         self.set_clusters(clusters)
@@ -110,11 +111,14 @@ class HoughSeeder:
         self.nseeds = len(self.seeds)
         del self.h2waves_zx
         del self.h2waves_zy
-        print(f"eventid={self.eventid}: got {len(self.tunnels)} valid tunnels out of {len(self.cells)} tunnels and a total of {len(self.seeds)} seeds.")
-        print(f"eventid={self.eventid}: N seeds per tunnel: min={min(self.tunnel_nsseds)}, max={max(self.tunnel_nsseds)}, mean={np.mean(self.tunnel_nsseds):.3f}+-{np.std(self.tunnel_nsseds):.3f}.")
+        minSeedsPerTnl = min(self.tunnel_nsseds) if(len(self.tunnel_nsseds)>0)     else -1
+        maxSeedsPerTnl = max(self.tunnel_nsseds) if(len(self.tunnel_nsseds)>0)     else -1
+        avgSeedsPerTnl = np.mean(self.tunnel_nsseds) if(len(self.tunnel_nsseds)>0) else -1
+        stdSeedsPerTnl = np.std(self.tunnel_nsseds)  if(len(self.tunnel_nsseds)>0) else -1
+        print(f"eventid={self.eventid}: got {len(self.tunnels)} valid tunnels out of {len(self.cells)} tunnels and a total of {len(self.seeds)} seeds. N seeds per tunnel: min={minSeedsPerTnl}, max={maxSeedsPerTnl}, mean={avgSeedsPerTnl:.3f}+/-{stdSeedsPerTnl:.3f}.")
         
-    def __del__(self):
-        print(f"eventid={self.eventid}: deleted HoughSeeder class")
+    # def __del__(self):
+        # print(f"eventid={self.eventid}: deleted HoughSeeder class")
 
     def __str__(self):
         return f"Seeder"

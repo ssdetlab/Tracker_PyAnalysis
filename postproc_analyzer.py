@@ -204,17 +204,20 @@ def plot_2x2_FIT_histos(pdf,prefix,dets,xfitmin,xfitmax):
         hname = prefix+"_"+det
         histos[hname].Draw("e1p")
         ### fit
+        func = fit1(histos[hname],ROOT.kRed,xfitmin,xfitmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1);
+        s.SetTextAlign(13);
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
         if("h_Chi2fit_res_trk2cls" in prefix):
-            func = fit1(histos[hname],ROOT.kRed,xfitmin,xfitmax)
-            s = ROOT.TLatex()
-            s.SetNDC(1);
-            s.SetTextAlign(13);
-            s.SetTextColor(ROOT.kBlack)
-            s.SetTextFont(22)
-            s.SetTextSize(0.045)
             s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
             s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
-            if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        if("h_response" in prefix):
+            s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f" % (func.GetParameter(1))))
+            s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f" % (func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
         p.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(pdf)
@@ -316,7 +319,7 @@ if __name__ == "__main__":
     detectors = cfg["detectors"]
 
     histprefx_glb = ["h_cutflow", "h_nSeeds","h_nSeeds_mid", "h_nTracks","h_nTracks_mid", "h_nTracks_success","h_nTracks_success_mid", "h_nTracks_goodchi2","h_nTracks_goodchi2_mid", "h_nTracks_selected","h_nTracks_selected_mid", "h_3Dchi2err_full",  "h_3Dchi2err", "h_3Dchi2err_zoom", "h_3Dchi2err_0to1" ]
-    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_occ_2D", "h_cls_occ_2D_masked", "h_cls_size", "h_cls_size_zoom", "h_Chi2fit_res_trk2cls_pass_x", "h_Chi2fit_res_trk2cls_pass_y", ]
+    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_occ_2D", "h_cls_occ_2D_masked", "h_cls_size", "h_cls_size_zoom", "h_Chi2fit_res_trk2cls_pass_x", "h_Chi2fit_res_trk2cls_pass_y", "h_response_x", "h_response_y", "h_response_x_vs_csize", "h_response_y_vs_csize" ]
     
     # get the start time
     tfilenameout = tfilenamein.replace(".root","_postprocessplots.root")
@@ -337,10 +340,15 @@ if __name__ == "__main__":
     cols   = [ROOT.kBlack,  ROOT.kBlue,         ROOT.kRed]
     overlay_1D_histos(pdf, hnames,hlegnd,cols,logy=True,cnvx=500,cnvy=500,drawopt="hist",rebin=-1,titles="Hough transform based seeding & tracking;N per trigger;Triggers")
 
-    # plot_1D_histos(pdf,    "h_3Dchi2err_full",logy=True,cnvx=500,cnvy=500,drawopt="hist")
-    # plot_1D_histos(pdf,    "h_3Dchi2err",logy=True,cnvx=500,cnvy=500,drawopt="hist")
-    plot_1D_histos(pdf,    "h_3Dchi2err_zoom",logy=True,cnvx=500,cnvy=500,drawopt="hist")
-    plot_1D_histos(pdf,    "h_3Dchi2err_0to1",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    plot_1D_histos(pdf, "h_3Dchi2err_full",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    plot_1D_histos(pdf, "h_3Dchi2err",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    plot_1D_histos(pdf, "h_3Dchi2err_zoom",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    plot_1D_histos(pdf, "h_3Dchi2err_0to1",logy=True,cnvx=500,cnvy=500,drawopt="hist")
+    
+    plot_2x2_FIT_histos(pdf,"h_response_x",detectors,-1.,+1.)
+    plot_2x2_FIT_histos(pdf,"h_response_y",detectors,-1.,+1.)
+    plot_2x2_2D_histos(pdf,"h_response_x_vs_csize",detectors,logz=False)
+    plot_2x2_2D_histos(pdf,"h_response_y_vs_csize",detectors,logz=False)
     
     plot_2x2_1D_histos(pdf,"h_errors",detectors,logy=False,drawopt="hist")
     # plot_2x2_1D_histos(pdf,"h_pix_occ_1D",detectors,logy=True,drawopt="hist",addtotitle="unmasked")
