@@ -68,28 +68,28 @@ ROOT.gStyle.SetOptFit(0)
 allhistos = {}
 
 
-def getfileslist(directory,pattern,suff):
-    files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
-    ff = []
-    for f in files: ff.append(f)
-    return ff
-
-
-def getfiles(tfilenamein):
-    words = tfilenamein.split("/")
-    directory = ""
-    for w in range(len(words)-1):
-        directory += words[w]+"/"
-    strippedname = words[-1].split(".pkl")[0]
-    words = strippedname.split("_")
-    pattern = ""
-    for w in range(len(words)):
-        word = words[w].replace(".root","")
-        pattern += word+"_"
-    print("directory:",directory)
-    print("pattern:",pattern)
-    files = getfileslist(directory,pattern,".pkl")
-    return files
+# def getfileslist(directory,pattern,suff):
+#     files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
+#     ff = []
+#     for f in files: ff.append(f)
+#     return ff
+#
+#
+# def getfiles(tfilenamein):
+#     words = tfilenamein.split("/")
+#     directory = ""
+#     for w in range(len(words)-1):
+#         directory += words[w]+"/"
+#     strippedname = words[-1].split(".pkl")[0]
+#     words = strippedname.split("_")
+#     pattern = ""
+#     for w in range(len(words)):
+#         word = words[w].replace(".root","")
+#         pattern += word+"_"
+#     print("directory:",directory)
+#     print("pattern:",pattern)
+#     files = getfileslist(directory,pattern,".pkl")
+#     return files
 
 
 def fitSVD(track,dx,dy,theta,refdet=""):
@@ -148,7 +148,7 @@ def fitSVD(track,dx,dy,theta,refdet=""):
         dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
         # dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
         dabs += math.sqrt(dx*dx + dy*dy)
-    chi2ndof = chisq_SVD/ndof_SVD if(ndof_SVD>0) else -99999
+    chi2ndof = chisq_SVD/ndof_SVD
     return chi2ndof,dabs,dx,dy
 
 
@@ -192,23 +192,24 @@ def init_params(axes,ndet2align,params):
 def fit_misalignment(events,ndet2align,refdet,axes):
     ### Define the objective function to minimize (the chi^2 function)
     ### similar to https://root.cern.ch/doc/master/line3Dfit_8C_source.html
-    def avg_chi2(params,events):
+    def metric_function_to_minimize(params,events):
         dx,dy,dt,nparperdet = init_params(axes,ndet2align,params)
         sum_dx = 0
         sum_dy = 0
         sum_dabs = 0
         sum_chi2 = 0
         nvalidevents = 0
+        nvalidtracks = 0
         for event in events:
-            if(len(event.tracks)!=1): continue
-            nvalidevents += 1
-            chisq,dabs,dX,dY = fitSVD(event.tracks[0],dx,dy,dt,refdet)
-            sum_dabs += dabs
-            sum_dx += dX
-            sum_dy += dY
-            sum_chi2 += chisq
-        # return sum_chi2/nvalidevents
-        return sum_dabs/nvalidevents
+            for track in event.tracks:
+                nvalidtracks += 1
+                chisq,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
+                sum_dabs += dabs
+                sum_dx += dX
+                sum_dy += dY
+                sum_chi2 += chisq
+        # return sum_chi2/nvalidtracks
+        return sum_dabs/nvalidtracks
     
     nparperdet = -1
     if  (axes=="xytheta"):                                nparperdet = 3
@@ -233,12 +234,12 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     print("range_params:",range_params)
     ### https://stackoverflow.com/questions/52438263/scipy-optimize-gets-trapped-in-local-minima-what-can-i-do
     ### https://stackoverflow.com/questions/25448296/scipy-basin-hopping-minimization-on-function-with-free-and-fixed-parameters
-    # result = minimize(avg_chi2, initial_params, method='TNC', args=(events), bounds=range_params, jac='2-point', options={'disp': True, 'finite_diff_rel_step': 0.0000001, 'accuracy': 0.001}) ### first fit to get closer
-    # result = minimize(avg_chi2, initial_params, method='SLSQP',       args=(events), bounds=range_params, options={'disp': True ,'eps' : 1e-3})
-    # result = minimize(avg_chi2, initial_params, method='Nelder-Mead', args=(events), bounds=range_params) ### first fit to get closer
-    # result = minimize(avg_chi2, result.x,       method='Powell',      args=(events), bounds=range_params) ### second fit to finish
-    # result = basinhopping(avg_chi2, initial_params, niter=50, minimizer_kwargs={"method": "L-BFGS-B", "args":(events,), "bounds":range_params})
-    result = basinhopping(avg_chi2, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "args":(events,), "bounds":range_params})
+    # result = minimize(metric_function_to_minimize, initial_params, method='TNC', args=(events), bounds=range_params, jac='2-point', options={'disp': True, 'finite_diff_rel_step': 0.0000001, 'accuracy': 0.001}) ### first fit to get closer
+    # result = minimize(metric_function_to_minimize, initial_params, method='SLSQP',       args=(events), bounds=range_params, options={'disp': True ,'eps' : 1e-3})
+    # result = minimize(metric_function_to_minimize, initial_params, method='Nelder-Mead', args=(events), bounds=range_params) ### first fit to get closer
+    # result = minimize(metric_function_to_minimize, result.x,       method='Powell',      args=(events), bounds=range_params) ### second fit to finish
+    # result = basinhopping(metric_function_to_minimize, initial_params, niter=50, minimizer_kwargs={"method": "L-BFGS-B", "args":(events,), "bounds":range_params})
+    result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "args":(events,), "bounds":range_params})
     
     ### get the chi^2 value and the number of degrees of freedom
     chisq = result.fun
@@ -270,6 +271,9 @@ if __name__ == "__main__":
     axes       = cfg["axes2align"]
     ndet2align = len(cfg["detectors"])-1 if(refdet!="") else len(cfg["detectors"])
     
+    ###
+    xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
+    
     ### save all events
     events = []
     chisq0 = 0
@@ -278,6 +282,7 @@ if __name__ == "__main__":
     dX0    = 0
     dY0    = 0
     allevents = 0
+    ngoodtracks = 0
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
         with open(fpkl,'rb') as handle:
@@ -285,28 +290,37 @@ if __name__ == "__main__":
             for event in data:
                 if(allevents%50==0 and allevents>0): print("Reading event #",allevents)
                 allevents += 1
-
-                ### TODO: one track per event. need to adapt the code to take all tracks...
-                if(len(event.tracks)!=1): continue
-                chi2dof,dabs,dX,dY = fitSVD(event.tracks[0],[0]*ndet2align,[0]*ndet2align,[0]*ndet2align,refdet)
-                chi2dof_werr = event.tracks[0].chi2ndof 
-                # if(chi2dof>cfg["maxchi2align"]): continue
-                if(chi2dof_werr>cfg["maxchi2align"]): continue
-                events.append(event)
-                chisq0 += chi2dof
-                chisq0_werr += chi2dof_werr
-                dabs0  += dabs
-                dX0    += dX
-                dY0    += dY
-    ncollectedevents = len(events)
-    print("Collected events:",ncollectedevents,", SVD fit chi2/dof=",chisq0,", Chi2Err fit chi2/dof=",chisq0_werr)
-    if(ncollectedevents<5):
-        print("Too few events collected ("+str(ncollectedevents)+") for the chi2/dof cut of maxchi2align=",cfg["maxchi2align"],"--> try to increase it in the config file.")
+                for track in event.tracks:
+                    chi2dof,dabs,dX,dY = fitSVD(track,[0]*ndet2align,[0]*ndet2align,[0]*ndet2align,refdet)
+                    chi2dof_werr = event.tracks[0].chi2ndof 
+                    # if(chi2dof>cfg["maxchi2align"]): continue
+                    if(chi2dof_werr<cfg["minchi2align"]): continue
+                    if(chi2dof_werr>cfg["maxchi2align"]): continue
+                    
+                    ### require pointing to the pdc window, inclined up as a positron
+                    r0,rN,rW = get_track_point_at_extremes(track)
+                    pass_inclination_yz = (rN[1]>=r0[1])
+                    pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
+                    pass_selection      = (pass_inclination_yz and pass_vertexatpdc)
+                    if(not pass_selection): continue
+                    
+                    ### count and proceed
+                    if(ngoodtracks%100==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")
+                    ngoodtracks += 1
+                    events.append(event)
+                    chisq0 += chi2dof
+                    chisq0_werr += chi2dof_werr
+                    dabs0  += dabs
+                    dX0    += dX
+                    dY0    += dY
+    print(f"Collected tracks: {ngoodtracks} SVD fit chi2/dof={chisq0}, Chi2Err fit chi2/dof={chisq0_werr}")
+    if(ngoodtracks<5):
+        print(f'Too few tracks collected ({ngoodtracks}) for the chi2/dof cut of maxchi2align={cfg["maxchi2align"]} --> try to increase it in the config file.')
         print("Quitting")
         quit()
-    chisq0 = chisq0/ncollectedevents
-    dabs0  = dabs0/ncollectedevents
-    print("Done collecting",ncollectedevents,"events with chisq0=",chisq0," and dabs0=",dabs0,". Now going to fit misalignments")
+    chisq0 = chisq0/ngoodtracks
+    dabs0  = dabs0/ngoodtracks
+    print(f"Done collecting {ngoodtracks} tracks with chisq0={chisq0} and dabs0={dabs0}. Now going to fit misalignments")
     
     ### fit
     params,result,success = fit_misalignment(events,ndet2align,refdet,axes)
@@ -317,19 +331,20 @@ if __name__ == "__main__":
     dX1    = 0
     dY1    = 0
     allevents1 = 0
+    ngoodtracks = 0
     dxFinal,dyFinal,thetaFinal,nparperdet = init_params(axes,ndet2align,params)
     for event in events:
-        if(len(event.tracks)!=1): continue
-        allevents1 += 1
-        chi2dof,dabs,dX,dY = fitSVD(event.tracks[0],dxFinal,dyFinal,thetaFinal,refdet)
-        chisq1 += chi2dof
-        dabs1  += dabs
-        dX1    += dX
-        dY1    += dY
-    chisq1 = chisq1/allevents1
-    dabs1  = dabs1/allevents1
-    dX1    = dX1/allevents1
-    dY1    = dY1/allevents1
+        for track in event.tracks:
+            ngoodtracks += 1
+            chi2dof,dabs,dX,dY = fitSVD(track,dxFinal,dyFinal,thetaFinal,refdet)
+            chisq1 += chi2dof
+            dabs1  += dabs
+            dX1    += dX
+            dY1    += dY
+    chisq1 = chisq1/ngoodtracks
+    dabs1  = dabs1/ngoodtracks
+    dX1    = dX1/ngoodtracks
+    dY1    = dY1/ngoodtracks
     
     ### sumarize
     print("\n----------------------------------------")

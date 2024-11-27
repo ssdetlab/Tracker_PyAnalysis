@@ -37,6 +37,7 @@ class Config:
         self.configurator.optionxform = str ### preserve case sensitivity
         self.map = {} ### the config map
         self.set(fname,doprint)
+        self.check_inputs()
         
     def read(self,fname):
         if(self.doprint): print("Reading configuration from: ",fname)
@@ -139,14 +140,29 @@ class Config:
         
         self.add("seed_allow_negative_vertical_inclination", self.getB('SEED','seed_allow_negative_vertical_inclination'))
         self.add("seed_allow_neigbours", self.getB('SEED','seed_allow_neigbours'))
-        self.add("seed_thetax_scale", self.getF('SEED','seed_thetax_scale'))
-        self.add("seed_rhox_scale", self.getF('SEED','seed_rhox_scale'))
-        self.add("seed_thetay_scale", self.getF('SEED','seed_thetay_scale'))
-        self.add("seed_rhoy_scale", self.getF('SEED','seed_rhoy_scale'))
+        
+        self.add("seed_thetax_scale_0020", self.getF('SEED','seed_thetax_scale_0020'))
+        self.add("seed_thetax_scale_0200", self.getF('SEED','seed_thetax_scale_0200'))
+        self.add("seed_thetax_scale_4000", self.getF('SEED','seed_thetax_scale_4000'))
+        self.add("seed_thetax_scale_inf",  self.getF('SEED','seed_thetax_scale_inf'))
+        self.add("seed_rhox_scale_0020", self.getF('SEED','seed_rhox_scale_0020'))
+        self.add("seed_rhox_scale_0200", self.getF('SEED','seed_rhox_scale_0200'))
+        self.add("seed_rhox_scale_4000", self.getF('SEED','seed_rhox_scale_4000'))
+        self.add("seed_rhox_scale_inf",  self.getF('SEED','seed_rhox_scale_inf'))
+        self.add("seed_thetay_scale_0020", self.getF('SEED','seed_thetay_scale_0020'))
+        self.add("seed_thetay_scale_0200", self.getF('SEED','seed_thetay_scale_0200'))
+        self.add("seed_thetay_scale_4000", self.getF('SEED','seed_thetay_scale_4000'))
+        self.add("seed_thetay_scale_inf",  self.getF('SEED','seed_thetay_scale_inf'))
+        self.add("seed_rhoy_scale_0020", self.getF('SEED','seed_rhoy_scale_0020'))
+        self.add("seed_rhoy_scale_0200", self.getF('SEED','seed_rhoy_scale_0200'))
+        self.add("seed_rhoy_scale_4000", self.getF('SEED','seed_rhoy_scale_4000'))
+        self.add("seed_rhoy_scale_inf",  self.getF('SEED','seed_rhoy_scale_inf'))
+        
+        
         self.add("seed_nbins_thetarho_0020", self.getI('SEED','seed_nbins_thetarho_0020'))
         self.add("seed_nbins_thetarho_0200", self.getI('SEED','seed_nbins_thetarho_0200'))
-        self.add("seed_nbins_thetarho_2000", self.getI('SEED','seed_nbins_thetarho_2000'))
-        self.add("seed_nbins_thetarho_inf", self.getI('SEED','seed_nbins_thetarho_inf'))
+        self.add("seed_nbins_thetarho_4000", self.getI('SEED','seed_nbins_thetarho_4000'))
+        self.add("seed_nbins_thetarho_inf",  self.getI('SEED','seed_nbins_thetarho_inf'))
         
         self.add("lut_nbinsx_0020", self.getI('LUT','lut_nbinsx_0020'))
         self.add("lut_nbinsy_0020", self.getI('LUT','lut_nbinsy_0020'))
@@ -194,6 +210,7 @@ class Config:
         
         
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
+        self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
         self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
         self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
         self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
@@ -249,6 +266,27 @@ class Config:
             for key,val in self.map.items():
                 print(f"{key}: {val}")
             print("")
+
+    def error(self,msg):
+        sys.exit(msg)
+    
+    def check_inputs(self):
+        print(f"Checking config file integrity...")
+        if(self.map["fit_large_clserr_for_algnmnt"] and not self.map["seed_allow_negative_vertical_inclination"]):
+            self.error(f"fit_large_clserr_for_algnmnt must not be 1 if seed_allow_negative_vertical_inclination is 0")
+        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["maxchi2align"]>1000):
+            self.error(f'fit_large_clserr_for_algnmnt must not be 1 if maxchi2align is>100 (it is set to {self.map["maxchi2align"]})')
+        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["fit_method"][0]!="SVD"):
+            self.error(f'if fit_large_clserr_for_algnmnt is 1 then fit_method must be SVD (it is set to {self.map["fit_method"]})')
+        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["maxchi2align"]!=self.map["cut_chi2dof"]):
+            self.error(f'if fit_large_clserr_for_algnmnt is 1 then maxchi2align must be equal to cut_chi2dof')
+        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["minchi2align"]==0):
+            self.error(f'if fit_large_clserr_for_algnmnt is 1 then minchi2align must be >0')
+        if(not self.map["fit_large_clserr_for_algnmnt"] and self.map["cut_chi2dof"]>25):
+            self.error(f'if fit_large_clserr_for_algnmnt is 0 then cut_chi2dof should be smaller than 25 (it is set to {self.map["cut_chi2dof"]}) or you can adjust the condition in check_inputs()')
+        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["minchi2align"]>=self.map["maxchi2align"]):
+            self.error(f'if fit_large_clserr_for_algnmnt is 1 then minchi2align cannot be greater than or equal to maxchi2align')
+        print(f"Config file integrity check passed!")
 
     def __str__(self):
         return f"Config map: {self.map}"

@@ -119,7 +119,6 @@ def analyze(tfilenamein,irange,evt_range,masked):
             print("Problem with Meta tree.")
             runnumber = get_run_from_file(tfilenamein) #TODO: can also be taken from the event tree itself later
     meta = Meta(runnumber,starttime,endtime,duration)
-    
     # tfmeta.Close()
     
     ### open the pickle:
@@ -306,14 +305,16 @@ def analyze(tfilenamein,irange,evt_range,masked):
             ### require good chi2, pointing to the pdc window, inclined up as a positron
             r0,rN,rW = get_track_point_at_extremes(track)
             xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
+            pass_fit            = (success and chi2ndof<=cfg["cut_chi2dof"])
             pass_inclination_yz = (rN[1]>=r0[1])
             pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
-            pass_selection      = (pass_inclination_yz and pass_vertexatpdc)
-            if(success):                                                     n_successful_tracks += 1
-            if(success and chi2ndof<=cfg["cut_chi2dof"]):                    n_goodchi2_tracks += 1
-            if(success and chi2ndof<=cfg["cut_chi2dof"] and pass_selection): n_selected_tracks += 1
+            pass_selection      = (pass_fit and pass_inclination_yz and pass_vertexatpdc)
+            if(success):        n_successful_tracks += 1
+            if(pass_fit):       n_goodchi2_tracks += 1
+            if(pass_selection): n_selected_tracks += 1
 
             histos["h_3Dchi2err"].Fill(chi2ndof)
+            histos["h_3Dchi2err_all"].Fill(chi2ndof)
             histos["h_3Dchi2err_full"].Fill(chi2ndof)
             histos["h_3Dchi2err_zoom"].Fill(chi2ndof)
             histos["h_3Dchi2err_0to1"].Fill(chi2ndof)
@@ -324,22 +325,19 @@ def analyze(tfilenamein,irange,evt_range,masked):
             ### Chi2 track to cluster residuals
             fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls",histos)
             fill_trk2cls_residuals(points_SVD,direction,centroid,chi2ndof,"h_Chi2fit_res_trk2cls_pass",histos,chi2threshold=cfg["cut_chi2dof"])
-            
+            ### response (residuals over cluster error)
             nxs = []
             nys = []
             for idet,det in enumerate(cfg["detectors"]):
                 nxs.append(trkcls[det].nx)
                 nys.append(trkcls[det].ny)
             fill_trk2cls_response(points_SVD,errors_SVD,direction,centroid,nxs,nys,chi2ndof,"h_response",histos,chi2threshold=cfg["cut_chi2dof"])
-            
-            # fill_trk2cls_residuals(points_SVD,direction,centroid,"h_Chi2fit_res_trk2cls",histos)
-
-            ### Chi2 track to truth residuals
-            if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
-            ### Chi2 fit points on laters
-            fillFitOcc(params,"h_fit_occ_2D", "h_fit_3D",histos)
+            ### fit points occupancy
+            if(pass_selection): fillFitOcc(params,"h_trk_occ_2D", "h_trk_3D",histos)
             ### track to vertex residuals
             if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
+            ### Chi2 track to truth residuals
+            if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
             
         histos["h_nTracks"].Fill( n_tracks )
         histos["h_nTracks_mid"].Fill( n_tracks )

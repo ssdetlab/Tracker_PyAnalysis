@@ -55,8 +55,8 @@ from candidate import *
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 ROOT.gStyle.SetOptStat(0)
-# ROOT.gStyle.SetPalette(ROOT.kDarkBodyRadiator)
-ROOT.gStyle.SetPalette(ROOT.kRust)
+ROOT.gStyle.SetPalette(ROOT.kDarkBodyRadiator)
+# ROOT.gStyle.SetPalette(ROOT.kRust)
 # ROOT.gStyle.SetPalette(ROOT.kRainbow)
 ROOT.gStyle.SetPadBottomMargin(0.15)
 ROOT.gStyle.SetPadLeftMargin(0.13)
@@ -74,6 +74,19 @@ def gethmax(h,norm=True):
         y = h.GetBinContent(b) if(norm==False) else h.GetBinContent(b)/hint
         hmax = y if(y>hmax) else hmax
     return hmax
+
+def get_chip_lines():
+    chips = getChips2D()
+    chiplines = {}
+    for det in cfg["detectors"]:
+        chiplines.update({det:ROOT.TPolyLine()})
+        corner0 = None
+        for icorner,corner in enumerate(chips[det]):
+            chiplines[det].SetNextPoint(corner[0],corner[1])
+            if(icorner==0): corner0 = corner
+            if(icorner==len(chips[det])-1): chiplines[det].SetNextPoint(corner0[0],corner0[1])
+        chiplines[det].SetLineColor(ROOT.kGreen+2)
+    return chiplines
 
 def book_histos(tfi,tfo,hprefx_glb,hprefx_det,dets):
     tfo.cd()
@@ -303,6 +316,27 @@ def plot_2x2_2D_histos(pdf,prefix,dets,logz,addtotitle=""):
     cnv.SaveAs(pdf)
 
 
+def plot_2x2_2D_realspace_histos(pdf,prefix,dets,logz,addtotitle=""):
+    chiplines = get_chip_lines()
+    for idet,det in enumerate(dets):
+        hname = prefix+"_"+det
+        title = det
+        if(addtotitle!=""): title += " "+addtotitle
+        histos[hname].SetTitle(title)
+    cnv = ROOT.TCanvas("cnv","",1200,1000)
+    cnv.Divide(2,2)
+    for count1,det in enumerate(dets):
+        p = cnv.cd(count1+1)
+        p.SetTicks(1,1)
+        if(logz): p.SetLogz()
+        hname = prefix+"_"+det
+        histos[hname].Draw("colz")
+        chiplines[det].Draw()
+        p.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(pdf)
+
+
 
 #####################################################################################
 #####################################################################################
@@ -319,7 +353,7 @@ if __name__ == "__main__":
     detectors = cfg["detectors"]
 
     histprefx_glb = ["h_cutflow", "h_nSeeds","h_nSeeds_mid", "h_nTracks","h_nTracks_mid", "h_nTracks_success","h_nTracks_success_mid", "h_nTracks_goodchi2","h_nTracks_goodchi2_mid", "h_nTracks_selected","h_nTracks_selected_mid", "h_3Dchi2err_full",  "h_3Dchi2err", "h_3Dchi2err_zoom", "h_3Dchi2err_0to1" ]
-    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_occ_2D", "h_cls_occ_2D_masked", "h_cls_size", "h_cls_size_zoom", "h_Chi2fit_res_trk2cls_pass_x", "h_Chi2fit_res_trk2cls_pass_y", "h_response_x", "h_response_y", "h_response_x_vs_csize", "h_response_y_vs_csize" ]
+    histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_occ_2D", "h_cls_occ_2D_masked", "h_trk_occ_2D", "h_cls_size", "h_cls_size_zoom", "h_Chi2fit_res_trk2cls_pass_x", "h_Chi2fit_res_trk2cls_pass_y", "h_response_x", "h_response_y", "h_response_x_vs_csize", "h_response_y_vs_csize" ]
     
     # get the start time
     tfilenameout = tfilenamein.replace(".root","_postprocessplots.root")
@@ -345,8 +379,8 @@ if __name__ == "__main__":
     plot_1D_histos(pdf, "h_3Dchi2err_zoom",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     plot_1D_histos(pdf, "h_3Dchi2err_0to1",logy=True,cnvx=500,cnvy=500,drawopt="hist")
     
-    plot_2x2_FIT_histos(pdf,"h_response_x",detectors,-1.,+1.)
-    plot_2x2_FIT_histos(pdf,"h_response_y",detectors,-1.,+1.)
+    plot_2x2_FIT_histos(pdf,"h_response_x",detectors,-3.,+3.)
+    plot_2x2_FIT_histos(pdf,"h_response_y",detectors,-3.,+3.)
     plot_2x2_2D_histos(pdf,"h_response_x_vs_csize",detectors,logz=False)
     plot_2x2_2D_histos(pdf,"h_response_y_vs_csize",detectors,logz=False)
     
@@ -357,6 +391,8 @@ if __name__ == "__main__":
     plot_2x2_2D_histos(pdf,"h_pix_occ_2D_masked",detectors,logz=False,addtotitle="Pixels")
     # plot_2x2_2D_histos(pdf,"h_cls_occ_2D",detectors,logz=False,addtotitle="unmasked")
     plot_2x2_2D_histos(pdf,"h_cls_occ_2D_masked",detectors,logz=False,addtotitle="Clusters")
+
+    plot_2x2_2D_realspace_histos(pdf,"h_trk_occ_2D",detectors,logz=False,addtotitle="Tracks")
     
     plot_2x2_1D_histos(pdf,"h_cls_size",detectors,logy=True,drawopt="e1p")
     plot_2x2_1D_histos(pdf,"h_cls_size_zoom",detectors,logy=False,drawopt="e1p")

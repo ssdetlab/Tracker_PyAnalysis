@@ -48,12 +48,12 @@ Run analysis:
 - look at the histograms in the new root file
 
 Run alignment with cosmics:
-The process currently uses only one track per event so better do it with cosmics. The process is somewhat cyclic, that is, you first run the analysis with no alignment corrections, select only the good-chi2 tracks to do the alignment fit while removing the large outliers ones, run the alignment fit with this subset of tracks, update the alignment parameters and rerun the analysis to see the behaviour after the correction is applied. For the first step, it is important to use relativel "large" cluster errors so the chi2 distribution without correction lies in a reasonable range. For the cosmics runs, it is also important to loosen up the seeding algorithm requirements (mostly the rho-theta space scale parameters, the tunnel width parameters and the `seed_allow_negative_vertical_inclination` parameter). In the end of the process after applying the correction, the chi2 histogram should be peaking at ~1 and the response histograms should have a mean consistent with 0 and a sigma consistent with 1.
+The process currently uses only one track per event so better do it with cosmics. The process is somewhat cyclic, that is, you first run the analysis with no alignment corrections, select only the good-chi2 tracks to do the alignment fit while removing the large outliers ones, run the alignment fit with this subset of tracks, update the alignment parameters and rerun the analysis to see the behaviour after the correction is applied. For the first step, it is important to use the "largest" cluster errors, so the chi2 distribution without correction lies in a reasonable range. For the cosmics runs, it is also important to loosen up the seeding algorithm requirements (mostly the rho-theta space scale parameters, the tunnel width parameters and the `seed_allow_negative_vertical_inclination` parameter). In the end of the process after applying the correction, the chi2 histogram should be peaking at ~1 and the response histograms should have a mean consistent with 0 and a sigma consistent with 1.
 - step 1:
   - set all `misalignment` parameters set to 0 in the config file
   - set the `fit_large_clserr_for_algnmnt` parameter to 1
   - get the tracks `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
-  - look at the chi2 histogram in the root file and adjust the `maxchi2align` value to remove the large outliers
+  - look at the chi2 histogram in the root file and adjust the `minchi2align` and `maxchi2align` values to remove the large/small outliers
 - step 2: aligning wrt e.g. ALPIDE_0 or all at once by adjusting the parameters in the config:`axes2align` and `naligniter`:
   - [option A.1] `python3 alignment_fitter.py -conf conf/config_file_name.txt -ref ALPIDE_0` or
   - [option A.2] `python3 alignment_fitter.py -conf conf/config_file_name.txt`

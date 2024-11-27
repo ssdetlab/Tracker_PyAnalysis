@@ -62,10 +62,31 @@ class HoughSeeder:
         self.xepsilon = 1e-15
         self.fepsilon = 1e-15
         #TODO: this has to be optimized!!!!
-        self.theta_x_scale = cfg["seed_thetax_scale"]
-        self.rho_x_scale   = cfg["seed_rhox_scale"]
-        self.theta_y_scale = cfg["seed_thetay_scale"]
-        self.rho_y_scale   = cfg["seed_rhoy_scale"]
+        self.theta_x_scale = 1
+        self.rho_x_scale   = 1
+        self.theta_y_scale = 1
+        self.rho_y_scale   = 1
+        if(nclusters<=20):
+            self.theta_x_scale = cfg["seed_thetax_scale_0020"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_0020"] 
+            self.theta_y_scale = cfg["seed_thetay_scale_0020"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_0020"]
+        elif(nclusters>20  and nclusters<=200):
+            self.theta_x_scale = cfg["seed_thetax_scale_0200"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_0200"] 
+            self.theta_y_scale = cfg["seed_thetay_scale_0200"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_0200"]
+        elif(nclusters>200 and nclusters<=4000):
+            self.theta_x_scale = cfg["seed_thetax_scale_4000"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_4000"]
+            self.theta_y_scale = cfg["seed_thetay_scale_4000"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_4000"]
+        else:
+            self.theta_x_scale = cfg["seed_thetax_scale_inf"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_inf"] 
+            self.theta_y_scale = cfg["seed_thetay_scale_inf"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_inf"]
+            
         self.thetamin_x = np.pi/2-self.theta_x_scale*np.pi/2.
         self.thetamax_x = np.pi/2+self.theta_x_scale*np.pi/2.
         self.thetamin_y = np.pi/2-self.theta_y_scale*np.pi/2.
@@ -73,7 +94,7 @@ class HoughSeeder:
         self.nbins_thetarho = -1
         if(nclusters<=20):                       self.nbins_thetarho = cfg["seed_nbins_thetarho_0020"]
         elif(nclusters>20  and nclusters<=200):  self.nbins_thetarho = cfg["seed_nbins_thetarho_0200"]
-        elif(nclusters>200 and nclusters<=4000): self.nbins_thetarho = cfg["seed_nbins_thetarho_2000"]
+        elif(nclusters>200 and nclusters<=4000): self.nbins_thetarho = cfg["seed_nbins_thetarho_4000"]
         elif(nclusters>200):                     self.nbins_thetarho = cfg["seed_nbins_thetarho_inf"]
         self.minintersections = math.comb(len(cfg["detectors"]),2) ### all pairs out of for detectors w/o repetitions
         ### set the clusters

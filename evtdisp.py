@@ -26,16 +26,18 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     plt.ioff()
     matplotlib.use('Agg')
     ### define the plot
-    fig = plt.figure(figsize=(8,10),frameon=False)
-    plt.title(f"Run {run}, Start: {start}, Duration: ~{duration} [h], Event {evt}", fontdict=None, loc='center', pad=None)
+    # fig = plt.figure(figsize=(15,15),frameon=False,constrained_layout=True)
+    fig = plt.figure(figsize=(15,15),frameon=False)
+    plt.title(f"Run{run}, {start}, ~{duration}[h], Trig:{evt}", fontdict=None, loc='center', pad=None)
     plt.box(False)
     plt.axis('off')
+    plt.subplots_adjust(wspace=0, hspace=-0.01)
     
     ## the views
-    ax1 = fig.add_subplot(221, projection='3d')
-    ax2 = fig.add_subplot(222, projection='3d')
-    ax3 = fig.add_subplot(223, projection='3d')
-    ax4 = fig.add_subplot(224, projection='3d')
+    ax1 = fig.add_subplot(221, projection='3d', facecolor='none')
+    ax2 = fig.add_subplot(222, projection='3d', facecolor='none')
+    ax3 = fig.add_subplot(223, projection='3d', facecolor='none')
+    ax4 = fig.add_subplot(224, projection='3d', facecolor='none')
     ax1.set_xlabel("x [mm]")
     ax1.set_ylabel("y [mm]")
     ax1.set_zlabel("z [mm]")
@@ -109,7 +111,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         x0,y0,z0 = line(cfg["rdetectors"]["ALPIDE_0"][2], track.params)
         x3,y3,z3 = line(cfg["rdetectors"]["ALPIDE_3"][2], track.params)
         xwin,ywin,zwin = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
-        xdmp,ydmp,zdmp = line(cfg["world"]["z"][1]*0.6, track.params)
+        xdmp,ydmp,zdmp = line(cfg["world"]["z"][1]*0.55, track.params)
         r0 = transform_to_real_space( [x0,y0,z0] )
         r3 = transform_to_real_space( [x3,y3,z3] )
         rw = transform_to_real_space( [xwin,ywin,zwin] )
@@ -211,5 +213,6 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax4.azim = 270
 
     ### finish
+    # plt.title(f"Run {run}, Start: {start}, Duration: ~{duration} [h], Event {evt}", fontdict=None, pad=None, x=0.1, y=0.6)
     plt.savefig(fname)
     plt.close(fig)

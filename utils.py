@@ -14,6 +14,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit
 import glob
+from pathlib import Path
 
 import config
 from config import *
@@ -306,11 +307,25 @@ def get_pdc_window_bounds():
     yWinT = cfg["yWindowMin"]+cfg["yWindowHeight"]
     return xWinL,xWinR,yWinB,yWinT
 
+def getChips2D():
+    chips = {}
+    for det in cfg["detectors"]:
+        x0,y0 = align(det,cfg["rdetectors"][det][0],cfg["rdetectors"][det][1])
+        chips.update({ det: np.array([ [x0-cfg["chipX"]/2.,y0-cfg["chipY"]/2.],
+                                       [x0-cfg["chipX"]/2.,y0+cfg["chipY"]/2.],
+                                       [x0+cfg["chipX"]/2.,y0+cfg["chipY"]/2.],
+                                       [x0+cfg["chipX"]/2.,y0-cfg["chipY"]/2.] ]) })
+    return chips
+
+
 def getChips(translatez=True):
     ### draw the chips: https://stackoverflow.com/questions/67410270/how-to-draw-a-flat-3d-rectangle-in-matplotlib
     L1verts = []
     for det in cfg["detectors"]:
-        r = transform_to_real_space( [cfg["rdetectors"][det][0],cfg["rdetectors"][det][1],cfg["rdetectors"][det][2]] )
+        xalgn,yalgn = align(det,cfg["rdetectors"][det][0],cfg["rdetectors"][det][1])
+        ralgn = [xalgn, yalgn, cfg["rdetectors"][det][2]]
+        # r = transform_to_real_space( [cfg["rdetectors"][det][0],cfg["rdetectors"][det][1],cfg["rdetectors"][det][2]] )
+        r = transform_to_real_space( ralgn )
         x0 = r[0]
         y0 = r[1]
         z0 = r[2]
@@ -341,5 +356,29 @@ def InitCutflow():
     cutflow = {}
     for cut in cfg["cuts"]: cutflow.update({cut:0})
     return cutflow
-    
+
+
+### pickle files
+def getfileslist(directory,pattern,suff):
+    files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
+    ff = []
+    for f in files: ff.append(f)
+    return ff
+
+### pickle files
+def getfiles(tfilenamein):
+    words = tfilenamein.split("/")
+    directory = ""
+    for w in range(len(words)-1):
+        directory += words[w]+"/"
+    strippedname = words[-1].split(".pkl")[0]
+    words = strippedname.split("_")
+    pattern = ""
+    for w in range(len(words)):
+        word = words[w].replace(".root","")
+        pattern += word+"_"
+    print("directory:",directory)
+    print("pattern:",pattern)
+    files = getfileslist(directory,pattern,".pkl")
+    return files
 
