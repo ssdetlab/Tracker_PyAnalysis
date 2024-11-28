@@ -99,7 +99,7 @@ def RunNoiseScan(tfilename,tfnoisename):
             continue
 
         ### get the pixels
-        n_active_staves, n_active_chips, pixels = get_all_pixles(evt,h2D_noise,cfg["isCVRroot"])
+        n_active_staves, n_active_chips, pixels = get_all_pixles(evt,h2D_noise)
         
         for det in cfg["detectors"]:
             for pix in pixels[det]:

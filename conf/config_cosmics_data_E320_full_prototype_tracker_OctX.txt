@@ -4,7 +4,7 @@ doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
 
-### run160 (cosmics):
+### run160 / run001 (cosmics):
 # first2process  = 355664
 # first2process  = 0
 ### run409 (beam-only):
@@ -14,17 +14,15 @@ first2process  = 540
 ### run424 (YAG horizontal scan):
 # first2process  = 6400
 
-# nmax2process = 10000000000000
+# nmax2process = 1000000000000000
 # nmax2process = 560
 nmax2process = 100
 
 nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
-### FACET trigger, 10 Hz, threshold ~117e, Horizontal (ALPIDE_0, chip #8 facing the window), after re-installation
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_10_24_2024_x_Run258.root
-### old cosmics run (use for alignment)
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_19_2024_x_Run160.root
+### old cosmics run facing the sky (use for alignment)
+# inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_2024_Run001.root
 ### long positron run with the foil and the blob in the middle of the chips
 # inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run404.root
 ### short positron run with the foil and the blob in the middle of the chips
@@ -86,7 +84,9 @@ lut_widthy_inf  = 0.040
 
 [CUTS]
 cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 3
+# cut_chi2dof = 100
+# cut_chi2dof = 15
+cut_chi2dof = 200
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
 cut_ROI_ymin = 0
@@ -99,22 +99,20 @@ cut_ROI_ymax = 512
 
 [ALIGNMENT]
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
-### measured at WIS prior to sending the detector to SLAC:
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.519,dy=-0.466,theta=0.000921 ALPIDE_2:dx=-0.702931,dy=-0.66813,theta=-0.001984 ALPIDE_3:dx=-0.8148,dy=-0.74577,theta=-0.000242
-### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158, with reference plane being ALPIDE_0:
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.00442,dy=-0.5104,theta=0.000542 ALPIDE_2:dx=0.13544,dy=-0.7394,theta=-0.00233 ALPIDE_3:dx=0.373476,dy=-0.85643,theta=-0.0011387
-### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158, with reference plane being ALPIDE_0, new process with minchi2:
-# misalignment = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.40867,dy=0.21235,theta=0.000862 ALPIDE_2:dx=-0.5338,dy=0.46266,theta=-0.00222 ALPIDE_3:dx=-0.5614,dy=0.82767,theta=-0.00089
-minchi2align  = 0.000001
-maxchi2align  = 3
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
+### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158 ==> rake name run001, w/ref plane ALPIDE_0, minimize instead of basinhopping:
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.128295,dy=-0.108948,theta=0.0006417 ALPIDE_2:dx=-0.072248,dy=-0.07328,theta=-0.0023235 ALPIDE_3:dx=0.08496,dy=0.07594,theta=-0.0010363
+# minchi2align  = 0.001
+# maxchi2align  = 100
+minchi2align  = 9
+maxchi2align  = 15
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-1.0,max=+1.0 dy:min=-1.0,max=1.0 theta:min=-0.2,max=+0.2
 
 
 [FIT]
-fit_large_clserr_for_algnmnt = 1
+fit_large_clserr_for_algnmnt = 0
 # fit_method = CHI2
 fit_method = SVD
 # fit_method = SVD CHI2

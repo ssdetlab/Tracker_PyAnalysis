@@ -282,8 +282,8 @@ class Config:
             self.error(f'if fit_large_clserr_for_algnmnt is 1 then maxchi2align must be equal to cut_chi2dof')
         if(self.map["fit_large_clserr_for_algnmnt"] and self.map["minchi2align"]==0):
             self.error(f'if fit_large_clserr_for_algnmnt is 1 then minchi2align must be >0')
-        if(not self.map["fit_large_clserr_for_algnmnt"] and self.map["cut_chi2dof"]>25):
-            self.error(f'if fit_large_clserr_for_algnmnt is 0 then cut_chi2dof should be smaller than 25 (it is set to {self.map["cut_chi2dof"]}) or you can adjust the condition in check_inputs()')
+        # if(not self.map["fit_large_clserr_for_algnmnt"] and self.map["cut_chi2dof"]>25):
+        #     self.error(f'if fit_large_clserr_for_algnmnt is 0 then cut_chi2dof should be smaller than 25 (it is set to {self.map["cut_chi2dof"]}) or you can adjust the condition in check_inputs()')
         if(self.map["fit_large_clserr_for_algnmnt"] and self.map["minchi2align"]>=self.map["maxchi2align"]):
             self.error(f'if fit_large_clserr_for_algnmnt is 1 then minchi2align cannot be greater than or equal to maxchi2align')
         print(f"Config file integrity check passed!")

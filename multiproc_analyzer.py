@@ -286,29 +286,24 @@ def analyze(tfilenamein,irange,evt_range,masked):
                 chisq,ndof,direction,centroid = fit_3d_SVD(points_SVD,errors_SVD)
                 params = get_pars_from_centroid_and_direction(centroid,direction)
                 par_guess = params
-                chi2ndof = chisq/ndof if(ndof>0) else 99999
                 success = True
             ### chi2 fit
             if("CHI2" in cfg["fit_method"]):
                 chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2,par_guess)
-                chi2ndof = chisq/ndof if(ndof>0) else 99999
             ### prepae the track clusters
             trkcls = {}
             for idet,det in enumerate(cfg["detectors"]):
                 icls = seed.clsids[idet]
                 trkcls.update({det:clusters[det][icls]})
-            ### set the track (chi2 by default)
-            track = Track(trkcls,points_Chi2,errors_Chi2,chisq,ndof,direction,centroid,params,success)
+            ### set the track
+            track = Track(trkcls,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success)
             tracks.append(track)
             n_tracks += 1
             
             ### require good chi2, pointing to the pdc window, inclined up as a positron
-            r0,rN,rW = get_track_point_at_extremes(track)
-            xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
-            pass_fit            = (success and chi2ndof<=cfg["cut_chi2dof"])
-            pass_inclination_yz = (rN[1]>=r0[1])
-            pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
-            pass_selection      = (pass_fit and pass_inclination_yz and pass_vertexatpdc)
+            chi2ndof = chisq/ndof if(ndof>0) else 99999
+            pass_fit       = (success and chi2ndof<=cfg["cut_chi2dof"])
+            pass_selection = (pass_fit and pass_slope_and_window_selection(track))
             if(success):        n_successful_tracks += 1
             if(pass_fit):       n_goodchi2_tracks += 1
             if(pass_selection): n_selected_tracks += 1
@@ -368,7 +363,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         if(n_goodchi2_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
         
-        ### fill the event data and add to events
+        ### fill the data and add to events
         # eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks,mcparticles) )
         eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks) )
         

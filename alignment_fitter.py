@@ -14,9 +14,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
-from scipy.optimize import curve_fit,basinhopping
-# from skspatial.objects import Line, Sphere
-# from skspatial.plotting import plot_3d
+from scipy.optimize import curve_fit,basinhopping,brute,shgo
 import pickle
 from pathlib import Path
 import ctypes
@@ -121,8 +119,8 @@ def fitSVD(track,dx,dy,theta,refdet=""):
         x = track.trkcls[det].xmm
         y = track.trkcls[det].ymm
         z = track.trkcls[det].zmm
-        ex = track.trkcls[det].xsizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dx
-        ey = track.trkcls[det].ysizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dy
+        ex = track.trkcls[det].xsizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dxmm
+        ey = track.trkcls[det].ysizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dymm
         ### only for the non-reference detectors or all detectors?
         if(refdet!=""):
             if(det!=refdet):
@@ -148,8 +146,8 @@ def fitSVD(track,dx,dy,theta,refdet=""):
         dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
         # dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
         dabs += math.sqrt(dx*dx + dy*dy)
-    chi2ndof = chisq_SVD/ndof_SVD
-    return chi2ndof,dabs,dx,dy
+    dabs /= len(cfg["detectors"])
+    return chisq_SVD,ndof_SVD,dabs,dx,dy
 
 
 def init_params(axes,ndet2align,params):
@@ -192,7 +190,8 @@ def init_params(axes,ndet2align,params):
 def fit_misalignment(events,ndet2align,refdet,axes):
     ### Define the objective function to minimize (the chi^2 function)
     ### similar to https://root.cern.ch/doc/master/line3Dfit_8C_source.html
-    def metric_function_to_minimize(params,events):
+    # def metric_function_to_minimize(events,params):
+    def metric_function_to_minimize(params):
         dx,dy,dt,nparperdet = init_params(axes,ndet2align,params)
         sum_dx = 0
         sum_dy = 0
@@ -202,12 +201,19 @@ def fit_misalignment(events,ndet2align,refdet,axes):
         nvalidtracks = 0
         for event in events:
             for track in event.tracks:
+                
+                ### require good chi2
+                if(track.chi2ndof<cfg["minchi2align"]): continue
+                if(track.chi2ndof>cfg["maxchi2align"]): continue
+                ### require pointing to the pdc window, inclined up as a positron
+                # if(not pass_slope_and_window_selection(track)): continue
+                
+                chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
                 nvalidtracks += 1
-                chisq,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
                 sum_dabs += dabs
                 sum_dx += dX
                 sum_dy += dY
-                sum_chi2 += chisq
+                sum_chi2 += (chisq/ndof)
         # return sum_chi2/nvalidtracks
         return sum_dabs/nvalidtracks
     
@@ -234,12 +240,8 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     print("range_params:",range_params)
     ### https://stackoverflow.com/questions/52438263/scipy-optimize-gets-trapped-in-local-minima-what-can-i-do
     ### https://stackoverflow.com/questions/25448296/scipy-basin-hopping-minimization-on-function-with-free-and-fixed-parameters
-    # result = minimize(metric_function_to_minimize, initial_params, method='TNC', args=(events), bounds=range_params, jac='2-point', options={'disp': True, 'finite_diff_rel_step': 0.0000001, 'accuracy': 0.001}) ### first fit to get closer
-    # result = minimize(metric_function_to_minimize, initial_params, method='SLSQP',       args=(events), bounds=range_params, options={'disp': True ,'eps' : 1e-3})
-    # result = minimize(metric_function_to_minimize, initial_params, method='Nelder-Mead', args=(events), bounds=range_params) ### first fit to get closer
-    # result = minimize(metric_function_to_minimize, result.x,       method='Powell',      args=(events), bounds=range_params) ### second fit to finish
-    # result = basinhopping(metric_function_to_minimize, initial_params, niter=50, minimizer_kwargs={"method": "L-BFGS-B", "args":(events,), "bounds":range_params})
-    result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "args":(events,), "bounds":range_params})
+    # result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "bounds":range_params})
+    result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True })
     
     ### get the chi^2 value and the number of degrees of freedom
     chisq = result.fun
@@ -271,13 +273,9 @@ if __name__ == "__main__":
     axes       = cfg["axes2align"]
     ndet2align = len(cfg["detectors"])-1 if(refdet!="") else len(cfg["detectors"])
     
-    ###
-    xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
-    
     ### save all events
     events = []
     chisq0 = 0
-    chisq0_werr = 0
     dabs0  = 0
     dX0    = 0
     dY0    = 0
@@ -288,33 +286,28 @@ if __name__ == "__main__":
         with open(fpkl,'rb') as handle:
             data = pickle.load(handle)
             for event in data:
-                if(allevents%50==0 and allevents>0): print("Reading event #",allevents)
+                if(allevents%50==0 and allevents>0): print(f"Reading event #{allevents}")
                 allevents += 1
                 for track in event.tracks:
-                    chi2dof,dabs,dX,dY = fitSVD(track,[0]*ndet2align,[0]*ndet2align,[0]*ndet2align,refdet)
-                    chi2dof_werr = event.tracks[0].chi2ndof 
-                    # if(chi2dof>cfg["maxchi2align"]): continue
-                    if(chi2dof_werr<cfg["minchi2align"]): continue
-                    if(chi2dof_werr>cfg["maxchi2align"]): continue
+                    chisq,ndof,dabs,dX,dY = fitSVD(track,[0.]*ndet2align,[0.]*ndet2align,[0.]*ndet2align,refdet)
+                    chi2dof = chisq/ndof
                     
+                    ### require good chi2
+                    if(chi2dof<cfg["minchi2align"]): continue
+                    if(chi2dof>cfg["maxchi2align"]): continue
                     ### require pointing to the pdc window, inclined up as a positron
-                    r0,rN,rW = get_track_point_at_extremes(track)
-                    pass_inclination_yz = (rN[1]>=r0[1])
-                    pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
-                    pass_selection      = (pass_inclination_yz and pass_vertexatpdc)
-                    if(not pass_selection): continue
+                    # if(not pass_slope_and_window_selection(track)): continue
                     
                     ### count and proceed
                     if(ngoodtracks%100==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")
                     ngoodtracks += 1
                     events.append(event)
                     chisq0 += chi2dof
-                    chisq0_werr += chi2dof_werr
                     dabs0  += dabs
                     dX0    += dX
                     dY0    += dY
-    print(f"Collected tracks: {ngoodtracks} SVD fit chi2/dof={chisq0}, Chi2Err fit chi2/dof={chisq0_werr}")
-    if(ngoodtracks<5):
+
+    if(ngoodtracks<25):
         print(f'Too few tracks collected ({ngoodtracks}) for the chi2/dof cut of maxchi2align={cfg["maxchi2align"]} --> try to increase it in the config file.')
         print("Quitting")
         quit()
@@ -335,8 +328,16 @@ if __name__ == "__main__":
     dxFinal,dyFinal,thetaFinal,nparperdet = init_params(axes,ndet2align,params)
     for event in events:
         for track in event.tracks:
+            chisq,ndof,dabs,dX,dY = fitSVD(track,dxFinal,dyFinal,thetaFinal,refdet)
+            chi2dof = chisq/ndof
+            
+            ### require good chi2
+            if(chi2dof<cfg["minchi2align"]): continue
+            if(chi2dof>cfg["maxchi2align"]): continue
+            ### require pointing to the pdc window, inclined up as a positron
+            # if(not pass_slope_and_window_selection(track)): continue
+            
             ngoodtracks += 1
-            chi2dof,dabs,dX,dY = fitSVD(track,dxFinal,dyFinal,thetaFinal,refdet)
             chisq1 += chi2dof
             dabs1  += dabs
             dX1    += dX
@@ -348,16 +349,17 @@ if __name__ == "__main__":
     
     ### sumarize
     print("\n----------------------------------------")
-    print("Alignment axes:",axes)
-    if(refdet!=""): print("Reference detector:",refdet)
-    else:           print("No reference detector")
-    print("Events used:",len(events),"out of",allevents)
-    print("Success?",success)
-    print("chi2:",chisq1,"(original:",chisq0,")")
-    print("dabs:",dabs1,"(original:",dabs0,")")
-    print("dx final   :",dxFinal)
-    print("dy final   :",dyFinal)
-    print("theta final:",thetaFinal)
+    print(f"Alignment axes: {axes}")
+    if(refdet!=""): print(f"Reference detector: {refdet}")
+    else:           print(f"No reference detector")
+    print(f"Events used: {len(events)} out of {allevents}")
+    print(f"Tracks used: {ngoodtracks}")
+    print(f"Success? {success}")
+    print(f"chi2: {chisq1} (original: {chisq0})")
+    print(f"dabs: {dabs1} (original: {dabs0})")
+    print(f"dx final   : {dxFinal}")
+    print(f"dy final   : {dyFinal}")
+    print(f"theta final: {thetaFinal}")
     print("----------------------------------------\n")
     salignment = "misalignment  = "
     k = 0
@@ -373,4 +375,4 @@ if __name__ == "__main__":
     et = time.time()
     # get the execution time
     elapsed_time = et - st
-    print('ֿֿ\nExecution time:', elapsed_time, 'seconds')
+    print(f'ֿֿ\nExecution time: {elapsed_time}, seconds')

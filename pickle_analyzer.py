@@ -64,9 +64,6 @@ if __name__ == "__main__":
         tfilenamein = make_run_dirs(cfg["inputfile"])
         files = getfiles(tfilenamein)
     
-    ###
-    xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
-    
     ### save all events
     nevents = 0
     ntracks = 0
@@ -82,12 +79,8 @@ if __name__ == "__main__":
                 for track in event.tracks:
                     ### require chi2
                     if(track.chi2ndof>cfg["cut_chi2dof"]): continue
-                    ### require pointing to the pdc window, inclined up as a positron
-                    r0,rN,rW = get_track_point_at_extremes(track)
-                    pass_inclination_yz = (rN[1]>=r0[1])
-                    pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
-                    pass_selection      = (pass_inclination_yz and pass_vertexatpdc)
-                    if(not pass_selection): continue
+                    # ### require pointing to the pdc window, inclined up as a positron
+                    # if(not pass_slope_and_window_selection(track)): continue
                     ### add the track
                     good_tracks.append(track)
                     ntracks += 1
