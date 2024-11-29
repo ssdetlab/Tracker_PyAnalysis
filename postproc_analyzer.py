@@ -107,6 +107,12 @@ def book_histos(tfi,tfo,hprefx_glb,hprefx_det,dets):
             if(det in histos[name].GetTitle()): histos[name].SetTitle( det )
             histos[name].SetDirectory(0)
 
+def get_counter():
+    counters = ["Triggers", "Pixels/chip", "Clusters/chip", "Fitted Tracks", "Good Tracks", "Selected Tracks"]
+    h = ROOT.TH1D("h_counters",";;Frequency",len(counters),0,len(counters))
+    for b in range(1,len(counters)+1):
+        histos["h_counters"].GetXaxis().SetBinLabel(b,counters[b-1])
+
 def write_histos(tfo):
     tfo.cd()
     for hname,hist in histos.items():
@@ -250,6 +256,7 @@ def overlay_1D_histos(pdf,hnames,legnd,cols,logy,cnvx=500,cnvy=500,drawopt="hist
     cnv = ROOT.TCanvas("cnv","",cnvx,cnvy)
     cnv.SetTicks(1,1)
     if(logy): cnv.SetLogy()
+    if("_log" in hnames[0]): cnv.SetLogx()
     
     leg = ROOT.TLegend(0.5,0.6,0.8,0.8)
     leg.SetFillStyle(4000) # will be transparent
@@ -352,7 +359,7 @@ if __name__ == "__main__":
     
     detectors = cfg["detectors"]
 
-    histprefx_glb = ["h_cutflow", "h_nSeeds","h_nSeeds_mid", "h_nTracks","h_nTracks_mid", "h_nTracks_success","h_nTracks_success_mid", "h_nTracks_goodchi2","h_nTracks_goodchi2_mid", "h_nTracks_selected","h_nTracks_selected_mid", "h_3Dchi2err_full", "h_3Dchi2err_all",  "h_3Dchi2err", "h_3Dchi2err_zoom", "h_3Dchi2err_0to1" ]
+    histprefx_glb = ["h_cutflow", "h_nSeeds","h_nSeeds_log","h_nSeeds_mid", "h_nTracks","h_nTracks_log","h_nTracks_mid", "h_nTracks_success","h_nTracks_success_log","h_nTracks_success_mid", "h_nTracks_goodchi2","h_nTracks_goodchi2_log","h_nTracks_goodchi2_mid", "h_nTracks_selected","h_nTracks_selected_log","h_nTracks_selected_mid", "h_3Dchi2err_full", "h_3Dchi2err_all",  "h_3Dchi2err", "h_3Dchi2err_zoom", "h_3Dchi2err_0to1" ]
     histprefx_det = [ "h_errors", "h_pix_occ_1D", "h_pix_occ_1D_masked", "h_pix_occ_2D", "h_pix_occ_2D_masked", "h_cls_occ_2D", "h_cls_occ_2D_masked", "h_trk_occ_2D", "h_cls_size", "h_cls_size_zoom", "h_Chi2fit_res_trk2cls_pass_x", "h_Chi2fit_res_trk2cls_pass_y", "h_response_x", "h_response_y", "h_response_x_vs_csize", "h_response_y_vs_csize" ]
     
     # get the start time
@@ -369,7 +376,7 @@ if __name__ == "__main__":
     # plot_1D_histos(pdf,    "h_nTracks",logy=False,cnvx=500,cnvy=500,drawopt="hist text0",rebin=-1,addtotitle="Successfully fitted tracks")
     # plot_1D_histos(pdf,    "h_nTracks_goodchi2",logy=False,cnvx=500,cnvy=500,drawopt="hist text0",rebin=-1,addtotitle="Good #chi^{2}/N_{DoF} tracks")
 
-    hnames = ["h_nSeeds", "h_nTracks_goodchi2", "h_nTracks_selected"]
+    hnames = ["h_nSeeds_log", "h_nTracks_goodchi2_log", "h_nTracks_selected_log"]
     hlegnd = ["Seeds",         "Good #chi^{2} tracks",    "Selected tracks"] 
     cols   = [ROOT.kBlack,  ROOT.kBlue,         ROOT.kRed]
     overlay_1D_histos(pdf, hnames,hlegnd,cols,logy=True,cnvx=500,cnvy=500,drawopt="hist",rebin=-1,titles="Hough transform based seeding & tracking;N per trigger;Triggers")

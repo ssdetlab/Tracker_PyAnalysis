@@ -23,6 +23,17 @@ from chi2_fit import *
 import errors
 from errors import *
 
+def GetLogBinning(nbins,xmin,xmax):
+    logmin  = math.log10(xmin)
+    logmax  = math.log10(xmax)
+    logbinwidth = (logmax-logmin)/nbins
+    # Bin edges
+    xbins = [xmin,] #the lowest edge first
+    for i in range(1,nbins+1):
+        xbins.append( ROOT.TMath.Power( 10,(logmin + i*logbinwidth) ) )
+    arrxbins = array.array("d", xbins)
+    return arrxbins
+
 ### global parameters for pixel matrix
 pix_x_nbins = cfg["npix_x"]+1
 pix_x_min  = -0.5
@@ -45,6 +56,9 @@ chipYmin = -( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
 chipYmax = +( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
 nXchip = 600
 nYchip = 300
+
+trkarr = GetLogBinning(50,0.5,300)
+ntrkarr = len(trkarr)-1
 
 ### book histos
 def book_histos(tfo):
@@ -78,22 +92,27 @@ def book_histos(tfo):
     histos.update( { "h_Chi2fit_res_trk2vtx_y" : ROOT.TH1D("h_Chi2fit_res_trk2vtx_y",";y_{trk}-y_{vtx} [mm];Events",nResBins,-absRes,+absRes) } )
     
     histos.update( { "h_nSeeds"               : ROOT.TH1D("h_nSeeds",";N_{seeds}/Event;Events",250,0,250) } )
+    histos.update( { "h_nSeeds_log"           : ROOT.TH1D("h_nSeeds_log",";N_{seeds}/Event;Events",ntrkarr,trkarr) } )
     histos.update( { "h_nSeeds_full"          : ROOT.TH1D("h_nSeeds_full",";N_{seeds}/Event;Events",2000,0,20000) } )
     histos.update( { "h_nSeeds_mid"           : ROOT.TH1D("h_nSeeds_mid",";N_{seeds}/Event;Events",100,0,100) } )
     histos.update( { "h_nSeeds_zoom"          : ROOT.TH1D("h_nSeeds_zoom",";N_{seeds}/Event;Events",40,0,40) } )
     histos.update( { "h_nTracks"              : ROOT.TH1D("h_nTracks",";N_{tracks}/Event;Events",250,0,250) } )
+    histos.update( { "h_nTracks_log"          : ROOT.TH1D("h_nTracks_log",";N_{tracks}/Event;Events",ntrkarr,trkarr) } )
     histos.update( { "h_nTracks_full"         : ROOT.TH1D("h_nTracks_full",";N_{tracks}/Event;Events",2000,0,20000) } )
     histos.update( { "h_nTracks_mid"          : ROOT.TH1D("h_nTracks_mid",";N_{tracks}/Event;Events",100,0,100) } )
     histos.update( { "h_nTracks_zoom"         : ROOT.TH1D("h_nTracks_zoom",";N_{tracks}/Event;Events",40,0,40) } )
     histos.update( { "h_nTracks_success"      : ROOT.TH1D("h_nTracks_success",";N_{tracks}/Event;Events",250,0,250) } )
+    histos.update( { "h_nTracks_success_log"  : ROOT.TH1D("h_nTracks_success_log",";N_{tracks}/Event;Events",ntrkarr,trkarr) } )
     histos.update( { "h_nTracks_success_full" : ROOT.TH1D("h_nTracks_success_full",";N_{tracks}/Event;Events",2000,0,20000) } )
     histos.update( { "h_nTracks_success_mid"  : ROOT.TH1D("h_nTracks_success_mid",";N_{tracks}/Event;Events",100,0,100) } )
     histos.update( { "h_nTracks_success_zoom" : ROOT.TH1D("h_nTracks_success_zoom",";N_{tracks}/Event;Events",40,0,40) } )
     histos.update( { "h_nTracks_goodchi2"     : ROOT.TH1D("h_nTracks_goodchi2",";N_{tracks}/Event;Events",250,0,250) } )
+    histos.update( { "h_nTracks_goodchi2_log" : ROOT.TH1D("h_nTracks_goodchi2_log",";N_{tracks}/Event;Events",ntrkarr,trkarr) } )
     histos.update( { "h_nTracks_goodchi2_full": ROOT.TH1D("h_nTracks_goodchi2_full",";N_{tracks}/Event;Events",2000,0,20000) } )
     histos.update( { "h_nTracks_goodchi2_mid" : ROOT.TH1D("h_nTracks_goodchi2_mid",";N_{tracks}/Event;Events",100,0,100) } )
     histos.update( { "h_nTracks_goodchi2_zoom": ROOT.TH1D("h_nTracks_goodchi2_zoom",";N_{tracks}/Event;Events",40,0,40) } )
     histos.update( { "h_nTracks_selected"     : ROOT.TH1D("h_nTracks_selected",";N_{tracks}/Event;Events",250,0,250) } )
+    histos.update( { "h_nTracks_selected_log" : ROOT.TH1D("h_nTracks_selected_log",";N_{tracks}/Event;Events",ntrkarr,trkarr) } )
     histos.update( { "h_nTracks_selected_full": ROOT.TH1D("h_nTracks_selected_full",";N_{tracks}/Event;Events",2000,0,20000) } )
     histos.update( { "h_nTracks_selected_mid" : ROOT.TH1D("h_nTracks_selected_mid",";N_{tracks}/Event;Events",100,0,100) } )
     histos.update( { "h_nTracks_selected_zoom": ROOT.TH1D("h_nTracks_selected_zoom",";N_{tracks}/Event;Events",40,0,40) } )
