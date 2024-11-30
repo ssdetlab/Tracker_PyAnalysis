@@ -39,7 +39,7 @@ runnums = 255
 
 
 [SEED]
-seed_allow_negative_vertical_inclination = 0
+seed_allow_negative_vertical_inclination = 1
 seed_allow_neigbours = 1
 seed_thetax_scale_0020 = 0.95
 seed_thetax_scale_0200 = 0.80
@@ -86,7 +86,7 @@ lut_widthy_inf  = 0.040
 cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
 # cut_chi2dof = 100
 # cut_chi2dof = 15
-cut_chi2dof = 200
+cut_chi2dof = 5
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
 cut_ROI_ymin = 0

@@ -15,6 +15,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit
 import glob
 from pathlib import Path
+import re
 
 import config
 from config import *
@@ -307,12 +308,6 @@ def get_pdc_window_bounds():
     yWinT = cfg["yWindowMin"]+cfg["yWindowHeight"]
     return xWinL,xWinR,yWinB,yWinT
 
-def pass_slope_and_window_selection(track):
-    r0,rN,rW = get_track_point_at_extremes(track)
-    xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
-    pass_inclination_yz = (rN[1]>=r0[1])
-    pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
-    return (pass_inclination_yz and pass_vertexatpdc)
 
 def getChips2D():
     chips = {}
@@ -364,12 +359,20 @@ def InitCutflow():
     for cut in cfg["cuts"]: cutflow.update({cut:0})
     return cutflow
 
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
 ### pickle files
 def getfileslist(directory,pattern,suff):
-    files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
-    ff = []
-    for f in files: ff.append(f)
+    # files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
+    # ff = []
+    # for f in files: ff.append(f)
+    path = Path(os.path.expanduser(directory))
+    ff = [str(file) for file in path.glob(pattern + '*' + suff)]
+    ff.sort(key=natural_keys)
     return ff
 
 ### pickle files

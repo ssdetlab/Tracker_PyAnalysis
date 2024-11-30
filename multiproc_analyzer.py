@@ -57,6 +57,10 @@ import errors
 from errors import *
 import evtdisp
 from evtdisp import *
+import counters
+from counters import *
+import selections
+from selections import *
 
 
 ROOT.gROOT.SetBatch(1)
@@ -152,12 +156,16 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### get the trigger number
         trigger = ttree.event.trg_n
 
+        ### append the envent no-matter-what:
+        eventslist.append( Event(meta,trigger) )
+
         ### all events...
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
         
         ### check event errors
         nerrors,errors = check_errors(ttree)
+        eventslist[len(eventslist)-1].set_event_errors(errors)
         if(nerrors>0):
             wgt = 1./float(len(cfg["detectors"]))
             for det in cfg["detectors"]:
@@ -208,11 +216,11 @@ def analyze(tfilenamein,irange,evt_range,masked):
         pixels_save = {}
         for det in cfg["detectors"]:
             if(cfg["skipmasking"]):
-                pixels_save.update({det:pixels.copy()})
+                pixels_save.update({det:pixels[det].copy()})
             else:
-                goodpixels  = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])
-                pixels[det] = goodpixels
+                pixels[det] = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])
                 pixels_save.update({det:goodpixels.copy()})
+        eventslist[len(eventslist)-1].set_event_pixels(pixels_save)
 
         ### run clustering
         clusters = {}
@@ -225,6 +233,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             if(len(det_clusters)>0): nclusters += 1
             sprnt += f" Nclusters[{det}]={len(det_clusters)},"
         print(sprnt)
+        eventslist[len(eventslist)-1].set_event_clusters(clusters)
         ### at least one cluster per layer
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
@@ -258,6 +267,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             trkseed = TrackSeed(seed,tunnelid,clusters)
             seeds.append(trkseed)
         del seeder
+        eventslist[len(eventslist)-1].set_event_seeds(seeds)
 
         ### get the event tracks
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -334,7 +344,9 @@ def analyze(tfilenamein,irange,evt_range,masked):
             if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
             ### Chi2 track to truth residuals
             if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
-            
+        
+        eventslist[len(eventslist)-1].set_event_tracks(tracks)
+        
         histos["h_nTracks"].Fill( n_tracks )
         histos["h_nTracks_log"].Fill( n_tracks if(n_tracks>0) else 0.11 )
         histos["h_nTracks_mid"].Fill( n_tracks )
@@ -368,9 +380,9 @@ def analyze(tfilenamein,irange,evt_range,masked):
         if(n_goodchi2_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )
         
-        ### fill the data and add to events
+        ### fill the data and add to events --> TODO: this is deprecated
         # eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks,mcparticles) )
-        eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks) )
+        # eventslist.append( Event(meta,trigger,pixels_save,clusters,seeds,tracks) )
         
     ### end
     pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle

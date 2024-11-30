@@ -107,12 +107,6 @@ def book_histos(tfi,tfo,hprefx_glb,hprefx_det,dets):
             if(det in histos[name].GetTitle()): histos[name].SetTitle( det )
             histos[name].SetDirectory(0)
 
-def get_counter():
-    counters = ["Triggers", "Pixels/chip", "Clusters/chip", "Fitted Tracks", "Good Tracks", "Selected Tracks"]
-    h = ROOT.TH1D("h_counters",";;Frequency",len(counters),0,len(counters))
-    for b in range(1,len(counters)+1):
-        histos["h_counters"].GetXaxis().SetBinLabel(b,counters[b-1])
-
 def write_histos(tfo):
     tfo.cd()
     for hname,hist in histos.items():

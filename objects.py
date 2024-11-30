@@ -148,12 +148,27 @@ class Meta:
         return f"Meta: "
 
 class Event:
-    def __init__(self,meta,trigger,pixels,clusters,tracks,mcparticles=None):
-        self.meta = meta
-        self.trigger = trigger
-        self.pixels = pixels
-        self.clusters = clusters
-        self.tracks = tracks
-        self.mcparticles = mcparticles
+    def __init__(self,meta,trigger):
+        self.meta        = meta
+        self.trigger     = trigger
+        self.errors      = {}
+        self.pixels      = {}
+        self.clusters    = {}
+        self.seeds       = []
+        self.tracks      = []
+        self.mcparticles = []
     def __str__(self):
-        return f"Event: meta={self.meta}, trigger={self.trigger}, pixels={self.pixels}, clusters={self.clusters}, tracks={self.tracks}, mcparticles={self.mcparticles}"
+        return f"Event: meta={self.meta}"
+    def set_event_errors(self,errors):
+        self.errors = errors
+    def set_event_pixels(self,pixels):
+        self.pixels = pixels.copy()
+    def set_event_clusters(self,clusters):
+        self.clusters = clusters
+    def set_event_seeds(self,seeds):
+        self.seeds = seeds
+    def set_event_tracks(self,tracks):
+        self.tracks = tracks
+    def set_event_mcparticles(self,mcparticles):
+        self.mcparticles = mcparticles
+    

@@ -22,6 +22,8 @@ import chi2_fit
 from chi2_fit import *
 import errors
 from errors import *
+import counters
+from counters import *
 
 def GetLogBinning(nbins,xmin,xmax):
     logmin  = math.log10(xmin)
@@ -74,6 +76,10 @@ def book_histos(tfo):
     histos.update( { "h_errors" : ROOT.TH1D("h_errors",";;Events",len(ERRORS),0,len(ERRORS)) } )
     for b in range(1,len(ERRORS)+1):
         histos["h_errors"].GetXaxis().SetBinLabel(b,ERRORS[b-1])
+        
+    histos.update( { "h_counters" : ROOT.TH1D("h_counters",";;Frequency",len(COUNTERS),0,len(COUNTERS)) } )
+    for b in range(1,len(COUNTERS)+1):
+        histos["h_counters"].GetXaxis().SetBinLabel(b,COUNTERS[b-1])
     
     histos.update( { "h_cutflow"   : ROOT.TH1D("h_cutflow",";;Events",10,0,10) } )
     for b in range(1,len(cfg["cuts"])+1):
