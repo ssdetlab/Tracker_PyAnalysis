@@ -66,36 +66,40 @@ class HoughSeeder:
         self.rho_x_scale   = 1
         self.theta_y_scale = 1
         self.rho_y_scale   = 1
-        if(nclusters<=20):
-            self.theta_x_scale = cfg["seed_thetax_scale_0020"]
-            self.rho_x_scale   = cfg["seed_rhox_scale_0020"] 
-            self.theta_y_scale = cfg["seed_thetay_scale_0020"]
-            self.rho_y_scale   = cfg["seed_rhoy_scale_0020"]
-        elif(nclusters>20  and nclusters<=200):
-            self.theta_x_scale = cfg["seed_thetax_scale_0200"]
-            self.rho_x_scale   = cfg["seed_rhox_scale_0200"] 
-            self.theta_y_scale = cfg["seed_thetay_scale_0200"]
-            self.rho_y_scale   = cfg["seed_rhoy_scale_0200"]
-        elif(nclusters>200 and nclusters<=4000):
-            self.theta_x_scale = cfg["seed_thetax_scale_4000"]
-            self.rho_x_scale   = cfg["seed_rhox_scale_4000"]
-            self.theta_y_scale = cfg["seed_thetay_scale_4000"]
-            self.rho_y_scale   = cfg["seed_rhoy_scale_4000"]
-        else:
+        if(nclusters<=cfg["cls_mult_low"]):
+            self.theta_x_scale = cfg["seed_thetax_scale_low"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_low"] 
+            self.theta_y_scale = cfg["seed_thetay_scale_low"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_low"]
+        elif(nclusters>cfg["cls_mult_low"]  and nclusters<=cfg["cls_mult_mid"]):
+            self.theta_x_scale = cfg["seed_thetax_scale_mid"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_mid"] 
+            self.theta_y_scale = cfg["seed_thetay_scale_mid"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_mid"]
+        elif(nclusters>cfg["cls_mult_mid"] and nclusters<=cfg["cls_mult_hgh"]):
+            self.theta_x_scale = cfg["seed_thetax_scale_hgh"]
+            self.rho_x_scale   = cfg["seed_rhox_scale_hgh"]
+            self.theta_y_scale = cfg["seed_thetay_scale_hgh"]
+            self.rho_y_scale   = cfg["seed_rhoy_scale_hgh"]
+        elif(nclusters>cfg["cls_mult_hgh"] and nclusters<=cfg["cls_mult_inf"]):
             self.theta_x_scale = cfg["seed_thetax_scale_inf"]
             self.rho_x_scale   = cfg["seed_rhox_scale_inf"] 
             self.theta_y_scale = cfg["seed_thetay_scale_inf"]
             self.rho_y_scale   = cfg["seed_rhoy_scale_inf"]
+        else: 
+            sys.exit(f"In hough_seeder nclusters:{nclusters}>cls_mult_inf, not implemented. exitting")
             
         self.thetamin_x = np.pi/2-self.theta_x_scale*np.pi/2.
         self.thetamax_x = np.pi/2+self.theta_x_scale*np.pi/2.
         self.thetamin_y = np.pi/2-self.theta_y_scale*np.pi/2.
         self.thetamax_y = np.pi/2+self.theta_y_scale*np.pi/2.
         self.nbins_thetarho = -1
-        if(nclusters<=20):                       self.nbins_thetarho = cfg["seed_nbins_thetarho_0020"]
-        elif(nclusters>20  and nclusters<=200):  self.nbins_thetarho = cfg["seed_nbins_thetarho_0200"]
-        elif(nclusters>200 and nclusters<=4000): self.nbins_thetarho = cfg["seed_nbins_thetarho_4000"]
-        elif(nclusters>200):                     self.nbins_thetarho = cfg["seed_nbins_thetarho_inf"]
+        if(nclusters<=cfg["cls_mult_low"]):                                     self.nbins_thetarho = cfg["seed_nbins_thetarho_low"]
+        elif(nclusters>cfg["cls_mult_low"] and nclusters<=cfg["cls_mult_mid"]): self.nbins_thetarho = cfg["seed_nbins_thetarho_mid"]
+        elif(nclusters>cfg["cls_mult_mid"] and nclusters<=cfg["cls_mult_hgh"]): self.nbins_thetarho = cfg["seed_nbins_thetarho_hgh"]
+        elif(nclusters>cfg["cls_mult_hgh"] and nclusters<=cfg["cls_mult_inf"]): self.nbins_thetarho = cfg["seed_nbins_thetarho_inf"]
+        else:
+            sys.exit(f"In hough_seeder nclusters:{nclusters}>cls_mult_inf, not implemented. exitting")
         self.minintersections = math.comb(len(cfg["detectors"]),2) ### all pairs out of for detectors w/o repetitions
         ### set the clusters
         self.set_clusters(clusters)
@@ -389,132 +393,132 @@ class HoughSeeder:
                             tnlid.append( itnl )
         return tunnel_nsseds,tnlid,seeds
             
-    def plot_seeder(self,name):
-        ROOT.gErrorIgnoreLevel = ROOT.kError
-        # ROOT.gErrorIgnoreLevel = ROOT.kWarning
-        ROOT.gROOT.SetBatch(1)
-        ROOT.gStyle.SetOptFit(0)
-        ROOT.gStyle.SetOptStat(0)
-        ROOT.gStyle.SetPadBottomMargin(0.15)
-        ROOT.gStyle.SetPadLeftMargin(0.13)
-        ROOT.gStyle.SetPadRightMargin(0.15)
-        
-        plotname = name.replace(".pdf","_hough_transform.pdf")
-        
-        gxy0 = self.graph("ALPIDE_0",self.x0,self.y0,ROOT.kRed,     [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-        gxy1 = self.graph("ALPIDE_1",self.x1,self.y1,ROOT.kBlack,   [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-        gxy2 = self.graph("ALPIDE_2",self.x2,self.y2,ROOT.kGreen-2, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-        gxy3 = self.graph("ALPIDE_3",self.x3,self.y3,ROOT.kMagenta, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-
-        cnv = ROOT.TCanvas("cnv_hits_xy","",1000,1000)
-        cnv.Divide(2,2)
-        cnv.cd(1)
-        ROOT.gPad.SetTicks(1,1)
-        gxy0.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(2)
-        ROOT.gPad.SetTicks(1,1)
-        gxy1.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(3)
-        ROOT.gPad.SetTicks(1,1)
-        gxy2.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(4)
-        ROOT.gPad.SetTicks(1,1)
-        gxy3.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.SaveAs(plotname+"(")
-
-        zx_mg = self.multigraph("zx","Telescope x vs z;z [mm];x [mm]",self.z,self.x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
-        zy_mg = self.multigraph("zy","Telescope x vs y;z [mm];y [mm]",self.z,self.y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
-        cnv = ROOT.TCanvas("cnv_hits_vs_z","",1000,500)
-        cnv.Divide(2,1)
-        cnv.cd(1)
-        ROOT.gPad.SetTicks(1,1)
-        zx_mg.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(2)
-        ROOT.gPad.SetTicks(1,1)
-        zy_mg.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.SaveAs(plotname)
-
-        arrows_zx = []
-        for point in self.hough_points_zx:
-            arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
-            arrows_zx.append( arw )
-        arrows_zy = []
-        for point in self.hough_points_zy:
-            arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
-            arrows_zy.append( arw )
-
-        cnv = ROOT.TCanvas("cnv_transform","",1500,1200)
-        cnv.Divide(2,2)
-        cnv.cd(1)
-        ROOT.gPad.SetGridx()
-        ROOT.gPad.SetGridy()
-        ROOT.gPad.SetTicks(1,1)
-        first = True
-        for name,f in self.zx_wave_functions.items():
-            f.SetTitle("Hough transform in z-x;#theta;#rho")
-            f.GetXaxis().SetTitle("#theta")
-            f.GetYaxis().SetTitle("#rho")
-            f.SetMinimum(self.zx_wave_fmin*1.2)
-            f.SetMaximum(self.zx_wave_fmax*1.2)
-            if(first):
-                f.Draw("l")
-                first = False
-            else: f.Draw("l same")
-            for arw in arrows_zx: arw.Draw()
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(2)
-        ROOT.gPad.SetTicks(1,1)
-        ROOT.gPad.SetGridx()
-        ROOT.gPad.SetGridy()
-        first = True
-        for name,f in self.zy_wave_functions.items():
-            f.SetTitle("Hough transform in z-y")
-            f.GetXaxis().SetTitle("#theta")
-            f.GetYaxis().SetTitle("#rho")
-            f.SetMinimum(self.zy_wave_fmin*1.2)
-            f.SetMaximum(self.zy_wave_fmax*1.2)
-            if(first):
-                f.Draw("l")
-                first = False
-            else: f.Draw("l same")
-            for arw in arrows_zy: arw.Draw()
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(3)
-        ROOT.gPad.SetGridx()
-        ROOT.gPad.SetGridy()
-        ROOT.gPad.SetTicks(1,1)
-        self.h2Freq_zx.Draw("colz")
-        for arw in arrows_zx: arw.Draw()
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(4)
-        ROOT.gPad.SetGridx()
-        ROOT.gPad.SetGridy()
-        ROOT.gPad.SetTicks(1,1)
-        self.h2Freq_zy.Draw("colz")
-        for arw in arrows_zy: arw.Draw()
-        ROOT.gPad.RedrawAxis()
-        cnv.SaveAs(plotname)
-
-        zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.seed_z,self.seed_x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
-        zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope y vs z;z [mm];y [mm]",self.seed_z,self.seed_y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
-        cnv = ROOT.TCanvas("cnv_frequency","",1000,500)
-        cnv.Divide(2,1)
-        cnv.cd(1)
-        ROOT.gPad.SetTicks(1,1)
-        zx_seed_mg.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.cd(2)
-        ROOT.gPad.SetTicks(1,1)
-        zy_seed_mg.Draw("AP")
-        ROOT.gPad.RedrawAxis()
-        cnv.SaveAs(plotname+")")
-
-        ### important!!!
-        self.clear_h2Freq()
-        self.clear_functions()
+    # def plot_seeder(self,name):
+    #     ROOT.gErrorIgnoreLevel = ROOT.kError
+    #     # ROOT.gErrorIgnoreLevel = ROOT.kWarning
+    #     ROOT.gROOT.SetBatch(1)
+    #     ROOT.gStyle.SetOptFit(0)
+    #     ROOT.gStyle.SetOptStat(0)
+    #     ROOT.gStyle.SetPadBottomMargin(0.15)
+    #     ROOT.gStyle.SetPadLeftMargin(0.13)
+    #     ROOT.gStyle.SetPadRightMargin(0.15)
+    #
+    #     plotname = name.replace(".pdf","_hough_transform.pdf")
+    #
+    #     gxy0 = self.graph("ALPIDE_0",self.x0,self.y0,ROOT.kRed,     [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
+    #     gxy1 = self.graph("ALPIDE_1",self.x1,self.y1,ROOT.kBlack,   [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
+    #     gxy2 = self.graph("ALPIDE_2",self.x2,self.y2,ROOT.kGreen-2, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
+    #     gxy3 = self.graph("ALPIDE_3",self.x3,self.y3,ROOT.kMagenta, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
+    #
+    #     cnv = ROOT.TCanvas("cnv_hits_xy","",1000,1000)
+    #     cnv.Divide(2,2)
+    #     cnv.cd(1)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     gxy0.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(2)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     gxy1.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(3)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     gxy2.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(4)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     gxy3.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.SaveAs(plotname+"(")
+    #
+    #     zx_mg = self.multigraph("zx","Telescope x vs z;z [mm];x [mm]",self.z,self.x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
+    #     zy_mg = self.multigraph("zy","Telescope x vs y;z [mm];y [mm]",self.z,self.y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
+    #     cnv = ROOT.TCanvas("cnv_hits_vs_z","",1000,500)
+    #     cnv.Divide(2,1)
+    #     cnv.cd(1)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     zx_mg.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(2)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     zy_mg.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.SaveAs(plotname)
+    #
+    #     arrows_zx = []
+    #     for point in self.hough_points_zx:
+    #         arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
+    #         arrows_zx.append( arw )
+    #     arrows_zy = []
+    #     for point in self.hough_points_zy:
+    #         arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
+    #         arrows_zy.append( arw )
+    #
+    #     cnv = ROOT.TCanvas("cnv_transform","",1500,1200)
+    #     cnv.Divide(2,2)
+    #     cnv.cd(1)
+    #     ROOT.gPad.SetGridx()
+    #     ROOT.gPad.SetGridy()
+    #     ROOT.gPad.SetTicks(1,1)
+    #     first = True
+    #     for name,f in self.zx_wave_functions.items():
+    #         f.SetTitle("Hough transform in z-x;#theta;#rho")
+    #         f.GetXaxis().SetTitle("#theta")
+    #         f.GetYaxis().SetTitle("#rho")
+    #         f.SetMinimum(self.zx_wave_fmin*1.2)
+    #         f.SetMaximum(self.zx_wave_fmax*1.2)
+    #         if(first):
+    #             f.Draw("l")
+    #             first = False
+    #         else: f.Draw("l same")
+    #         for arw in arrows_zx: arw.Draw()
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(2)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     ROOT.gPad.SetGridx()
+    #     ROOT.gPad.SetGridy()
+    #     first = True
+    #     for name,f in self.zy_wave_functions.items():
+    #         f.SetTitle("Hough transform in z-y")
+    #         f.GetXaxis().SetTitle("#theta")
+    #         f.GetYaxis().SetTitle("#rho")
+    #         f.SetMinimum(self.zy_wave_fmin*1.2)
+    #         f.SetMaximum(self.zy_wave_fmax*1.2)
+    #         if(first):
+    #             f.Draw("l")
+    #             first = False
+    #         else: f.Draw("l same")
+    #         for arw in arrows_zy: arw.Draw()
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(3)
+    #     ROOT.gPad.SetGridx()
+    #     ROOT.gPad.SetGridy()
+    #     ROOT.gPad.SetTicks(1,1)
+    #     self.h2Freq_zx.Draw("colz")
+    #     for arw in arrows_zx: arw.Draw()
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(4)
+    #     ROOT.gPad.SetGridx()
+    #     ROOT.gPad.SetGridy()
+    #     ROOT.gPad.SetTicks(1,1)
+    #     self.h2Freq_zy.Draw("colz")
+    #     for arw in arrows_zy: arw.Draw()
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.SaveAs(plotname)
+    #
+    #     zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.seed_z,self.seed_x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
+    #     zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope y vs z;z [mm];y [mm]",self.seed_z,self.seed_y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
+    #     cnv = ROOT.TCanvas("cnv_frequency","",1000,500)
+    #     cnv.Divide(2,1)
+    #     cnv.cd(1)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     zx_seed_mg.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.cd(2)
+    #     ROOT.gPad.SetTicks(1,1)
+    #     zy_seed_mg.Draw("AP")
+    #     ROOT.gPad.RedrawAxis()
+    #     cnv.SaveAs(plotname+")")
+    #
+    #     ### important!!!
+    #     self.clear_h2Freq()
+    #     self.clear_functions()

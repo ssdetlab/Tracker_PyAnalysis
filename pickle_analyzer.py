@@ -118,7 +118,7 @@ if __name__ == "__main__":
                 if(not pass_clusters): continue
                 ### check seeds
                 n_seeds = len(event.seeds)
-                set_global_counter("Seeds",icounter,n_seeds)
+                set_global_counter("Track Seeds",icounter,n_seeds)
                 if(n_seeds==0): continue
 
                 ### check tracks
@@ -126,21 +126,25 @@ if __name__ == "__main__":
                 if(n_tracks==0): continue
 
                 good_tracks = []
-                selected_tracks = []
+                acceptance_tracks = []
                 for track in event.tracks:
+                    
                     ### require chi2
                     if(track.chi2ndof>cfg["cut_chi2dof"]): continue
                     good_tracks.append(track)
+                    
                     ### require pointing to the pdc window, inclined up as a positron
                     if(not pass_slope_and_window_selection(track)): continue
-                    selected_tracks.append(track)
+                    acceptance_tracks.append(track)
                     ntracks += 1
+                
+                ### the graph of the good tracks
                 set_global_counter("Good Tracks",icounter,len(good_tracks))
-                set_global_counter("Selected Tracks",icounter,len(selected_tracks))
                 
                 ### check for overlaps
-                passing_tracks = remove_tracks_with_shared_clusters(selected_tracks)
-                if(len(passing_tracks)!=len(selected_tracks)): print(f"nsel:{len(selected_tracks)} --> npas={len(passing_tracks)}")
+                selected_tracks = remove_tracks_with_shared_clusters(acceptance_tracks)
+                if(len(selected_tracks)!=len(acceptance_tracks)): print(f"nsel:{len(acceptance_tracks)} --> npas={len(selected_tracks)}")
+                set_global_counter("Selected Tracks",icounter,len(selected_tracks))
                 
                 ### event displays
                 if(len(good_tracks)>0):
@@ -150,51 +154,8 @@ if __name__ == "__main__":
 
     print(f"Events:{nevents}, Tracks:{ntracks}")                
     
-    
-    gmax = -1e10
-    gmin = +1e10
-    for i,counter in enumerate(COUNTERS):
-        mx = max(counters_y_val[counter])
-        mn = min(counters_y_val[counter])
-        gmax = mx if(mx>gmax) else gmax
-        gmin = mn if(mn<gmin) else gmin
-    gmin = gmin if(gmin>0) else 0.1
-    gmax = gmax*10
-    print(f"gmin={gmin}, gmax={gmax}")
-    
-    graphs = {}
-    for i,counter in enumerate(COUNTERS):
-        counter_name = counter.replace("/","_per_")
-        gname = f"{counter}_vs_trg"
-        graphs.update( {gname:ROOT.TGraph( len(counters_x_trg), counters_x_trg, counters_y_val[counter] )} )
-        # graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-        graphs[gname].GetXaxis().SetLimits(counters_x_trg[0],counters_x_trg[-1])
-        graphs[gname].SetLineColor(counters_cols[i])
-        graphs[gname].SetMaximum(gmax)
-        graphs[gname].SetMinimum(gmin)
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
-    cnv.SetTicks(1,1)
-    cnv.SetLogy()
-    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
-    leg.SetFillStyle(4000) # will be transparent
-    leg.SetFillColor(0)
-    leg.SetTextFont(42)
-    leg.SetBorderSize(0)
-    mg = ROOT.TMultiGraph()
-    for i,counter in enumerate(COUNTERS):
-        counter_name = counter.replace("/","_per_")
-        gname = f"{counter}_vs_trg"
-        leg.AddEntry(graphs[gname],f"{counter}","l")
-        mg.Add(graphs[gname])
-    mg.Draw("al")
-    leg.Draw("same")
-    mg.SetTitle(f";Trigger number;Multiplicity")
-    mg.SetMaximum(gmax)
-    mg.SetMinimum(gmin)
-    mg.GetXaxis().SetLimits(counters_x_trg[0],counters_x_trg[-1])
-    cnv.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs("multiplicities_vs_triggers.pdf")
+    ### plot the counters
+    plot_counters()
 
     
     # get the end time

@@ -22,26 +22,28 @@ class LookupTable:
         self.nbinsy = -1
         self.tunnel_width_x = 0.
         self.tunnel_width_y = 0.
-        if(ncls<20):
-            self.nbinsx = cfg["lut_nbinsx_0020"]
-            self.nbinsy = cfg["lut_nbinsy_0020"]
-            self.tunnel_width_x = cfg["lut_widthx_0020"]
-            self.tunnel_width_y = cfg["lut_widthy_0020"]
-        elif(ncls>=20 and ncls<200):
-            self.nbinsx = cfg["lut_nbinsx_0200"]
-            self.nbinsy = cfg["lut_nbinsy_0200"]
-            self.tunnel_width_x = cfg["lut_widthx_0200"]
-            self.tunnel_width_y = cfg["lut_widthy_0200"]
-        elif(ncls>=200 and ncls<4000):
-            self.nbinsx = cfg["lut_nbinsx_4000"]
-            self.nbinsy = cfg["lut_nbinsy_4000"]
-            self.tunnel_width_x = cfg["lut_widthx_4000"]
-            self.tunnel_width_y = cfg["lut_widthy_4000"]
-        else:
+        if(ncls<cfg["cls_mult_low"]):
+            self.nbinsx = cfg["lut_nbinsx_low"]
+            self.nbinsy = cfg["lut_nbinsy_low"]
+            self.tunnel_width_x = cfg["lut_widthx_low"]
+            self.tunnel_width_y = cfg["lut_widthy_low"]
+        elif(ncls>=cfg["cls_mult_low"] and ncls<cfg["cls_mult_mid"]):
+            self.nbinsx = cfg["lut_nbinsx_mid"]
+            self.nbinsy = cfg["lut_nbinsy_mid"]
+            self.tunnel_width_x = cfg["lut_widthx_mid"]
+            self.tunnel_width_y = cfg["lut_widthy_mid"]
+        elif(ncls>=cfg["cls_mult_mid"] and ncls<cfg["cls_mult_hgh"]):
+            self.nbinsx = cfg["lut_nbinsx_hgh"]
+            self.nbinsy = cfg["lut_nbinsy_hgh"]
+            self.tunnel_width_x = cfg["lut_widthx_hgh"]
+            self.tunnel_width_y = cfg["lut_widthy_hgh"]
+        elif(ncls>=cfg["cls_mult_hgh"] and ncls<cfg["cls_mult_inf"]):
             self.nbinsx = cfg["lut_nbinsx_inf"]
             self.nbinsy = cfg["lut_nbinsy_inf"]
             self.tunnel_width_x = cfg["lut_widthx_inf"]
             self.tunnel_width_y = cfg["lut_widthy_inf"]
+        else:
+            sys.exit(f"In lookup_table ncls:ncls>cls_mult_inf, not implemented. exitting")
         
         self.chipXmin = -( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
         self.chipXmax = +( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
