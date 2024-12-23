@@ -82,7 +82,7 @@ if __name__ == "__main__":
         with open(fpkl,'rb') as handle:
             data = pickle.load(handle)
             for ievt,event in enumerate(data):
-                if(ievt%50==0 and ievt>0): print(f"Reading event #{allevents}")
+                print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
                 
                 counters_x_trg.append( event.trigger )
@@ -129,13 +129,16 @@ if __name__ == "__main__":
                 acceptance_tracks = []
                 for track in event.tracks:
                     
-                    ### require chi2
+                    ### require max cluster and chi2
+                    if(track.maxcls>cfg["cut_maxcls"]):    continue
                     if(track.chi2ndof>cfg["cut_chi2dof"]): continue
                     good_tracks.append(track)
                     
                     ### require pointing to the pdc window, inclined up as a positron
                     if(not pass_slope_and_window_selection(track)): continue
                     acceptance_tracks.append(track)
+                    trkpars = get_pars_from_centroid_and_direction(track.centroid,track.direction)
+                    if(trkpars[3]<0): print(f"[p0x,p1x,p0y,p1y]={params}")
                     ntracks += 1
                 
                 ### the graph of the good tracks

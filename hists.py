@@ -59,7 +59,7 @@ chipYmax = +( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
 nXchip = 600
 nYchip = 300
 
-trkarr = GetLogBinning(50,0.5,300)
+trkarr = GetLogBinning(75,0.5,3000)
 ntrkarr = len(trkarr)-1
 
 ### book histos

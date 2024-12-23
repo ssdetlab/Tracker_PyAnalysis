@@ -4,18 +4,17 @@ doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
 
-### run160 / run001 (cosmics):
-# first2process  = 355664
+### run001 (cosmics):
 # first2process  = 0
 ### run409 (beam-only):
 first2process  = 540
 ### run446 (positrons):
 # first2process  = 2749
-### run424 (YAG horizontal scan):
-# first2process  = 6400
 
+### run001 (cosmics):
 # nmax2process = 1000000000000000
 # nmax2process = 560
+### run409 (beam-only):
 nmax2process = 100
 
 nCPU           = 10
@@ -31,8 +30,6 @@ skipmasking    = 1
 # inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run446.root
 ### background only run
 inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_04_2024_Run409.root
-### horizontal YAG scan:
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run424.root
 
 [MULTIRUN]
 runnums = 255
@@ -93,6 +90,7 @@ cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{s
 # cut_chi2dof = 100
 # cut_chi2dof = 15
 cut_chi2dof = 5
+# cut_chi2dof = 3
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
 cut_ROI_ymin = 0
@@ -102,12 +100,14 @@ cut_ROI_ymax = 512
 # cut_ROI_xmax = 1024
 # cut_ROI_ymin = 210
 # cut_ROI_ymax = 275
+cut_maxcls = 8
 
 [ALIGNMENT]
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
 ### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158 ==> rake name run001, w/ref plane ALPIDE_0, minimize instead of basinhopping:
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.128295,dy=-0.108948,theta=0.0006417 ALPIDE_2:dx=-0.072248,dy=-0.07328,theta=-0.0023235 ALPIDE_3:dx=0.08496,dy=0.07594,theta=-0.0010363
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.128295,dy=-0.108948,theta=0.0006417 ALPIDE_2:dx=-0.072248,dy=-0.07328,theta=-0.0023235 ALPIDE_3:dx=0.08496,dy=0.07594,theta=-0.0010363
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.1273,dy=-0.102,theta=0.00063 ALPIDE_2:dx=-0.0715,dy=-0.062,theta=-0.00217 ALPIDE_3:dx=0.08544,dy=0.0927,theta=-0.001134
 # minchi2align  = 0.001
 # maxchi2align  = 100
 minchi2align  = 9

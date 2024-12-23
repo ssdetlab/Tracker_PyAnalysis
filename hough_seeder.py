@@ -121,7 +121,9 @@ class HoughSeeder:
         ### allow only positive y-z seeds:
         self.LUT = LookupTable(clusters,eventid)
         ### the data 4D structure for 6 possible detector pairings
-        self.accumulator = [{},{},{},{},{},{}]
+        # self.accumulator = [{},{},{},{},{},{}]
+        self.accumulator = []
+        for ncomb in range(self.minintersections): self.accumulator.append({})
         self.naccumulators = len(self.accumulator)
         ### fill the accumulator
         self.fill_4d_wave_intersections(clusters)

@@ -265,6 +265,7 @@ class Config:
         self.add("cut_ROI_xmax", self.getF('CUTS','cut_ROI_xmax'))
         self.add("cut_ROI_ymin", self.getF('CUTS','cut_ROI_ymin'))
         self.add("cut_ROI_ymax", self.getF('CUTS','cut_ROI_ymax'))
+        self.add("cut_maxcls", self.getF('CUTS','cut_maxcls'))
     
         if(doprint):
             print("Configuration map:")

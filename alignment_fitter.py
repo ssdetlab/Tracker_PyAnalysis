@@ -333,6 +333,8 @@ if __name__ == "__main__":
             chisq,ndof,dabs,dX,dY = fitSVD(track,dxFinal,dyFinal,thetaFinal,refdet)
             chi2dof = chisq/ndof
             
+            print(f"chi2dof={chi2dof} ngoodtracks={ngoodtracks}")
+            
             ### require good chi2
             if(chi2dof<cfg["minchi2align"]): continue
             if(chi2dof>cfg["maxchi2align"]): continue

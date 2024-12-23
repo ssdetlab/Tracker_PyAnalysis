@@ -3,6 +3,9 @@ import math
 import array
 import numpy as np
 
+import utils
+from utils import *
+
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 ROOT.gStyle.SetOptStat(0)
@@ -44,6 +47,7 @@ detcol = [ROOT.kBlack, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2]
 
 x_trg = np.zeros(nentries)
 x_ent = np.zeros(nentries)
+x_tim = []
 hits_vs_trg = {}
 hits_vs_ent = {}
 for det in detectors:
@@ -54,15 +58,20 @@ y_yag = np.zeros(nentries)
 
 ranges = []
 rng = []
+counter = 0
 for ientry,entry in enumerate(ttree):
     if(ientry<imin): continue
     if(ientry>=imax): break
+
+    trgn   = entry.event.trg_n
+    ts_bgn = entry.event.ts_begin
+    ts_end = entry.event.ts_end
     
-    trgn = entry.event.trg_n
-    x_trg[ientry] = trgn
-    x_ent[ientry] = ientry
+    x_trg[counter] = trgn
+    x_ent[counter] = ientry
+    x_tim.append( get_human_timestamp_ns(ts_bgn) )
     
-    y_yag[ientry] = entry.event.epics_frame.yag_hm_rbv
+    y_yag[counter] = entry.event.epics_frame.yag_hm_rbv
     
     allhits = 0
     for ichip in range(entry.event.st_ev_buffer[0].ch_ev_buffer.size()):
@@ -70,26 +79,18 @@ for ientry,entry in enumerate(ttree):
         detix = detectorids.index(detid)
         det   = detectors[detix]
         nhits = entry.event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.size()
-        hits_vs_trg[det][ientry] = nhits
-        hits_vs_ent[det][ientry] = nhits
+        hits_vs_trg[det][counter] = nhits
+        hits_vs_ent[det][counter] = nhits
         allhits += nhits
 
     if(trgn==12750):
-        print(f"trgn={trgn}, ientry={ientry}, allhits={allhits}")
+        print(f"trgn={trgn}, ientry={ientry}, counter={counter}, allhits={allhits}")
 
-#     if(nhits<10000000):
-#         if(len(rng)==0): rng = [i]
-#         else:            continue
-#     else:
-#         if(len(rng)>0):
-#             rng.append(i-1)
-#             nrng = rng[1]-rng[0]
-#             if(nrng>0):
-#                 x = {(rng[0],rng[1]):nrng}
-#                 ranges.append(x)
-#             rng = []
-#
-# print(ranges)
+    ### important!!
+    counter += 1
+
+print(f"beginning:  {x_tim[0]}")
+print(f"end of run: {x_tim[-1]}")
 
 
 graphs = {}
@@ -167,19 +168,6 @@ mg.SetTitle(f";Trigger number;Fired pixels")
 mg.SetMaximum(maxhits*5)
 mg.SetMinimum(0.9)
 mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
-cnv.RedrawAxis()
-cnv.Update()
-cnv.SaveAs("hits_vs_triggers.pdf")
-
-cnv = ROOT.TCanvas("cnv_yag_vs_trg","",1200,500)
-cnv.SetTicks(1,1)
-gname = "yag"
-graphs[gname].SetTitle(f";Trigger number;YAG position")
-# graphs[gname].SetMaximum()
-# graphs[gname].SetMinimum(0)
-graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
-graphs[gname].SetLineColor(ROOT.kBlack)
-graphs[gname].Draw("AC")
 cnv.RedrawAxis()
 cnv.Update()
 cnv.SaveAs("hits_vs_triggers.pdf)")

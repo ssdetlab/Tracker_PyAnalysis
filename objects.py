@@ -10,7 +10,8 @@ from config import *
 import utils
 from utils import *
 
-_s12_ = math.sqrt(12.)
+_s12_  = math.sqrt(12.)
+_1s12_ = 1./_s12_
 
 class Hit:
     def __init__(self,det,x,y,q=-1):
@@ -73,10 +74,52 @@ class Cls:
         mu_y2 = mu_y2/self.n
         varx  = mu_x2-mu_x**2
         vary  = mu_y2-mu_y**2
-        stdx  = 1./_s12_ if(self.n==1 or varx==0) else math.sqrt(varx)
-        stdy  = 1./_s12_ if(self.n==1 or vary==0) else math.sqrt(vary)
-        se_x  = 0.5*stdx/math.sqrt(self.n)
-        se_y  = 0.5*stdy/math.sqrt(self.n)
+        # stdx  = 1./_s12_ if(self.n==1 or varx==0) else math.sqrt(varx)
+        # stdy  = 1./_s12_ if(self.n==1 or vary==0) else math.sqrt(vary)
+        # se_x  = 0.5*stdx/math.sqrt(self.n)
+        # se_y  = 0.5*stdy/math.sqrt(self.n)
+        
+        # stdx  = 1./_s12_ if(self.n==1 or varx==0) else math.sqrt(varx)/_s12_
+        # stdy  = 1./_s12_ if(self.n==1 or vary==0) else math.sqrt(vary)/_s12_
+        # se_x  = stdx/math.sqrt(self.n)
+        # se_y  = stdy/math.sqrt(self.n)
+        
+        # se_x  = 0.5*nx/_s12_
+        # se_y  = 0.5*ny/_s12_
+        
+        se_x  = 0.7*_1s12_/math.sqrt(self.n)
+        se_y  = 0.7*_1s12_/math.sqrt(self.n)
+
+        # if(self.n==1):
+        #     se_x  = 0.1
+        #     se_y  = 0.1
+        # elif(self.n==2):
+        #     se_x  = 0.25
+        #     se_y  = 0.25
+        # elif(self.n==3):
+        #     se_x  = 0.5
+        #     se_y  = 0.5
+        # else:
+        #     se_x  = 0.15
+        #     se_y  = 0.15
+        # se_x *= (nx * _1s12_)
+        # se_y *= (ny * _1s12_)
+        
+        # if(self.n==1):
+        #     se_x  = 0.1
+        #     se_y  = 0.1
+        # elif(self.n==2):
+        #     se_x  = 0.25
+        #     se_y  = 0.25
+        # elif(self.n==3):
+        #     se_x  = 0.5
+        #     se_y  = 0.5
+        # else:
+        #     se_x  = 0.15
+        #     se_y  = 0.15
+        # se_x *= ((nx*_1s12_)/math.sqrt(self.n))
+        # se_y *= ((ny*_1s12_)/math.sqrt(self.n))
+        
         return mu_x,mu_y,se_x,se_y,nx,ny
     def __str__(self):
         # for p in self.pixels: print(p)
@@ -128,6 +171,7 @@ class Track:
         self.params = params
         self.success = success
         self.theta,self.phi = self.angles(direction)
+        self.maxcls = self.max_cls_size()
     def angles(self,direction):
         dx = direction[0]
         dy = direction[1]
@@ -135,6 +179,11 @@ class Track:
         theta = np.arctan(np.sqrt(dx*dx+dy*dy)/dz)
         phi   = np.arctan(dy/dx)
         return theta,phi
+    def max_cls_size(self):
+        maxcls = 0
+        for det,cl in self.trkcls.items():
+            if(cl.n>maxcls): maxcls = cl.n
+        return maxcls
     def __str__(self):
         return f"Track: "
 
@@ -148,9 +197,11 @@ class Meta:
         return f"Meta: "
 
 class Event:
-    def __init__(self,meta,trigger):
+    def __init__(self,meta,trigger,timestamp_bgn,timestamp_end):
         self.meta        = meta
         self.trigger     = trigger
+        self.timestamp_bgn = timestamp_bgn
+        self.timestamp_end = timestamp_end
         self.errors      = {}
         self.pixels      = {}
         self.clusters    = {}

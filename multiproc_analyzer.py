@@ -153,11 +153,13 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### get the event
         ttree.GetEntry(ievt)
         
-        ### get the trigger number
-        trigger = ttree.event.trg_n
+        ### get the trigger number and time stamps
+        trigger         = ttree.event.trg_n
+        timestamp_begin = ttree.event.ts_begin
+        timestamp_end   = ttree.event.ts_end
 
         ### append the envent no-matter-what:
-        eventslist.append( Event(meta,trigger) )
+        eventslist.append( Event(meta,trigger,timestamp_begin,timestamp_end) )
 
         ### all events...
         histos["h_events"].Fill(0.5)

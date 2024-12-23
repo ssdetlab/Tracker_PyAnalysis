@@ -117,6 +117,11 @@ def get_human_timestamp(timestamp_ms,fmt="%d/%m/%Y, %H:%M:%S"):
     human_timestamp = time.strftime(fmt,time.localtime(unix_timestamp))
     return human_timestamp
 
+def get_human_timestamp_ns(timestamp_ns,fmt="%d/%m/%Y, %H:%M:%S"):
+    unix_timestamp = timestamp_ns/1e9
+    human_timestamp = time.strftime(fmt,time.localtime(unix_timestamp))
+    return human_timestamp
+
 def get_run_length(run_start,run_end,fmt="hours"):
     run_start  = run_start/1000
     run_end    = run_end/1000
@@ -185,7 +190,8 @@ def line(t, params):
 
 def get_pars_from_points(kA,kB,zA,zB):
     p1 = (kB-kA)/(zB-zA)
-    p0 = ((kB+kA)-p1*(zB+zA))/2.
+    # p0 = ((kB+kA)-p1*(zB+zA))/2.
+    p0 = kA-p1*zA
     return p0,p1
     
 def get_pars_from_centroid_and_direction(centroid,direction):
@@ -195,8 +201,10 @@ def get_pars_from_centroid_and_direction(centroid,direction):
     yB = centroid[1]+direction[1]
     zA = centroid[2]
     zB = centroid[2]+direction[2]
-    p0x,p1x = get_pars_from_points(xA,xB,zA,zB)
-    p0y,p1y = get_pars_from_points(yA,yB,zA,zB)
+    rA = transform_to_real_space( [xA,yA,zA] )
+    rB = transform_to_real_space( [xB,yB,zB] )
+    p0x,p1x = get_pars_from_points(rA[0],rB[0],rA[2],rB[2])
+    p0y,p1y = get_pars_from_points(rA[1],rB[1],rA[2],rB[2])
     return [p0x,p1x,p0y,p1y]
 
 def r1r2(direction, centroid):

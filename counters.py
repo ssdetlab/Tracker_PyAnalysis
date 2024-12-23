@@ -34,7 +34,8 @@ def plot_counters():
         mn = min(counters_y_val[counter])
         gmax = mx if(mx>gmax) else gmax
         gmin = mn if(mn<gmin) else gmin
-    gmin = gmin if(gmin>0) else 0.1
+    # gmin = gmin if(gmin>0) else 0.5
+    gmin = 0.5
     gmax = gmax*10
     print(f"gmin={gmin}, gmax={gmax}")
     

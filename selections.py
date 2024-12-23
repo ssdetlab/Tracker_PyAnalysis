@@ -12,9 +12,10 @@ from utils import *
 
 
 def pass_slope_and_window_selection(track):
+    ## r0: first detector, rN: last detector, rW: window
     r0,rN,rW = get_track_point_at_extremes(track)
     xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
-    pass_inclination_yz = (rN[1]>=r0[1])
+    pass_inclination_yz = (rN[1]>=r0[1] and r0[1]>=rW[1] and rN[1]>=rW[1])
     pass_vertexatpdc    = ((rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT))
     return (pass_inclination_yz and pass_vertexatpdc)
 
