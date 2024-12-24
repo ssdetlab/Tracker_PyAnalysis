@@ -10,7 +10,7 @@ from config import *
 
 
 COUNTERS      = ["Pixels/chip", "Clusters/chip", "Track Seeds", "Good Tracks", "Selected Tracks"]
-counters_cols = [ROOT.kBlack,   ROOT.kBlue,      ROOT.kGreen+2, ROOT.kRed,      ROOT.kOrange ]
+counters_cols = [ROOT.kBlack,   ROOT.kBlue,      ROOT.kRed,     ROOT.kOrange+1, ROOT.kGreen+2 ]
 
 counters_x_trg = array.array('d')
 counters_y_val = {}

@@ -233,6 +233,14 @@ class Config:
         self.add("Rpipe", self.getF('BEAMPIPE','Rpipe'))
         self.add("yMidWin2PipeCenter", self.getF('BEAMPIPE','yMidWin2PipeCenter'))
         
+        self.add("fDipoleTesla", self.getF('DIPOLE','fDipoleTesla'))
+        self.add("zDipoleLenghMeters", self.getF('DIPOLE','zDipoleLenghMeters'))
+        self.add("zDipoleExit", self.getF('DIPOLE','zDipoleExit'))
+        self.add("xDipoleExitMin", self.getF('DIPOLE','xDipoleExitMin'))
+        self.add("xDipoleExitMax", self.getF('DIPOLE','xDipoleExitMax'))
+        self.add("yDipoleExitMin", self.getF('DIPOLE','yDipoleExitMin'))
+        self.add("yDipoleExitMax", self.getF('DIPOLE','yDipoleExitMax'))
+        
         thetaz = self.getF('TRANSFORMATIONS','thetaz')*np.pi/180.
         self.add("thetaz", thetaz)
         self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))

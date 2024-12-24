@@ -208,7 +208,7 @@ def fit_misalignment(events,ndet2align,refdet,axes):
                 if(track.chi2ndof<cfg["minchi2align"]): continue
                 if(track.chi2ndof>cfg["maxchi2align"]): continue
                 ### require pointing to the pdc window, inclined up as a positron
-                # if(not pass_slope_and_window_selection(track)): continue
+                # if(not pass_geoacc_selection(track)): continue
                 
                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
                 nvalidtracks += 1
@@ -298,7 +298,7 @@ if __name__ == "__main__":
                     if(chi2dof<cfg["minchi2align"]): continue
                     if(chi2dof>cfg["maxchi2align"]): continue
                     ### require pointing to the pdc window, inclined up as a positron
-                    # if(not pass_slope_and_window_selection(track)): continue
+                    # if(not pass_geoacc_selection(track)): continue
                     
                     ### count and proceed
                     if(ngoodtracks%100==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")
@@ -339,7 +339,7 @@ if __name__ == "__main__":
             if(chi2dof<cfg["minchi2align"]): continue
             if(chi2dof>cfg["maxchi2align"]): continue
             ### require pointing to the pdc window, inclined up as a positron
-            # if(not pass_slope_and_window_selection(track)): continue
+            # if(not pass_geoacc_selection(track)): continue
             
             ngoodtracks += 1
             chisq1 += chi2dof

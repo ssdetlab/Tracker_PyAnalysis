@@ -194,15 +194,15 @@ def get_pars_from_points(kA,kB,zA,zB):
     p0 = kA-p1*zA
     return p0,p1
     
-def get_pars_from_centroid_and_direction(centroid,direction):
+def get_pars_from_centroid_and_direction(centroid,direction,isRealWorld=False):
     xA = centroid[0]
     xB = centroid[0]+direction[0]
     yA = centroid[1]
     yB = centroid[1]+direction[1]
     zA = centroid[2]
     zB = centroid[2]+direction[2]
-    rA = transform_to_real_space( [xA,yA,zA] )
-    rB = transform_to_real_space( [xB,yB,zB] )
+    rA = transform_to_real_space( [xA,yA,zA] ) if(isRealWorld) else [xA,yA,zA]
+    rB = transform_to_real_space( [xB,yB,zB] ) if(isRealWorld) else [xB,yB,zB]
     p0x,p1x = get_pars_from_points(rA[0],rB[0],rA[2],rB[2])
     p0y,p1y = get_pars_from_points(rA[1],rB[1],rA[2],rB[2])
     return [p0x,p1x,p0y,p1y]
@@ -297,16 +297,24 @@ def res_track2vertex(vertex, direction, centroid):
     return dx,dy
 
 
+def get_track_point_at_z(track,z):
+    x,y,z = line(z,track.params)
+    r = transform_to_real_space( [x,y,z] )
+    return r
+
+
 def get_track_point_at_extremes(track):
     det0 = cfg["detectors"][0]
     detN = cfg["detectors"][ len(cfg["detectors"])-1 ]
-    x0,y0,z0 = line(cfg["rdetectors"][det0][2], track.params)
-    xN,yN,zN = line(cfg["rdetectors"][detN][2], track.params)
-    xwin,ywin,zwin = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
-    r0 = transform_to_real_space( [x0,y0,z0] )
-    rN = transform_to_real_space( [xN,yN,zN] )
-    rW = transform_to_real_space( [xwin,ywin,zwin] )
-    return r0,rN,rW
+    z0 = cfg["rdetectors"][det0][2]
+    zN = cfg["rdetectors"][detN][2]
+    zW = -cfg["zOffset"] ### this is not 0 before transforming to the the real world
+    zD = -(cfg["zOffset"]-cfg["zDipoleExit"])
+    r0 = get_track_point_at_z(track,z0)
+    rN = get_track_point_at_z(track,zN)
+    rW = get_track_point_at_z(track,zW)
+    rD = get_track_point_at_z(track,zD)
+    return r0,rN,rW,rD
     
 
 def get_pdc_window_bounds():
@@ -315,6 +323,14 @@ def get_pdc_window_bounds():
     yWinB = cfg["yWindowMin"]
     yWinT = cfg["yWindowMin"]+cfg["yWindowHeight"]
     return xWinL,xWinR,yWinB,yWinT
+
+def get_pdc_dipole_exit_bounds():
+    xDipL = cfg["xDipoleExitMin"]
+    xDipR = cfg["xDipoleExitMax"]
+    yDipB = cfg["yDipoleExitMin"]
+    yDipT = cfg["yDipoleExitMax"]
+    return xDipL,xDipR,yDipB,yDipT
+
 
 
 def getChips2D():
@@ -360,6 +376,19 @@ def getWindowRealSpace():
                         [xWindow+xWindowWidth/2., yWindowMin+yWindowHeight, zWindow],
                         [xWindow+xWindowWidth/2., yWindowMin,               zWindow] ])
     return [window]
+
+
+def getDipoleRealSpace():
+    zDipole    = cfg["zDipoleExit"]
+    xMin       = cfg["xDipoleExitMin"]
+    xMax       = cfg["xDipoleExitMax"]
+    yMin       = cfg["yDipoleExitMin"]
+    yMax       = cfg["yDipoleExitMax"]
+    dipole = np.array([ [xMin, yMin, zDipole],
+                        [xMin, yMax, zDipole],
+                        [xMax, yMax, zDipole],
+                        [xMax, yMin, zDipole] ])
+    return [dipole]
 
 
 def InitCutflow():

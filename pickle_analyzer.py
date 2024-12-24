@@ -50,7 +50,26 @@ from selections import *
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
-# ROOT.gStyle.SetOptStat(0)
+ROOT.gStyle.SetOptStat(0)
+# ROOT.gStyle.SetPalette(ROOT.kRust)
+# ROOT.gStyle.SetPalette(ROOT.kSolar)
+# ROOT.gStyle.SetPalette(ROOT.kInvertedDarkBodyRadiator)
+ROOT.gStyle.SetPalette(ROOT.kDarkBodyRadiator)
+# ROOT.gStyle.SetPalette(ROOT.kRainbow)
+ROOT.gStyle.SetPadBottomMargin(0.15)
+ROOT.gStyle.SetPadLeftMargin(0.13)
+ROOT.gStyle.SetPadRightMargin(0.16)
+
+
+def getP(r0,rN,rD):
+    B  = cfg["fDipoleTesla"]
+    LB = cfg["zDipoleLenghMeters"]
+    mm2m = 1e-2
+    tan_theta = (rN[1]-r0[1])/(rN[2]-r0[2])
+    dExit = rD[1]*mm2m
+    h = dExit/tan_theta
+    p = 0.3 * B * (h*LB/dExit + dExit)
+    return p if(dExit>0) else -999
 
 
 if __name__ == "__main__":
@@ -70,9 +89,46 @@ if __name__ == "__main__":
         files = getfiles(tfilenamein)
     for f in files: print(f)
     
-    ###. counters
+    ### counters
     init_global_counters()
     Ndet = len(cfg["detectors"])
+    
+    ### some histos
+    
+    histos = {}
+    histos.update({ "hD_before_cuts": ROOT.TH2D("hD_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
+    histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
+    histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
+    histos.update({ "hW_after_cuts":  ROOT.TH2D("hW_after_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
+    histos.update({ "hTheta_yz":      ROOT.TH1D("hTheta_yz",";#theta_{yz} [rad];Tracks",100,0,0.2)})
+    histos.update({ "hdExit":         ROOT.TH1D("hdExit",";d_{exit} [mm];Tracks",120,-70,+90)})
+    histos.update({ "hP":             ROOT.TH1D("hP",";p [GeV];Tracks",100,0,10)})
+    
+    dipole = ROOT.TPolyLine()
+    xMinD = cfg["xDipoleExitMin"]
+    xMaxD = cfg["xDipoleExitMax"]
+    yMinD = cfg["yDipoleExitMin"]
+    yMaxD = cfg["yDipoleExitMax"]    
+    dipole.SetNextPoint(xMinD,yMinD)
+    dipole.SetNextPoint(xMinD,yMaxD)
+    dipole.SetNextPoint(xMaxD,yMaxD)
+    dipole.SetNextPoint(xMaxD,yMinD)
+    dipole.SetNextPoint(xMinD,yMinD)
+    dipole.SetLineColor(ROOT.kBlue)
+    dipole.SetLineWidth(1)
+    
+    window = ROOT.TPolyLine()
+    xMinW = -cfg["xWindowWidth"]/2.
+    xMaxW = +cfg["xWindowWidth"]/2.
+    yMinW = cfg["yWindowMin"]
+    yMaxW = cfg["yWindowMin"]+cfg["yWindowHeight"]
+    window.SetNextPoint(xMinW,yMinW)
+    window.SetNextPoint(xMinW,yMaxW)
+    window.SetNextPoint(xMaxW,yMaxW)
+    window.SetNextPoint(xMaxW,yMinW)
+    window.SetNextPoint(xMinW,yMinW)    
+    window.SetLineColor(ROOT.kBlue)
+    window.SetLineWidth(1)
     
     ### save all events
     nevents = 0
@@ -82,7 +138,7 @@ if __name__ == "__main__":
         with open(fpkl,'rb') as handle:
             data = pickle.load(handle)
             for ievt,event in enumerate(data):
-                print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
+                # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
                 
                 counters_x_trg.append( event.trigger )
@@ -134,11 +190,20 @@ if __name__ == "__main__":
                     if(track.chi2ndof>cfg["cut_chi2dof"]): continue
                     good_tracks.append(track)
                     
+                    r0,rN,rW,rD = get_track_point_at_extremes(track)
+                    theta_yz = math.atan( (rN[1]-r0[1])/(rN[2]-r0[2]) )
+                    histos["hD_before_cuts"].Fill(rD[0],rD[1])
+                    histos["hW_before_cuts"].Fill(rW[0],rW[1])
+                    
                     ### require pointing to the pdc window, inclined up as a positron
-                    if(not pass_slope_and_window_selection(track)): continue
+                    if(not pass_geoacc_selection(track)): continue
+                    histos["hD_after_cuts"].Fill(rD[0],rD[1])
+                    histos["hW_after_cuts"].Fill(rW[0],rW[1])
+                    histos["hTheta_yz"].Fill(theta_yz)
+                    histos["hdExit"].Fill(rD[1])
+                    p = getP(r0,rN,rD)
+                    if(p>0): histos["hP"].Fill(p)
                     acceptance_tracks.append(track)
-                    trkpars = get_pars_from_centroid_and_direction(track.centroid,track.direction)
-                    if(trkpars[3]<0): print(f"[p0x,p1x,p0y,p1y]={params}")
                     ntracks += 1
                 
                 ### the graph of the good tracks
@@ -160,6 +225,62 @@ if __name__ == "__main__":
     ### plot the counters
     plot_counters()
 
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hD_before_cuts"].Draw("colz")
+    dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hD_after_cuts"].Draw("colz")
+    dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf(")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hW_before_cuts"].Draw("colz")
+    window.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hW_after_cuts"].Draw("colz")
+    window.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetLogy()
+    cnv.SetTicks(1,1)
+    histos["hTheta_yz"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetLogy()
+    cnv.SetTicks(1,1)
+    histos["hdExit"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetLogy()
+    cnv.SetTicks(1,1)
+    histos["hP"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf)")
+    
+    
+    fout = ROOT.TFile("cnv_dipole_window.root","RECREATE")
+    fout.cd()
+    for hname,hist in histos.items(): hist.Write()
+    fout.Write()
+    fout.Close()
     
     # get the end time
     et = time.time()

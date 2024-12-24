@@ -316,7 +316,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             ### require good chi2, pointing to the pdc window, inclined up as a positron
             chi2ndof = chisq/ndof if(ndof>0) else 99999
             pass_fit       = (success and chi2ndof<=cfg["cut_chi2dof"])
-            pass_selection = (pass_fit and pass_slope_and_window_selection(track))
+            pass_selection = (pass_fit and pass_geoacc_selection(track))
             if(success):        n_successful_tracks += 1
             if(pass_fit):       n_goodchi2_tracks += 1
             if(pass_selection): n_selected_tracks += 1
@@ -375,7 +375,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )
         
         ### plot everything which is fitted but the function will only put the track line if it passes the chi2 cut
-        fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{ievt}.pdf")
+        fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{trigger}.pdf")
         # seeder.plot_seeder(fevtdisplayname)
         plot_event(runnumber,starttime,duration,ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
         

@@ -178,6 +178,17 @@ yWindowMin    = 58.
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
 
+[DIPOLE]
+### this is wrt to the window which I set at z=0
+fDipoleTesla = 0.219
+zDipoleLenghMeters = 0.914
+zDipoleExit = -3032.155
+xDipoleExitMin = -22.352
+xDipoleExitMax = +22.352
+yDipoleExitMin = -66.927
+yDipoleExitMax = +34.927
+
+
 [TRANSFORMATIONS]
 thetaz = -90.
 xOffset = 0.
