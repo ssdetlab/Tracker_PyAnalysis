@@ -60,15 +60,17 @@ ROOT.gStyle.SetPadBottomMargin(0.15)
 ROOT.gStyle.SetPadLeftMargin(0.13)
 ROOT.gStyle.SetPadRightMargin(0.16)
 
+B  = cfg["fDipoleTesla"]
+LB = cfg["zDipoleLenghMeters"]
+mm2m = 1e-3
 
 def getP(r0,rN,rD):
-    B  = cfg["fDipoleTesla"]
-    LB = cfg["zDipoleLenghMeters"]
-    mm2m = 1e-2
-    tan_theta = (rN[1]-r0[1])/(rN[2]-r0[2])
+    # tan_theta = (rN[1]-r0[1])/(rN[2]-r0[2])
     dExit = rD[1]*mm2m
-    h = dExit/tan_theta
-    p = 0.3 * B * (h*LB/dExit + dExit)
+    theta = 2*math.atan(dExit/LB)
+    # tan_theta = (rN[1]-r0[1])/(rN[2]-r0[2])
+    # p = 0.3 * B * (LB/tan_theta + dExit)
+    p = (0.3 * B * LB)/math.sin(theta)
     return p if(dExit>0) else -999
 
 
@@ -100,7 +102,10 @@ if __name__ == "__main__":
     histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     histos.update({ "hW_after_cuts":  ROOT.TH2D("hW_after_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
-    histos.update({ "hTheta_yz":      ROOT.TH1D("hTheta_yz",";#theta_{yz} [rad];Tracks",100,0,0.2)})
+    histos.update({ "hTanTheta_yz":   ROOT.TH1D("hTanTheta_yz",";tan(#theta_{yz});Tracks",100,0,0.05)})
+    histos.update({ "hTanTheta_xz":   ROOT.TH1D("hTanTheta_xz",";tan(#theta_{xz});Tracks",100,-0.01,0.01)})
+    histos.update({ "hTheta_yz":      ROOT.TH1D("hTheta_yz",";#theta_{yz} [rad];Tracks",100,0,0.1)})
+    histos.update({ "hTheta_xz":      ROOT.TH1D("hTheta_xz",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
     histos.update({ "hdExit":         ROOT.TH1D("hdExit",";d_{exit} [mm];Tracks",120,-70,+90)})
     histos.update({ "hP":             ROOT.TH1D("hP",";p [GeV];Tracks",100,0,10)})
     
@@ -191,20 +196,35 @@ if __name__ == "__main__":
                     good_tracks.append(track)
                     
                     r0,rN,rW,rD = get_track_point_at_extremes(track)
-                    theta_yz = math.atan( (rN[1]-r0[1])/(rN[2]-r0[2]) )
+                    tan_theta_yz = +track.params[1] ### the slope p1x transformed to real space (stays as is)
+                    tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
+                    theta_yz = math.atan(tan_theta_yz)
+                    theta_xz = math.atan(tan_theta_xz)
+                    
+                    dExit = rD[1]*mm2m
+                    theta_yz = 2*math.atan(dExit/LB)
+                    print(f"dExit={dExit}, LB={LB}, theta_yz={theta_yz}")
+                    
+                    p = getP(r0,rN,rD)
+                    
                     histos["hD_before_cuts"].Fill(rD[0],rD[1])
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
                     
                     ### require pointing to the pdc window, inclined up as a positron
                     if(not pass_geoacc_selection(track)): continue
+                    
                     histos["hD_after_cuts"].Fill(rD[0],rD[1])
                     histos["hW_after_cuts"].Fill(rW[0],rW[1])
                     histos["hTheta_yz"].Fill(theta_yz)
+                    histos["hTanTheta_yz"].Fill(tan_theta_yz)
+                    histos["hTheta_xz"].Fill(theta_xz)
+                    histos["hTanTheta_xz"].Fill(tan_theta_xz)
                     histos["hdExit"].Fill(rD[1])
-                    p = getP(r0,rN,rD)
                     if(p>0): histos["hP"].Fill(p)
                     acceptance_tracks.append(track)
                     ntracks += 1
+                    
+                    # print(f"tan(theta_yz)={theta_yz}, tan(theta_xz)={theta_xz}, track pars={track.params}")
                 
                 ### the graph of the good tracks
                 set_global_counter("Good Tracks",icounter,len(good_tracks))
@@ -253,10 +273,31 @@ if __name__ == "__main__":
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf")
-    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
-    cnv.SetLogy()
-    cnv.SetTicks(1,1)
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetLogy()
+    ROOT.gPad.SetTicks(1,1)
     histos["hTheta_yz"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetLogy()
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTheta_xz"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetLogy()
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTanTheta_yz"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetLogy()
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTanTheta_xz"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf")

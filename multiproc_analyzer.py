@@ -377,7 +377,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### plot everything which is fitted but the function will only put the track line if it passes the chi2 cut
         fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_{trigger}.pdf")
         # seeder.plot_seeder(fevtdisplayname)
-        plot_event(runnumber,starttime,duration,ievt,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
+        plot_event(runnumber,starttime,duration,trigger,fevtdisplayname,clusters,tracks,chi2threshold=cfg["cut_chi2dof"])
         
         if(n_goodchi2_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("#chi^{2}/N_{DoF}#leqX") )

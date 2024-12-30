@@ -87,6 +87,7 @@ lut_widthy_inf = 0.040
 
 [CUTS]
 cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
+# cut_chi2dof = 200
 # cut_chi2dof = 100
 # cut_chi2dof = 15
 cut_chi2dof = 5
