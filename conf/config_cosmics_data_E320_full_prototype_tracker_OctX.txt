@@ -173,7 +173,7 @@ zWindow       = 0.
 xWindowWidth  = 50.038
 yWindowHeight = 119.888
 xWindow       = 0.
-yWindowMin    = 58.
+yWindowMin    = 53.5
 
 [BEAMPIPE]
 Rpipe = 304.8
@@ -191,9 +191,13 @@ yDipoleExitMax = +34.927
 
 
 [TRANSFORMATIONS]
+### angles in degrees
+thetax = -0.33
+thetay = +0.25
 thetaz = -90.
 xOffset = 0.
-yBoxBot2WinBot = 9.525
-yMidChip2BoxBot = 40.5
+yPipe2WinBot = 6.1
+yPipe2BoxBot = 9.525
+yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
 zBox2chip = 20.1

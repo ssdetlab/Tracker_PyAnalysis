@@ -241,14 +241,24 @@ class Config:
         self.add("yDipoleExitMin", self.getF('DIPOLE','yDipoleExitMin'))
         self.add("yDipoleExitMax", self.getF('DIPOLE','yDipoleExitMax'))
         
+        thetax = self.getF('TRANSFORMATIONS','thetax')*np.pi/180.
+        thetay = self.getF('TRANSFORMATIONS','thetay')*np.pi/180.
         thetaz = self.getF('TRANSFORMATIONS','thetaz')*np.pi/180.
+        self.add("thetax", thetax)
+        self.add("thetay", thetay)
         self.add("thetaz", thetaz)
         self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
-        self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
+        # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
+        self.add("yPipe2WinBot", self.getF('TRANSFORMATIONS','yPipe2WinBot'))
+        self.add("yPipe2BoxBot", self.getF('TRANSFORMATIONS','yPipe2BoxBot'))
         self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
         self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
         self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
-        yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]/2.
+        
+        yBoxBot2WinBot = self.map["yPipe2BoxBot"]-self.map["yPipe2WinBot"]
+        self.add("yBoxBot2WinBot", yBoxBot2WinBot)
+        yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
+        # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["chipX"]/2.
         zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
         self.add("yOffset", yOffset)
         self.add("zOffset", zOffset)

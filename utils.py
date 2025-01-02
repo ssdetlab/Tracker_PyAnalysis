@@ -142,13 +142,27 @@ def transform_to_real_space(v):
     r[2] = Rz[2][0]*v[0]+Rz[2][1]*v[1]+Rz[2][2]*v[2]
     ### reflect x in chip's frame 
     r[0] = -r[0] ### probably can be fixed by changing the rotation matrix -sin(theta) term to +sin(theta)
-    r[1] = -r[1] ### thsis is needed
+    r[1] = -r[1] ### this is needed
     ### introduce the offsets of the real space position of the detector (this is not the alignment offests!)
     r[0] += cfg["xOffset"]
     r[1] += cfg["yOffset"]
     r[2] += cfg["zOffset"]
     return r
 
+def tilt_in_real_space(v):
+    Rx = [[1,0,0],[0,math.cos(cfg["thetax"]),-math.sin(cfg["thetax"])], [0,math.sin(cfg["thetax"]),math.cos(cfg["thetax"])]]
+    Ry = [[math.cos(cfg["thetay"]),0,math.sin(cfg["thetay"])], [0,1,0], [-math.sin(cfg["thetay"]),0,math.cos(cfg["thetay"])]]
+    ### rotate around x
+    vx = [0,0,0]
+    vx[0] = Rx[0][0]*v[0]+Rx[0][1]*v[1]+Rx[0][2]*v[2]
+    vx[1] = Rx[1][0]*v[0]+Rx[1][1]*v[1]+Rx[1][2]*v[2]
+    vx[2] = Rx[2][0]*v[0]+Rx[2][1]*v[1]+Rx[2][2]*v[2]
+    vy = [0,0,0]
+    vy[0] = Ry[0][0]*vx[0]+Ry[0][1]*vx[1]+Ry[0][2]*vx[2]
+    vy[1] = Ry[1][0]*vx[0]+Ry[1][1]*vx[1]+Ry[1][2]*vx[2]
+    vy[2] = Ry[2][0]*vx[0]+Ry[2][1]*vx[1]+Ry[2][2]*vx[2]
+    r = vy
+    return r
 
 def xofz(r1,r2,z):
    dz = r2[2]-r1[2]
@@ -314,6 +328,13 @@ def get_track_point_at_extremes(track):
     rN = get_track_point_at_z(track,zN)
     rW = get_track_point_at_z(track,zW)
     rD = get_track_point_at_z(track,zD)
+    # print(f"before: xD={rD[0]:.2f}, yD={rD[1]:.2f}, zD={rD[2]:.2f}")
+    r0 = tilt_in_real_space(r0)
+    rN = tilt_in_real_space(rN)
+    rW = tilt_in_real_space(rW)
+    rD = tilt_in_real_space(rD)
+    # print(f"after: xD={rD[0]:.2f}, yD={rD[1]:.2f}, zD={rD[2]:.2f}")
+    
     return r0,rN,rW,rD
     
 
@@ -364,6 +385,37 @@ def getChips(translatez=True):
                                    [x0+chipXLabFrame/2.,y0+chipYLabFrame/2.,z0],
                                    [x0+chipXLabFrame/2.,y0-chipYLabFrame/2.,z0] ]) )
     return L1verts
+
+
+def getThetaAperture(yD):
+    zF = -1e10
+    zL = -1e10
+    yMin = -1e10
+    yMax = -1e10
+    for det in cfg["detectors"]:
+        xalgn,yalgn = align(det,cfg["rdetectors"][det][0],cfg["rdetectors"][det][1])
+        ralgn = [xalgn, yalgn, cfg["rdetectors"][det][2]]
+        r = transform_to_real_space( ralgn )
+        x0 = r[0]
+        y0 = r[1]
+        z0 = r[2]
+        ### (x,y) in the chip frame are (y,x) in the lab frame
+        chipXLabFrame = cfg["chipY"]
+        chipYLabFrame = cfg["chipX"]
+        ### set the chips
+        if(det=="ALPIDE_0"):
+            zF = z0
+            yMin = y0-chipYLabFrame/2.
+            yMax = y0+chipYLabFrame/2.
+        if(det=="ALPIDE_3"):
+            zL = z0
+    zD = abs(cfg["zDipoleExit"])
+    
+    theta_min = math.atan((yMin-yD)/(zF+zD))
+    theta_max = math.atan((yMax-yD)/(zL+zD))
+    
+    return theta_min, theta_max
+        
 
 def getWindowRealSpace():
     zWindow       = cfg["zWindow"]

@@ -64,16 +64,6 @@ B  = cfg["fDipoleTesla"]
 LB = cfg["zDipoleLenghMeters"]
 mm2m = 1e-3
 
-def getP(r0,rN,rD):
-    # tan_theta = (rN[1]-r0[1])/(rN[2]-r0[2])
-    dExit = rD[1]*mm2m
-    theta = 2*math.atan(dExit/LB)
-    # tan_theta = (rN[1]-r0[1])/(rN[2]-r0[2])
-    # p = 0.3 * B * (LB/tan_theta + dExit)
-    p = (0.3 * B * LB)/math.sin(theta)
-    return p if(dExit>0) else -999
-
-
 if __name__ == "__main__":
     # get the start time
     st = time.time()
@@ -98,6 +88,9 @@ if __name__ == "__main__":
     ### some histos
     
     histos = {}
+    histos.update({ "hP_vs_dExit":    ROOT.TH2D("hP_vs_dExit",";d_{exit} [mm];E [GeV];Tracks",50,0,+35, 50,0,5) })
+    histos.update({ "hP_vs_theta":    ROOT.TH2D("hP_vs_theta",";#theta_{yz} [rad];E [GeV];Tracks",50,0,0.05, 50,0,5) })
+    histos.update({ "hDexit_vs_theta":ROOT.TH2D("hDexit_vs_theta",";#theta_{yz} [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
     histos.update({ "hD_before_cuts": ROOT.TH2D("hD_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
@@ -134,6 +127,7 @@ if __name__ == "__main__":
     window.SetNextPoint(xMinW,yMinW)    
     window.SetLineColor(ROOT.kBlue)
     window.SetLineWidth(1)
+    
     
     ### save all events
     nevents = 0
@@ -200,18 +194,29 @@ if __name__ == "__main__":
                     tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
                     theta_yz = math.atan(tan_theta_yz)
                     theta_xz = math.atan(tan_theta_xz)
-                    
-                    dExit = rD[1]*mm2m
-                    theta_yz = 2*math.atan(dExit/LB)
-                    print(f"dExit={dExit}, LB={LB}, theta_yz={theta_yz}")
-                    
-                    p = getP(r0,rN,rD)
+                    dExit = rD[1]                    
+                    p = (0.3 * B * LB)/math.sin(theta_yz)
+                    p1 = (0.3 * B * LB)/math.sin( 2.*math.atan(dExit*mm2m/LB) )
                     
                     histos["hD_before_cuts"].Fill(rD[0],rD[1])
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
                     
                     ### require pointing to the pdc window, inclined up as a positron
                     if(not pass_geoacc_selection(track)): continue
+                    if(p<1.9 or p>3.0): continue
+                    
+                    theta_min, theta_max = getThetaAperture(dExit)
+                    # reject = (theta_yz<theta_min or theta_yz>theta_max)
+                    # if(reject): continue
+                    
+                    
+                    
+                    # histos["hP_vs_dExit"].Fill(dExit,p)
+                    # histos["hP_vs_theta"].Fill(theta_yz,p)
+                    # histos["hDexit_vs_theta"].Fill(theta_yz,dExit)
+                    histos["hP_vs_dExit"].Fill(dExit,p1)
+                    histos["hP_vs_theta"].Fill(theta_yz,p1)
+                    histos["hDexit_vs_theta"].Fill(theta_yz,dExit)
                     
                     histos["hD_after_cuts"].Fill(rD[0],rD[1])
                     histos["hW_after_cuts"].Fill(rW[0],rW[1])
@@ -219,8 +224,9 @@ if __name__ == "__main__":
                     histos["hTanTheta_yz"].Fill(tan_theta_yz)
                     histos["hTheta_xz"].Fill(theta_xz)
                     histos["hTanTheta_xz"].Fill(tan_theta_xz)
-                    histos["hdExit"].Fill(rD[1])
-                    if(p>0): histos["hP"].Fill(p)
+                    histos["hdExit"].Fill(dExit)
+                    # if(p>0): histos["hP"].Fill(p)
+                    if(p>0): histos["hP"].Fill(p1)
                     acceptance_tracks.append(track)
                     ntracks += 1
                     
@@ -259,6 +265,7 @@ if __name__ == "__main__":
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf(")
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
     cnv.cd(1)
@@ -273,6 +280,7 @@ if __name__ == "__main__":
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf")
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
     cnv.cd(1)
@@ -287,6 +295,7 @@ if __name__ == "__main__":
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf")
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
     cnv.cd(1)
@@ -301,6 +310,7 @@ if __name__ == "__main__":
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf")
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetLogy()
     cnv.SetTicks(1,1)
@@ -314,7 +324,30 @@ if __name__ == "__main__":
     histos["hP"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hP_vs_dExit"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hP_vs_theta"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hDexit_vs_theta"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
     cnv.SaveAs("cnv_dipole_window.pdf)")
+    
+    
     
     
     fout = ROOT.TFile("cnv_dipole_window.root","RECREATE")
