@@ -12,6 +12,10 @@ from objects import *
 
 
 def get_all_pixles_eudaq(evt,hPixMatrix,ROI={}):
+    if(cfg["isMC"]):
+        print("Cannot call the get_all_pixles_eudaq function if isMC=1.")
+        print("Quitting.")
+        quit()
     staves = evt.event.st_ev_buffer
     pixels = {}
     raws   = {}
@@ -25,13 +29,11 @@ def get_all_pixles_eudaq(evt,hPixMatrix,ROI={}):
     for istv in range(staves.size()):
         staveid  = staves[istv].stave_id
         chips    = staves[istv].ch_ev_buffer
-        ## isactivestave = False
         isactivestave = True
         for ichp in range(chips.size()):
             chipid   = chips[ichp].chip_id
             detector = cfg["plane2det"][chipid]
             nhits    = chips[ichp].hits.size()
-            ## isactivestave   = (nhits>0 and not isactivestave)
             n_active_chips += (nhits>0)
             for ipix in range(nhits):
                 ix,iy = chips[ichp].hits[ipix]
@@ -46,42 +48,47 @@ def get_all_pixles_eudaq(evt,hPixMatrix,ROI={}):
                     ids2d[detector].append(id2d)
                     raws[detector].append(raw)
                     pixels[detector].append( Hit(detector,ix,iy,raw) )
-            n_active_staves += (isactivestave>0)
+            n_active_staves += (isactivestave)
     return n_active_staves,n_active_chips,pixels
 
     
-def get_all_pixles_mc(evt,hPixMatrix,ROI={}):
-    pixels = {}
-    raws = {}
-    def get_det_pixles_mc(det,col,row):
-        for i in range(col.size()):
-            ix = col[i]
-            iy = row[i]
-            if(len(ROI)>0):
-                if(("ix" in ROI) and (ix<ROI["ix"]["min"] or ix>ROI["ix"]["max"])): continue
-                if(("iy" in ROI) and (iy<ROI["iy"]["min"] or iy>ROI["iy"]["max"])): continue
-            raw = hPixMatrix[det].FindBin(ix,iy)
-            if(raw not in raws[det]):
-                raws[det].append(raw)
-                pixels[det].append( Hit(det,ix,iy,raw) )
-    for det in cfg["detectors"]:
-        pixels.update({det:[]})
-        raws.update({det:[]})
-    ndet = len(cfg["detectors"])
-    n_active_planes = (evt.ALPIDE_0_pix_col.size()>0) ## at least one... 
-    if(ndet==2): n_active_planes += (evt.ALPIDE_1_pix_col.size()>0)
-    if(ndet==3): n_active_planes += (evt.ALPIDE_2_pix_col.size()>0)
-    if(ndet==4): n_active_planes += (evt.ALPIDE_3_pix_col.size()>0)
-    if(ndet==5): n_active_planes += (evt.ALPIDE_4_pix_col.size()>0)
-    if(ndet==6): n_active_planes += (evt.ALPIDE_5_pix_col.size()>0)
-    if(ndet==7): n_active_planes += (evt.ALPIDE_6_pix_col.size()>0)
-    if(ndet==8): n_active_planes += (evt.ALPIDE_7_pix_col.size()>0)
-    if(ndet>0): get_det_pixles_mc("ALPIDE_0",evt.ALPIDE_0_pix_col,evt.ALPIDE_0_pix_row)
-    if(ndet>1): get_det_pixles_mc("ALPIDE_1",evt.ALPIDE_1_pix_col,evt.ALPIDE_1_pix_row)
-    if(ndet>2): get_det_pixles_mc("ALPIDE_2",evt.ALPIDE_2_pix_col,evt.ALPIDE_2_pix_row)
-    if(ndet>3): get_det_pixles_mc("ALPIDE_3",evt.ALPIDE_3_pix_col,evt.ALPIDE_3_pix_row)
-    return n_active_planes,pixels
-
+# def get_all_pixles_mc(fIn,Event,hPixMatrix,ROI={}):
+#     if(not cfg["isMC"]):
+#         print("Cannot call the get_all_pixles_eudaq function if isMC=0.")
+#         print("Quitting.")
+#         quit()
+#     pixels = {}
+#     raws   = {}
+#     ids2d  = {}
+#     chipmc2det = {"00":"ALPIDE_0", "03":"ALPIDE_1", "05":"ALPIDE_2", "07":"ALPIDE_3"}
+#     for det in cfg["detectors"]:
+#         pixels.update({det:[]})
+#         raws.update({det:[]})
+#         ids2d.update({det:[]})
+#     n_active_staves = 0
+#     n_active_chips  = 0
+#
+#     for chipmc,det in chipmc2det.items():
+#         tpixels = fIn.Get(f"pixels_{chipmc}_00_{Event}")
+#         detector = det
+#         isactivestave = True
+#         for ichp in range(chips.size()):
+#             nhits = tpixels.GetEntries()
+#             n_active_chips += (nhits>0)
+#             for pix in tpixels:
+#                 ix = pix.cellx
+#                 iy = pix.celly
+#                 if(len(ROI)>0):
+#                     if(("ix" in ROI) and (ix<ROI["ix"]["min"] or ix>ROI["ix"]["max"])): continue
+#                     if(("iy" in ROI) and (iy<ROI["iy"]["min"] or iy>ROI["iy"]["max"])): continue
+#                 raw = hPixMatrix[detector].FindBin(ix,iy)
+#                 id2d = (ix,iy)
+#                 if(id2d not in ids2d[detector]):
+#                     ids2d[detector].append(id2d)
+#                     raws[detector].append(raw)
+#                     pixels[detector].append( Hit(detector,ix,iy,raw) )
+#             n_active_staves += (isactivestave)
+#     return n_active_staves,n_active_chips,pixels
 
 
 def get_all_pixles(evt,hPixMatrix,ROI={}):
@@ -95,4 +102,3 @@ def get_all_pixles(evt,hPixMatrix,ROI={}):
         print("QUITTING.")
         quit()
     return n_active_staves, n_active_chips, pixels
-    

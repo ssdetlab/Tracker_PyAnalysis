@@ -1,5 +1,5 @@
 [RUN]
-isMC           = 0
+isMC           = 1
 doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
@@ -191,13 +191,13 @@ yDipoleExitMax = +34.927
 
 
 [TRANSFORMATIONS]
-### angles in degrees
+### angles in degrees, thetax/y are "found" from the dipole exit and energy analysis, thetaz is just the transformation to real space.
 thetax = -0.33
-thetay = +0.25
-thetaz = -90.
+thetay = +0.27
+thetaz = +90.
 xOffset = 0.
 yPipe2WinBot = 6.1
 yPipe2BoxBot = 9.525
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
-zBox2chip = 20.1
+zBox2chip = 10.5

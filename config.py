@@ -213,13 +213,19 @@ class Config:
         self.add("plane2det", self.getMapI2S('DETECTOR','plane2det'))
         self.add("rdetectors", self.getMap2ArrF('DETECTOR','rdetectors'))
         
-        
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
         self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
         self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
         self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
         self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
         self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
+        print("Before:",self.map["misalignment"])
+        if(self.map["isMC"]):
+            print("Ignoring misalignment for MC")
+            for key1 in self.map["misalignment"]:
+                for key2 in self.map["misalignment"][key1]:
+                    self.map["misalignment"][key1][key2] = 0
+        print("After:",self.map["misalignment"])
         
         firstdet = self.map["detectors"][0]
         lastdet  = self.map["detectors"][-1]

@@ -140,9 +140,6 @@ def transform_to_real_space(v):
     r[0] = Rz[0][0]*v[0]+Rz[0][1]*v[1]+Rz[0][2]*v[2]
     r[1] = Rz[1][0]*v[0]+Rz[1][1]*v[1]+Rz[1][2]*v[2]
     r[2] = Rz[2][0]*v[0]+Rz[2][1]*v[1]+Rz[2][2]*v[2]
-    ### reflect x in chip's frame 
-    r[0] = -r[0] ### probably can be fixed by changing the rotation matrix -sin(theta) term to +sin(theta)
-    r[1] = -r[1] ### this is needed
     ### introduce the offsets of the real space position of the detector (this is not the alignment offests!)
     r[0] += cfg["xOffset"]
     r[1] += cfg["yOffset"]
@@ -328,13 +325,11 @@ def get_track_point_at_extremes(track):
     rN = get_track_point_at_z(track,zN)
     rW = get_track_point_at_z(track,zW)
     rD = get_track_point_at_z(track,zD)
-    # print(f"before: xD={rD[0]:.2f}, yD={rD[1]:.2f}, zD={rD[2]:.2f}")
+    ### tilt the detector around x and y
     r0 = tilt_in_real_space(r0)
     rN = tilt_in_real_space(rN)
     rW = tilt_in_real_space(rW)
     rD = tilt_in_real_space(rD)
-    # print(f"after: xD={rD[0]:.2f}, yD={rD[1]:.2f}, zD={rD[2]:.2f}")
-    
     return r0,rN,rW,rD
     
 
@@ -410,6 +405,8 @@ def getThetaAperture(yD):
         if(det=="ALPIDE_3"):
             zL = z0
     zD = abs(cfg["zDipoleExit"])
+    
+    print(f"zF={zF}, zL={zL}")
     
     theta_min = math.atan((yMin-yD)/(zF+zD))
     theta_max = math.atan((yMax-yD)/(zL+zD))

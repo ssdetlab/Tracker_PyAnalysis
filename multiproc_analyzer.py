@@ -203,7 +203,6 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         
         ### spatial ROI cut
-        # ROI = { "ix":{"min":170,"max":1000}, "iy":{"min":180,"max":300} }
         ROI = { "ix":{"min":cfg["cut_ROI_xmin"],"max":cfg["cut_ROI_xmax"]}, "iy":{"min":cfg["cut_ROI_ymin"],"max":cfg["cut_ROI_ymax"]} }
         n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,ROI)
         sprnt = f"ievt={ievt} in_ROI_chips={n_active_chips} -->"
