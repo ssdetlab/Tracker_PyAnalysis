@@ -120,6 +120,10 @@ class Config:
         self.add("isMC", self.getB('RUN','isMC'))
         self.add("doVtx", self.getB('RUN','doVtx'))
         self.add("runtype", self.getS('RUN','runtype'))
+        self.add("skiptracking", self.getB('RUN','skiptracking'))
+        hfilesufx = "_multiprocess_histograms"
+        if(self.map["skiptracking"]): hfilesufx += "_notrk"
+        self.add("hfilesufx", hfilesufx)
         self.add("pdgIdMatch", self.getI('RUN','pdgIdMatch'))
         self.add("nmax2process", self.getI('RUN','nmax2process'))
         self.add("first2process", self.getI('RUN','first2process'))
@@ -145,6 +149,8 @@ class Config:
         
         self.add("seed_allow_negative_vertical_inclination", self.getB('SEED','seed_allow_negative_vertical_inclination'))
         self.add("seed_allow_neigbours", self.getB('SEED','seed_allow_neigbours'))
+        self.add("seed_nmax_neigbours",  self.getI('SEED','seed_nmax_neigbours'))
+        self.add("seed_nmiss_neigbours", self.getI('SEED','seed_nmiss_neigbours'))
         
         self.add("seed_thetax_scale_low", self.getF('SEED','seed_thetax_scale_low'))
         self.add("seed_thetax_scale_mid", self.getF('SEED','seed_thetax_scale_mid'))
@@ -162,7 +168,6 @@ class Config:
         self.add("seed_rhoy_scale_mid", self.getF('SEED','seed_rhoy_scale_mid'))
         self.add("seed_rhoy_scale_hgh", self.getF('SEED','seed_rhoy_scale_hgh'))
         self.add("seed_rhoy_scale_inf",  self.getF('SEED','seed_rhoy_scale_inf'))
-        
         
         self.add("seed_nbins_thetarho_low", self.getI('SEED','seed_nbins_thetarho_low'))
         self.add("seed_nbins_thetarho_mid", self.getI('SEED','seed_nbins_thetarho_mid'))
@@ -212,6 +217,10 @@ class Config:
         self.add("detectors", self.getArrS('DETECTOR','detectors'))
         self.add("plane2det", self.getMapI2S('DETECTOR','plane2det'))
         self.add("rdetectors", self.getMap2ArrF('DETECTOR','rdetectors'))
+        frstdet = self.map["detectors"][0]
+        lastdet = self.map["detectors"][-1]
+        self.add("det_frst", frstdet)
+        self.add("det_last", lastdet)
         
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
         self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
@@ -219,16 +228,13 @@ class Config:
         self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
         self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
         self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
-        print("Before:",self.map["misalignment"])
+        # print("Before:",self.map["misalignment"])
         if(self.map["isMC"]):
             print("Ignoring misalignment for MC")
             for key1 in self.map["misalignment"]:
                 for key2 in self.map["misalignment"][key1]:
                     self.map["misalignment"][key1][key2] = 0
-        print("After:",self.map["misalignment"])
-        
-        firstdet = self.map["detectors"][0]
-        lastdet  = self.map["detectors"][-1]
+        # print("After:",self.map["misalignment"])
         
         self.add("zWindow",       self.getF('WINDOW','zWindow'))
         self.add("xWindow",       self.getF('WINDOW','xWindow'))

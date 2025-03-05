@@ -16,13 +16,14 @@ def pass_geoacc_selection(track):
     r0,rN,rW,rD = get_track_point_at_extremes(track)
     xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
     xDipL,xDipR,yDipB,yDipT = get_pdc_dipole_exit_bounds()
-    pass_inclination_yz  = ( rN[1]>=r0[1] and r0[1]>=rW[1] and rN[1]>=rW[1] )
+    pass_inclination_yz  = ( rN[1]>=r0[1]  and r0[1]>=rW[1]  and rN[1]>=rW[1] )
     pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) )
     pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
-    pass_dipole_Xslot    = ( rD[0]>-5 and rD[0]<+5 )
-    return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_dipole_Eslot and pass_dipole_Xslot)
-    # return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture)
+    pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
+    # print(f"   Selection: pass_inclination_yz={pass_inclination_yz}, pass_vertexatpdc={pass_vertexatpdc}, pass_dipole_aperture={pass_dipole_aperture}, pass_dipole_Eslot={pass_dipole_Eslot}, pass_dipole_Xslot={pass_dipole_Xslot}")
+    return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture)
+    # return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_dipole_Eslot and pass_dipole_Xslot)
 
 
 def remove_tracks_with_shared_clusters(tracks):

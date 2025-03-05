@@ -22,6 +22,7 @@ from objects import *
 
 def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     if(len(tracks)<1): return
+    
     ### turn interactive plotting off
     plt.ioff()
     matplotlib.use('Agg')
@@ -58,7 +59,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax3.xaxis.set_ticks_position('none')
     ax4.yaxis.set_label_position('none')
     ax4.yaxis.set_ticks_position('none')
-    
+        
     ### the chips
     L1verts = getChips()
     ax1.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
@@ -108,20 +109,20 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         z = r[2]
         
         # Plot the points and the fitted line
-        x0,y0,z0 = line(cfg["rdetectors"]["ALPIDE_0"][2], track.params)
-        x3,y3,z3 = line(cfg["rdetectors"]["ALPIDE_3"][2], track.params)
+        xFrst,yFrst,zFrst = line(cfg["rdetectors"][cfg["det_frst"]][2], track.params)
+        xLast,yLast,zLast = line(cfg["rdetectors"][cfg["det_last"]][2], track.params)
         xwin,ywin,zwin = line(cfg["world"]["z"][0]-cfg["zOffset"], track.params)
         xdmp,ydmp,zdmp = line(cfg["world"]["z"][1]*0.55, track.params)
-        r0 = transform_to_real_space( [x0,y0,z0] )
-        r3 = transform_to_real_space( [x3,y3,z3] )
+        rFrst = transform_to_real_space( [xFrst,yFrst,zFrst] )
+        rLast = transform_to_real_space( [xLast,yLast,zLast] )
         rw = transform_to_real_space( [xwin,ywin,zwin] )
         rd = transform_to_real_space( [xdmp,ydmp,zdmp] )
-        x0 = r0[0]
-        y0 = r0[1]
-        z0 = r0[2]
-        x3 = r3[0]
-        y3 = r3[1]
-        z3 = r3[2]
+        xFrst = rFrst[0]
+        yFrst = rFrst[1]
+        zFrst = rFrst[2]
+        xLast = rLast[0]
+        yLast = rLast[1]
+        zLast = rLast[2]
         xw = rw[0]
         yw = rw[1]
         zw = rw[2]
@@ -129,7 +130,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         yd = rd[1]
         zd = rd[2]
         
-        if(y3>=y0): ### consistent with positrons coming from the IP magnets
+        if(yLast>=yFrst): ### consistent with positrons coming from the IP magnets
             trkcol = 'red'
             linewidth = 0.4
         else: ### otherwise
@@ -142,20 +143,20 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
         # ax3.scatter(x,y,z,s=0.92,c='r',marker='o')
         # ax4.scatter(x,y,z,s=0.92,c='r',marker='o')
         ### plot the tracks lines in the detector volume only
-        ax1.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=linewidth)
-        ax2.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=linewidth)
-        ax3.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=linewidth)
-        ax4.plot([x0, x3], [y0, y3], [z0, z3], c=trkcol, linewidth=linewidth)
+        ax1.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)
+        ax2.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)
+        ax3.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)
+        ax4.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)
         ### plot the extrapolated tracks lines to the window direction
-        ax1.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
-        ax2.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
-        ax3.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
-        ax4.plot([x3, xw], [y3, yw], [z3, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax1.plot([xLast, xw], [yLast, yw], [zLast, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax2.plot([xLast, xw], [yLast, yw], [zLast, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax3.plot([xLast, xw], [yLast, yw], [zLast, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax4.plot([xLast, xw], [yLast, yw], [zLast, zw], c=trkcol, linewidth=linewidth, linestyle='dashed')
         ### plot the extrapolated tracks lines to the dump direction
-        ax1.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=linewidth, linestyle='dashed')
-        ax2.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=linewidth, linestyle='dashed')
-        ax3.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=linewidth, linestyle='dashed')
-        ax4.plot([xd, x3], [yd, y3], [zd, z3], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax1.plot([xd, xLast], [yd, yLast], [zd, zLast], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax2.plot([xd, xLast], [yd, yLast], [zd, zLast], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax3.plot([xd, xLast], [yd, yLast], [zd, zLast], c=trkcol, linewidth=linewidth, linestyle='dashed')
+        ax4.plot([xd, xLast], [yd, yLast], [zd, zLast], c=trkcol, linewidth=linewidth, linestyle='dashed')
     
     ### add beampipe
     us = np.linspace(0, 2.*np.pi, 100)
@@ -171,7 +172,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax2.plot_surface(xs, ys, zs, color='b',alpha=0.3)
     ax3.plot_surface(xs, ys, zs, color='b',alpha=0.3)
     # ax4.plot_surface(xs, ys, zs, color='b',alpha=0.3)
-        
+    
     ## world limits
     ax1.set_xlim(cfg["world"]["x"])
     ax1.set_ylim(cfg["world"]["y"])
@@ -188,7 +189,6 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax4.set_xlim(cfg["world"]["x"])
     ax4.set_ylim(cfg["world"]["y"])
     ax4.set_zlim(cfg["world"]["z"])
-    
     
     # ### add some text to ax1
     # stracks = "tracks" if(goodtrk>1) else "track"

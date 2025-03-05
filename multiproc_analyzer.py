@@ -72,6 +72,21 @@ ROOT.gStyle.SetOptFit(0)
 ###############################################################
 ###############################################################
 
+if(cfg["isMC"]):
+    # print("Building the classes for MC")
+    ### declare the data tree and its classes
+    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; };" )
+    ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
+    ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
+    ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
+    ### declare the meta-data tree and its classes
+    ROOT.gROOT.ProcessLine("struct run_meta_data  { Int_t run_number; Double_t run_start; Double_t run_end; };" )
+
+
+###############################################################
+###############################################################
+###############################################################
+
 ### defined below as global
 allhistos = {}
 
@@ -88,9 +103,7 @@ def dump_pixels(fpklname,pixels):
 
 def GetTree(tfilename):
     tfile = ROOT.TFile(tfilename,"READ")
-    ttree = None
-    if(not cfg["isMC"]): ttree = tfile.Get("MyTree")
-    else:                ttree = tfile.Get("tt")
+    ttree = tfile.Get("MyTree")
     nevents = ttree.GetEntries()
     return tfile,ttree,nevents
 
@@ -126,11 +139,12 @@ def analyze(tfilenamein,irange,evt_range,masked):
     # tfmeta.Close()
     
     ### open the pickle:
-    picklename = tfilenamein.replace(".root","_"+str(irange)+".pkl")
-    fpickle = open(os.path.expanduser(picklename),"wb")
+    if(not cfg["skiptracking"]):
+        picklename = tfilenamein.replace(".root","_"+str(irange)+".pkl")
+        fpickle = open(os.path.expanduser(picklename),"wb")
     
     ### histos
-    tfoname = tfilenamein.replace(".root","_multiprocess_histograms"+sufx+".root")
+    tfoname = tfilenamein.replace(".root",f'{cfg["hfilesufx"]}{sufx}.root')
     tfo = ROOT.TFile(tfoname,"RECREATE")
     tfo.cd()
     histos = book_histos(tfo)
@@ -178,6 +192,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("0Err") )
         
+        
         # ### truth particles
         # mcparticles = get_truth_cvr(truth_tree,ievt) if(cfg["isCVRroot"] and truth_tree is not None) else {}
         # if(cfg["isCVRroot"] and truth_tree is not None):
@@ -194,13 +209,16 @@ def analyze(tfilenamein,irange,evt_range,masked):
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
         print(sprnt)
         
+        
         ### non-empty events
         if(n_active_chips==0): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("Non-empty") )
+    
         
         ### all layers are active
         if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
+        
         
         ### spatial ROI cut
         ROI = { "ix":{"min":cfg["cut_ROI_xmin"],"max":cfg["cut_ROI_xmax"]}, "iy":{"min":cfg["cut_ROI_ymin"],"max":cfg["cut_ROI_ymax"]} }
@@ -213,6 +231,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}^{ROI}>0") )
         # dump_pixels(f"pixels_evt_{ievt}.pkl",pixels)
         
+        
         ### get the non-noisy pixels but this will get emptied during clustering so also keep a duplicate
         pixels_save = {}
         for det in cfg["detectors"]:
@@ -222,6 +241,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
                 pixels[det] = getGoodPixels(det,pixels[det],masked[det],hPixMatix[det])
                 pixels_save.update({det:goodpixels.copy()})
         eventslist[len(eventslist)-1].set_event_pixels(pixels_save)
+
 
         ### run clustering
         clusters = {}
@@ -238,19 +258,16 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### at least one cluster per layer
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
-        
+
+
+        #####################################
+        if(cfg["skiptracking"]): continue ###
+        #####################################
+
         
         ### run the seeding
         seeder = HoughSeeder(clusters,ievt)
         # #################
-       #  ## TODO
-       #  if(ievt==0):
-       #      f = ROOT.TFile("h2Cumulative.root","RECREATE")
-       #      seeder.h2waves_zx.Write()
-       #      seeder.h2waves_zy.Write()
-       #      f.Write()
-       #      f.Close()
-       #  #################
         
         nSeeds = seeder.nseeds
         histos["h_nSeeds"].Fill(nSeeds)
@@ -344,7 +361,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
             ### track to vertex residuals
             if(cfg["doVtx"]): fill_trk2vtx_residuals(vtx,direction,centroid,"h_Chi2fit_res_trk2vtx",histos)
             ### Chi2 track to truth residuals
-            if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
+            # if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
         
         eventslist[len(eventslist)-1].set_event_tracks(tracks)
         
@@ -368,7 +385,7 @@ def analyze(tfilenamein,irange,evt_range,masked):
         histos["h_nTracks_selected_full"].Fill( n_selected_tracks )
         histos["h_nTracks_selected_mid"].Fill( n_selected_tracks )
         histos["h_nTracks_selected_zoom"].Fill( n_selected_tracks )
-        print(f"eventid={ievt} Tracking: Seeds={nSeeds}, AllTracks={n_tracks}, Success={n_successful_tracks}, GoodChi2={n_goodchi2_tracks}, Selected={n_selected_tracks}")
+        print(f"eventid={ievt} Tracking: Seeds={nSeeds}, AllTracks={n_tracks}, Success={n_successful_tracks}, GoodChi2={n_goodchi2_tracks}, Selected={n_selected_tracks}\n")
         
         if(n_successful_tracks<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("Fitted") )
@@ -386,8 +403,10 @@ def analyze(tfilenamein,irange,evt_range,masked):
         # eventslist.append( Event(meta,trigger,pixels_save,clusters,seeds,tracks) )
         
     ### end
-    pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
-    fpickle.close()
+    if(not cfg["skiptracking"]):
+        pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
+        fpickle.close()
+        
     print(f"Worker {irange} is done!")
     lock.release()
     return histos
@@ -440,7 +459,7 @@ if __name__ == "__main__":
         masked = GetNoiseMask(tfnoisename)
     
     ### the output histos
-    tfilenameout = tfilenamein.replace(".root","_multiprocess_histograms.root")
+    tfilenameout = tfilenamein.replace(".root",f'{cfg["hfilesufx"]}.root')
     tfo = ROOT.TFile(tfilenameout,"RECREATE")
     tfo.cd()
     allhistos = book_histos(tfo)
@@ -513,7 +532,7 @@ if __name__ == "__main__":
     ### remove worker root files (they are anyhow empty out of the worker scope)
     for irng,rng in enumerate(ranges):
         sufx = "_"+str(irng)
-        tfoname = tfilenamein.replace(".root","_multiprocess_histograms"+sufx+".root")
+        tfoname = tfilenamein.replace(".root",f'{cfg["hfilesufx"]}{sufx}.root')
         tfoname = os.path.expanduser(tfoname)
         if os.path.isfile(tfoname):
             os.remove(tfoname)

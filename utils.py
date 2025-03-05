@@ -315,8 +315,8 @@ def get_track_point_at_z(track,z):
 
 
 def get_track_point_at_extremes(track):
-    det0 = cfg["detectors"][0]
-    detN = cfg["detectors"][ len(cfg["detectors"])-1 ]
+    det0 = cfg["det_frst"]
+    detN = cfg["det_last" ]
     z0 = cfg["rdetectors"][det0][2]
     zN = cfg["rdetectors"][detN][2]
     zW = -cfg["zOffset"] ### this is not 0 before transforming to the the real world
@@ -398,11 +398,11 @@ def getThetaAperture(yD):
         chipXLabFrame = cfg["chipY"]
         chipYLabFrame = cfg["chipX"]
         ### set the chips
-        if(det=="ALPIDE_0"):
+        if(det==cfg["det_frst"]):
             zF = z0
             yMin = y0-chipYLabFrame/2.
             yMax = y0+chipYLabFrame/2.
-        if(det=="ALPIDE_3"):
+        if(det==cfg["det_last"]):
             zL = z0
     zD = abs(cfg["zDipoleExit"])
     

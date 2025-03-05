@@ -13,7 +13,7 @@ ROOT.gStyle.SetPadBottomMargin(0.15)
 ROOT.gStyle.SetPadLeftMargin(0.13)
 ROOT.gStyle.SetPadRightMargin(0.16)
 
-detectors = ["ALPIDE_0","ALPIDE_1","ALPIDE_2","ALPIDE_3"]
+detectors = ["ALPIDE_0","ALPIDE_1","ALPIDE_2","ALPIDE_3","ALPIDE_4"]
 
 def h2max(hname,norm):
     hmax = -1
@@ -23,16 +23,25 @@ def h2max(hname,norm):
     return hmax
 
 
-# f = ROOT.TFile("tree_11_03_2024_Run404_multiprocess_histograms.root","READ")
-# f = ROOT.TFile("tree_11_05_2024_Run446_multiprocess_histograms_250triggers.root","READ")
-# f = ROOT.TFile("tree_11_03_2024_Run405_multiprocess_histograms_250triggers.root","READ")
-f = ROOT.TFile("tree_11_04_2024_Run409_multiprocess_histograms_250triggers.root","READ")
+f = ROOT.TFile("test_data/e320_prototype_beam_2024/runs/run_0000405/tree_11_03_2024_Run405_multiprocess_histograms.root","READ")
+
+# f = ROOT.TFile("test_data/e320_prototype_beam_Feb2025/runs/run_0000490/tree_2_Run490_multiprocess_histograms_notrk.root","READ")
+# f = ROOT.TFile("test_data/e320_prototype_beam_Feb2025/runs/run_0000490/tree_Run490_multiprocess_histograms_notrk.root","READ")
+
+cnvx = 500
+cnvy = 1500
+dividey = 5
+if("2024" in f.GetName()):
+    detectors = ["ALPIDE_0","ALPIDE_1","ALPIDE_2","ALPIDE_3"]
+    cnvx = 500
+    cnvy = 1000
+    dividey = 4
 
 ### get the number of triggers
 nTriggers = int(f.Get(f"h_events").GetBinContent(1))
 
-cnv = ROOT.TCanvas("cnv_pix_occ","",1200,1000)
-cnv.Divide(2,2)
+cnv = ROOT.TCanvas("cnv_pix_occ","",cnvx,cnvy)
+cnv.Divide(1,dividey)
 hmax = h2max("h_pix_occ_2D",nTriggers)
 for i,det in enumerate(detectors):
     p = cnv.cd(i+1)
@@ -46,12 +55,13 @@ for i,det in enumerate(detectors):
     h.Draw("colz")
 cnv.SaveAs("plots.pdf(")
 
-cnv = ROOT.TCanvas("cnv_cls_occ","",1200,1000)
-cnv.Divide(2,2)
+cnv = ROOT.TCanvas("cnv_cls_occ","",cnvx,cnvy)
+cnv.Divide(1,dividey)
 hmax = h2max("h_cls_occ_2D",nTriggers)
 for i,det in enumerate(detectors):
     p = cnv.cd(i+1)
     p.SetTicks(1,1)
+    p.SetLogz()
     h = f.Get(f"{det}/h_cls_occ_2D_{det}")
     h.SetTitle(f"{det}: clusters occupancy for {nTriggers} triggers")
     h.GetZaxis().SetTitle(f"Clusters per trigger")
@@ -61,8 +71,8 @@ for i,det in enumerate(detectors):
     h.Draw("colz")
 cnv.SaveAs("plots.pdf")
 
-cnv = ROOT.TCanvas("cnv_cls_sze","",1200,1000)
-cnv.Divide(2,2)
+cnv = ROOT.TCanvas("cnv_cls_sze","",cnvx,cnvy)
+cnv.Divide(1,dividey)
 hmax = h2max("h_csize_vs_y",nTriggers)
 for i,det in enumerate(detectors):
     p = cnv.cd(i+1)

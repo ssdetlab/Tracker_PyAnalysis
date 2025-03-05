@@ -106,6 +106,8 @@ if __name__ == "__main__":
     
     histos.update({ "hD_before_cuts": ROOT.TH2D("hD_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
+    histos.update({ "hD_zoomout_before_cuts": ROOT.TH2D("hD_zoomout_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
+    histos.update({ "hD_zoomout_after_cuts":  ROOT.TH2D("hD_zoomout_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
     
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     histos.update({ "hW_after_cuts":  ROOT.TH2D("hW_after_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
@@ -201,7 +203,10 @@ if __name__ == "__main__":
 
                 good_tracks = []
                 acceptance_tracks = []
+                print(f"I see {len(event.tracks)} tracks in event {nevents-1}")
                 for track in event.tracks:
+                    
+                    # print(f"maxcls={track.maxcls}, track.chi2ndof={track.chi2ndof}")
                     
                     ### first require max cluster and chi2
                     if(track.maxcls>cfg["cut_maxcls"]):    continue
@@ -216,7 +221,9 @@ if __name__ == "__main__":
 
                     ### fill histos before cuts
                     histos["hD_before_cuts"].Fill(rD[0],rD[1])
+                    histos["hD_zoomout_before_cuts"].Fill(rD[0],rD[1])
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
+                    
                     
                     ### require pointing to the pdc window and the dipole exit aperture and inclined up as a positron
                     if(not pass_geoacc_selection(track)): continue
@@ -253,6 +260,7 @@ if __name__ == "__main__":
                     histos["hDexit_vs_thetar"].Fill(thetar_yz,dExit)
                     
                     histos["hD_after_cuts"].Fill(rD[0],rD[1])
+                    histos["hD_zoomout_after_cuts"].Fill(rD[0],rD[1])
                     histos["hW_after_cuts"].Fill(rW[0],rW[1])
                     
                     histos["hThetaf_yz"].Fill(thetaf_yz)
@@ -282,11 +290,28 @@ if __name__ == "__main__":
                     fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_offline_{event.trigger}.pdf")
                     plot_event(event.meta.run,event.meta.start,event.meta.dur,event.trigger,fevtdisplayname,event.clusters,event.tracks,chi2threshold=cfg["cut_chi2dof"])
                     print(fevtdisplayname)
+                
+                print(f"Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
     print(f"Events:{nevents}, Tracks:{ntracks}")                
     
     ### plot the counters
     plot_counters()
+
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hD_zoomout_before_cuts"].Draw("colz")
+    dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hD_zoomout_after_cuts"].Draw("colz")
+    dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs("cnv_dipole_window.pdf(")
 
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
@@ -301,7 +326,7 @@ if __name__ == "__main__":
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf(")
+    cnv.SaveAs("cnv_dipole_window.pdf")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)

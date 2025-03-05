@@ -3,33 +3,54 @@ isMC           = 0
 doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
+skiptracking   = 0
 
-### run001 (cosmics):
+### run490 foil-in allin, focused
+# first2process  = 19000
+### run494 (foil-in allin, defocused):
+# first2process  = 2000
+### run496 (foil-in slightly, defocused):
 # first2process  = 0
-### run409 (beam-only):
-first2process  = 540
-### run446 (positrons):
-# first2process  = 2749
+### run501 (beam-only):
+# first2process  = 0
+### run502 (beam, bewin-in):
+first2process = 500
+### beam-only, focusing on foil, 6h-long
+# first2process = 0
 
-### run001 (cosmics):
-# nmax2process = 1000000000000000
-# nmax2process = 560
-### run409 (beam-only):
-nmax2process = 100
+### run490 foil-in allin, focused
+# nmax2process = 100
+### run494 (foil-in allin, defocused):
+# nmax2process = 2000
+### run496 (foil-in slightly, defocused):
+# nmax2process = 2000
+### run501 (beam-only, bewin-out):
+# nmax2process = 100000
+### run502 (beam, bewin-in):
+nmax2process = 1000
+### beam-only, focusing on foil, 6h-long
+# nmax2process = 0
+
+
 
 nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
-### old cosmics run facing the sky (use for alignment)
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_2024_Run001.root
-### long positron run with the foil and the blob in the middle of the chips
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run404.root
-### short positron run with the foil and the blob in the middle of the chips
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run405.root
-### last run with positrons towards the end
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run446.root
-### background only run
-inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_04_2024_Run409.root
+
+### foil-in allin, focused
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
+### foil-in allin defocused
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run494.root
+### foil-in slightly, defocused
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run496.root
+### beam-only, short run
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
+### Be window, focus on window
+inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+### beam-only, focusing on foil, 6h-long
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+
+
 
 [MULTIRUN]
 runnums = 255
@@ -43,7 +64,9 @@ cls_mult_inf = 50000
 
 [SEED]
 seed_allow_negative_vertical_inclination = 1
-seed_allow_neigbours = 1
+seed_allow_neigbours  = 1
+seed_nmax_neigbours   = 5
+seed_nmiss_neigbours  = 3
 seed_thetax_scale_low = 0.95
 seed_thetax_scale_mid = 0.80
 seed_thetax_scale_hgh = 0.60
@@ -61,9 +84,13 @@ seed_rhoy_scale_mid   = 0.90
 seed_rhoy_scale_hgh   = 0.80
 seed_rhoy_scale_inf   = 0.80
 seed_nbins_thetarho_low = 20
-seed_nbins_thetarho_mid = 300
+# seed_nbins_thetarho_mid = 300
+# seed_nbins_thetarho_hgh = 400
+# seed_nbins_thetarho_inf = 400
+seed_nbins_thetarho_mid = 50
 seed_nbins_thetarho_hgh = 400
-seed_nbins_thetarho_inf = 400
+seed_nbins_thetarho_inf = 1000
+
 
 [LUT]
 lut_nbinsx_low = 400
@@ -76,21 +103,30 @@ lut_nbinsy_hgh = 2000
 lut_nbinsy_inf = 5000
 lut_scaleX = 0.20
 lut_scaleY = 0.20
+# lut_widthx_low = 17.0
+# lut_widthx_mid = 0.15
+# lut_widthx_hgh = 0.075
+# lut_widthx_inf = 0.040
+# lut_widthy_low = 7.5
+# lut_widthy_mid = 0.15
+# lut_widthy_hgh = 0.075
+# lut_widthy_inf = 0.040
 lut_widthx_low = 17.0
-lut_widthx_mid = 0.15
-lut_widthx_hgh = 0.075
-lut_widthx_inf = 0.040
+lut_widthx_mid = 0.3
+lut_widthx_hgh = 0.2
+lut_widthx_inf = 0.1
 lut_widthy_low = 7.5
-lut_widthy_mid = 0.15
-lut_widthy_hgh = 0.075
-lut_widthy_inf = 0.040
+lut_widthy_mid = 0.3
+lut_widthy_hgh = 0.2
+lut_widthy_inf = 0.1
+
 
 [CUTS]
 cuts = All 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-# cut_chi2dof = 200
+cut_chi2dof = 300
 # cut_chi2dof = 100
 # cut_chi2dof = 15
-cut_chi2dof = 5
+# cut_chi2dof = 5
 # cut_chi2dof = 3
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
@@ -101,18 +137,15 @@ cut_ROI_ymax = 512
 # cut_ROI_xmax = 1024
 # cut_ROI_ymin = 210
 # cut_ROI_ymax = 275
-cut_maxcls = 8
+cut_maxcls = 20
 
 [ALIGNMENT]
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
-### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158 ==> rake name run001, w/ref plane ALPIDE_0, minimize instead of basinhopping:
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.128295,dy=-0.108948,theta=0.0006417 ALPIDE_2:dx=-0.072248,dy=-0.07328,theta=-0.0023235 ALPIDE_3:dx=0.08496,dy=0.07594,theta=-0.0010363
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.1273,dy=-0.102,theta=0.00063 ALPIDE_2:dx=-0.0715,dy=-0.062,theta=-0.00217 ALPIDE_3:dx=0.08544,dy=0.0927,theta=-0.001134
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
 # minchi2align  = 0.001
 # maxchi2align  = 100
-minchi2align  = 9
-maxchi2align  = 15
+minchi2align  = 150
+maxchi2align  = 550
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-1.0,max=+1.0 dy:min=-1.0,max=1.0 theta:min=-0.2,max=+0.2
@@ -164,9 +197,9 @@ zeroSupp = 1
 nSigma   = 25
 
 [DETECTOR]
-detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3
-plane2det     = ALPIDE_0:8 ALPIDE_1:5 ALPIDE_2:3 ALPIDE_3:1
-rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,36.03 ALPIDE_2:0,0,60.05 ALPIDE_3:0,0,84.07
+detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3 ALPIDE_4
+plane2det     = ALPIDE_0:8 ALPIDE_1:6 ALPIDE_2:4 ALPIDE_3:2 ALPIDE_4:0
+rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,24.02 ALPIDE_2:0,0,48.04 ALPIDE_3:0,0,72.06 ALPIDE_4:0,0,96.08
 
 [WINDOW]
 zWindow       = 0.
@@ -191,13 +224,17 @@ yDipoleExitMax = +34.927
 
 
 [TRANSFORMATIONS]
-### angles in degrees, thetax/y are "found" from the dipole exit and energy analysis, thetaz is just the transformation to real space.
-thetax = -0.33
-thetay = +0.27
+### thetax/y are the angles in degrees, in real space: "found" from the dipole exit and energy analysis
+thetax = +0.3
+thetay = 0.
+### thetaz is just the transformation to real space.
 thetaz = +90.
 xOffset = 0.
 yPipe2WinBot = 6.1
-yPipe2BoxBot = 9.525
+### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
+# yPipe2BoxBot = 9.525
+### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)
+yPipe2BoxBot = 1.525
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
 zBox2chip = 10.5

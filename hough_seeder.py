@@ -30,25 +30,27 @@ class HoughSeeder:
         self.eventid = eventid
         nclusters = 0
         for det in cfg["detectors"]: nclusters += len(clusters[det])
-        ### colors
-        self.zcols = [ROOT.kRed, ROOT.kBlack, ROOT.kGreen-2, ROOT.kMagenta]
         ### the clusters per detector
         n0 = len(clusters[cfg["detectors"][0]])
         n1 = len(clusters[cfg["detectors"][1]])
         n2 = len(clusters[cfg["detectors"][2]])
         n3 = len(clusters[cfg["detectors"][3]])
+        n4 = len(clusters[cfg["detectors"][4]])
         self.x0 = np.zeros(n0)
         self.x1 = np.zeros(n1)
         self.x2 = np.zeros(n2)
         self.x3 = np.zeros(n3)
+        self.x4 = np.zeros(n4)
         self.y0 = np.zeros(n0)
         self.y1 = np.zeros(n1)
         self.y2 = np.zeros(n2)
         self.y3 = np.zeros(n3)
+        self.y4 = np.zeros(n4)
         self.z0 = np.zeros(n0)
         self.z1 = np.zeros(n1)
         self.z2 = np.zeros(n2)
         self.z3 = np.zeros(n3)
+        self.z4 = np.zeros(n4)
         ### all the clusters together
         self.x = None
         self.y = None
@@ -101,10 +103,12 @@ class HoughSeeder:
         else:
             sys.exit(f"In hough_seeder nclusters:{nclusters}>cls_mult_inf, not implemented. exitting")
         self.minintersections = math.comb(len(cfg["detectors"]),2) ### all pairs out of for detectors w/o repetitions
+        self.nmissintersections = cfg["seed_nmiss_neigbours"] ## how many intersectians we are allowed to miss before searching in the neighbouring cells
+        self.neighbourslist = [ i for i in range(-cfg["seed_nmax_neigbours"],cfg["seed_nmax_neigbours"]+1) if(i!=0) ] ### this will be e.g. [-3,-2,-1,+1,+2,+3] if seed_nmax_neigbours=3
         ### set the clusters
         self.set_clusters(clusters)
         self.zmin = self.z0[0]
-        self.zmax = self.z3[0]
+        self.zmax = self.z4[0]
         self.zmid = (self.zmax-self.zmin)/2.
         self.zmin = self.zmin-self.zmid
         self.zmax = self.zmax+self.zmid
@@ -120,8 +124,7 @@ class HoughSeeder:
         self.h2waves_zy = self.define_theta_rho_axes("zy",self.thetamin_y,self.thetamax_y,self.rhomin_y,self.rhomax_y)
         ### allow only positive y-z seeds:
         self.LUT = LookupTable(clusters,eventid)
-        ### the data 4D structure for 6 possible detector pairings
-        # self.accumulator = [{},{},{},{},{},{}]
+        ### the data structure
         self.accumulator = []
         for ncomb in range(self.minintersections): self.accumulator.append({})
         self.naccumulators = len(self.accumulator)
@@ -169,45 +172,13 @@ class HoughSeeder:
                     self.x3[i] = c.xmm
                     self.y3[i] = c.ymm
                     self.z3[i] = c.zmm
-        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3),axis=0)
-        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3),axis=0)
-        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3),axis=0)
-
-    def color(self,zref):
-        col = -1
-        if  (zref==self.z0[0]): col = self.zcols[0]
-        elif(zref==self.z1[0]): col = self.zcols[1]
-        elif(zref==self.z2[0]): col = self.zcols[2]
-        elif(zref==self.z3[0]): col = self.zcols[3]
-        else:
-            print("zref does not match any of z0-z4. Quitting")
-            quit()
-        return col
-    
-    def graph(self,name,x,y,col,xlim,ylim):
-        g = ROOT.TGraph(len(x),array.array("d",x),array.array("d",y))
-        g.SetTitle(name+";x [mm];y [mm]")
-        g.SetMarkerColor(col)
-        g.SetMarkerStyle(20)
-        g.GetXaxis().SetLimits(xlim[0],xlim[1])
-        g.GetYaxis().SetLimits(ylim[0],ylim[1])
-        return g
-
-    def multigraph(self,name,title,z,k,zlim,klim):
-        mg = ROOT.TMultiGraph()
-        for i in range(len(z)):
-            g = ROOT.TGraph(1,array.array("d",[z[i]]),array.array("d",[k[i]]))
-            col = self.color(z[i])
-            g.SetMarkerColor(col)
-            g.SetMarkerStyle(20)
-            g.GetXaxis().SetLimits(zlim[0],zlim[1])
-            g.GetYaxis().SetLimits(klim[0],klim[1])
-            mg.Add(g)
-        mg.SetName(name)
-        mg.SetTitle(title)
-        mg.GetXaxis().SetLimits(zlim[0],zlim[1])
-        mg.GetYaxis().SetLimits(klim[0],klim[1])
-        return mg
+                if(det=="ALPIDE_4"):
+                    self.x4[i] = c.xmm
+                    self.y4[i] = c.ymm
+                    self.z4[i] = c.zmm
+        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3,self.x4),axis=0)
+        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3,self.y4),axis=0)
+        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3,self.z4),axis=0)
 
     def set_function(self,name,z,k,thetamin,thetamax):
         ### rho = k*sin(theta) + z*cos(theta)
@@ -252,9 +223,21 @@ class HoughSeeder:
         if(CA.DID==0 and CB.DID==1): return 0
         if(CA.DID==0 and CB.DID==2): return 1
         if(CA.DID==0 and CB.DID==3): return 2
-        if(CA.DID==1 and CB.DID==2): return 3
-        if(CA.DID==1 and CB.DID==3): return 4
-        if(CA.DID==2 and CB.DID==3): return 5
+        if(CA.DID==0 and CB.DID==4): return 3
+        if(CA.DID==1 and CB.DID==2): return 4
+        if(CA.DID==1 and CB.DID==3): return 5
+        if(CA.DID==1 and CB.DID==4): return 6
+        if(CA.DID==2 and CB.DID==3): return 7
+        if(CA.DID==2 and CB.DID==4): return 8
+        if(CA.DID==3 and CB.DID==4): return 9
+        
+        # if(CA.DID==0 and CB.DID==1): return 0
+        # if(CA.DID==0 and CB.DID==2): return 1
+        # if(CA.DID==0 and CB.DID==3): return 2
+        # if(CA.DID==1 and CB.DID==2): return 3
+        # if(CA.DID==1 and CB.DID==3): return 4
+        # if(CA.DID==2 and CB.DID==3): return 5
+        
         print(f"unknown combination for CA.DID={CA.DID} and CB.DID={CB.DID} - quitting.")
         quit()
         return -1
@@ -298,39 +281,49 @@ class HoughSeeder:
         self.h2waves_zy.Fill(thetay,rhoy)
 
     def fill_4d_wave_intersections(self,clusters):
-        print(f"ievt={self.eventid}: Starting 0-1")
+        print(f"ievt={self.eventid}: Starting pair search")
         for c0 in clusters["ALPIDE_0"]:
             for c1 in clusters["ALPIDE_1"]:
                 self.get_pair(c0,c1)
-        print(f"ievt={self.eventid}: Starting 0-2")
         for c0 in clusters["ALPIDE_0"]:
             for c2 in clusters["ALPIDE_2"]:
                 self.get_pair(c0,c2)
-        print(f"ievt={self.eventid}: Starting 0-3")
         for c0 in clusters["ALPIDE_0"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c0,c3)
-        print(f"ievt={self.eventid}: Starting 1-2")
+        for c0 in clusters["ALPIDE_0"]:
+            for c4 in clusters["ALPIDE_4"]:
+                self.get_pair(c0,c4)
         for c1 in clusters["ALPIDE_1"]:
             for c2 in clusters["ALPIDE_2"]:
                 self.get_pair(c1,c2)
-        print(f"ievt={self.eventid}: Starting 1-3")
         for c1 in clusters["ALPIDE_1"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c1,c3)
-        print(f"ievt={self.eventid}: Starting 2-3")
+        for c1 in clusters["ALPIDE_1"]:
+            for c4 in clusters["ALPIDE_4"]:
+                self.get_pair(c1,c4)
         for c2 in clusters["ALPIDE_2"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c2,c3)
+        for c2 in clusters["ALPIDE_2"]:
+            for c4 in clusters["ALPIDE_4"]:
+                self.get_pair(c2,c4)
+        for c3 in clusters["ALPIDE_3"]:
+            for c4 in clusters["ALPIDE_4"]:
+                self.get_pair(c3,c4)
+        print(f"ievt={self.eventid}: Finished pair search")
+        
     
     def search_in_neighbours(self,encoded_key):
         neigbours_vals = 0
-        neighbours = [-1,0,+1]
+        # neighbours = [-5,-4,-3,-2,-1,0,+1,+2,+3,+4,+5]
         key = self.decode_key(encoded_key)
-        for d0 in neighbours:
-            for d1 in neighbours:
-                for d2 in neighbours:
-                    for d3 in neighbours:
+        ### d0,d1,d2,,d3 are the brhox,bthetax,brhoy,bthetay
+        for d0 in self.neighbourslist:
+            for d1 in self.neighbourslist:
+                for d2 in self.neighbourslist:
+                    for d3 in self.neighbourslist:
                         nighbourkey = self.encode_key(key[0]+d0, key[1]+d1, key[2]+d2, key[3]+d3)
                         for detpair in range(self.naccumulators): ### loop over all layers
                             neigbours_vals += (self.accumulator[detpair].get(nighbourkey,0)>0)
@@ -348,15 +341,17 @@ class HoughSeeder:
                 cells.append(key)
             
             ### if a bit too low: have only 4 intersectiosn
-            if(cfg["seed_allow_neigbours"] and (nintersections<self.minintersections and nintersections>=(self.minintersections-2))):
+            # if(cfg["seed_allow_neigbours"] and (nintersections<self.minintersections and nintersections>=(self.minintersections-2))):
+            if(cfg["seed_allow_neigbours"] and (nintersections<self.minintersections and nintersections>=(self.minintersections-self.nmissintersections))):
                 neigbours_vals = self.search_in_neighbours(key)
                 if(neigbours_vals>=self.minintersections):
                     cells.append(key)
             ### otherwise don't bother
-        # print(f"cumulator sizes: {len(self.accumulator[0]),len(self.accumulator[1]),len(self.accumulator[2]),len(self.accumulator[3]),len(self.accumulator[4]),len(self.accumulator[5])}, good cells: {len(cells)}")
+        # print(f"cumulator sizes: {len(self.accumulator[0]),len(self.accumulator[1]),len(self.accumulator[2]),len(self.accumulator[3]),len(self.accumulator[4]),len(self.accumulator[5])}, good cells: {len(cells)}"))
         return cells
     
     def get_tunnels(self):
+        print(f"in get tunnels with {len(self.cells)}")
         tunnels = []
         hough_coord = []
         for icell,cell in enumerate(self.cells):
@@ -380,147 +375,20 @@ class HoughSeeder:
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
         det3 = cfg["detectors"][3]
+        det4 = cfg["detectors"][4]
         for itnl,tunnel in enumerate(self.tunnels):
             candidate = []
             n0 = len(tunnel[det0])
             n1 = len(tunnel[det1])
             n2 = len(tunnel[det2])
             n3 = len(tunnel[det3])
-            tunnel_nsseds[itnl] = n0*n1*n2*n3
+            n4 = len(tunnel[det4])
+            tunnel_nsseds[itnl] = n0*n1*n2*n3*n4
             for c0 in tunnel[det0]:
                 for c1 in tunnel[det1]:
                     for c2 in tunnel[det2]:
                         for c3 in tunnel[det3]:
-                            seeds.append( [c0,c1,c2,c3] )
-                            tnlid.append( itnl )
+                            for c4 in tunnel[det4]:
+                                seeds.append( [c0,c1,c2,c3,c4] )
+                                tnlid.append( itnl )
         return tunnel_nsseds,tnlid,seeds
-            
-    # def plot_seeder(self,name):
-    #     ROOT.gErrorIgnoreLevel = ROOT.kError
-    #     # ROOT.gErrorIgnoreLevel = ROOT.kWarning
-    #     ROOT.gROOT.SetBatch(1)
-    #     ROOT.gStyle.SetOptFit(0)
-    #     ROOT.gStyle.SetOptStat(0)
-    #     ROOT.gStyle.SetPadBottomMargin(0.15)
-    #     ROOT.gStyle.SetPadLeftMargin(0.13)
-    #     ROOT.gStyle.SetPadRightMargin(0.15)
-    #
-    #     plotname = name.replace(".pdf","_hough_transform.pdf")
-    #
-    #     gxy0 = self.graph("ALPIDE_0",self.x0,self.y0,ROOT.kRed,     [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-    #     gxy1 = self.graph("ALPIDE_1",self.x1,self.y1,ROOT.kBlack,   [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-    #     gxy2 = self.graph("ALPIDE_2",self.x2,self.y2,ROOT.kGreen-2, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-    #     gxy3 = self.graph("ALPIDE_3",self.x3,self.y3,ROOT.kMagenta, [-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2], [-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2] )
-    #
-    #     cnv = ROOT.TCanvas("cnv_hits_xy","",1000,1000)
-    #     cnv.Divide(2,2)
-    #     cnv.cd(1)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     gxy0.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(2)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     gxy1.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(3)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     gxy2.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(4)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     gxy3.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.SaveAs(plotname+"(")
-    #
-    #     zx_mg = self.multigraph("zx","Telescope x vs z;z [mm];x [mm]",self.z,self.x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
-    #     zy_mg = self.multigraph("zy","Telescope x vs y;z [mm];y [mm]",self.z,self.y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
-    #     cnv = ROOT.TCanvas("cnv_hits_vs_z","",1000,500)
-    #     cnv.Divide(2,1)
-    #     cnv.cd(1)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     zx_mg.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(2)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     zy_mg.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.SaveAs(plotname)
-    #
-    #     arrows_zx = []
-    #     for point in self.hough_points_zx:
-    #         arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
-    #         arrows_zx.append( arw )
-    #     arrows_zy = []
-    #     for point in self.hough_points_zy:
-    #         arw = ROOT.TArrow(2.5,50,point["theta"],point["rho"],0.01)
-    #         arrows_zy.append( arw )
-    #
-    #     cnv = ROOT.TCanvas("cnv_transform","",1500,1200)
-    #     cnv.Divide(2,2)
-    #     cnv.cd(1)
-    #     ROOT.gPad.SetGridx()
-    #     ROOT.gPad.SetGridy()
-    #     ROOT.gPad.SetTicks(1,1)
-    #     first = True
-    #     for name,f in self.zx_wave_functions.items():
-    #         f.SetTitle("Hough transform in z-x;#theta;#rho")
-    #         f.GetXaxis().SetTitle("#theta")
-    #         f.GetYaxis().SetTitle("#rho")
-    #         f.SetMinimum(self.zx_wave_fmin*1.2)
-    #         f.SetMaximum(self.zx_wave_fmax*1.2)
-    #         if(first):
-    #             f.Draw("l")
-    #             first = False
-    #         else: f.Draw("l same")
-    #         for arw in arrows_zx: arw.Draw()
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(2)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     ROOT.gPad.SetGridx()
-    #     ROOT.gPad.SetGridy()
-    #     first = True
-    #     for name,f in self.zy_wave_functions.items():
-    #         f.SetTitle("Hough transform in z-y")
-    #         f.GetXaxis().SetTitle("#theta")
-    #         f.GetYaxis().SetTitle("#rho")
-    #         f.SetMinimum(self.zy_wave_fmin*1.2)
-    #         f.SetMaximum(self.zy_wave_fmax*1.2)
-    #         if(first):
-    #             f.Draw("l")
-    #             first = False
-    #         else: f.Draw("l same")
-    #         for arw in arrows_zy: arw.Draw()
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(3)
-    #     ROOT.gPad.SetGridx()
-    #     ROOT.gPad.SetGridy()
-    #     ROOT.gPad.SetTicks(1,1)
-    #     self.h2Freq_zx.Draw("colz")
-    #     for arw in arrows_zx: arw.Draw()
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(4)
-    #     ROOT.gPad.SetGridx()
-    #     ROOT.gPad.SetGridy()
-    #     ROOT.gPad.SetTicks(1,1)
-    #     self.h2Freq_zy.Draw("colz")
-    #     for arw in arrows_zy: arw.Draw()
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.SaveAs(plotname)
-    #
-    #     zx_seed_mg = self.multigraph("zx_seed","Post-seeding Telescope x vs z;z [mm];x [mm]",self.seed_z,self.seed_x,[self.zmin,self.zmax],[-self.npix_x*self.pix_x/2,+self.npix_x*self.pix_x/2])
-    #     zy_seed_mg = self.multigraph("zy_seed","Post-seeding Telescope y vs z;z [mm];y [mm]",self.seed_z,self.seed_y,[self.zmin,self.zmax],[-self.npix_y*self.pix_y/2,+self.npix_y*self.pix_y/2])
-    #     cnv = ROOT.TCanvas("cnv_frequency","",1000,500)
-    #     cnv.Divide(2,1)
-    #     cnv.cd(1)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     zx_seed_mg.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.cd(2)
-    #     ROOT.gPad.SetTicks(1,1)
-    #     zy_seed_mg.Draw("AP")
-    #     ROOT.gPad.RedrawAxis()
-    #     cnv.SaveAs(plotname+")")
-    #
-    #     ### important!!!
-    #     self.clear_h2Freq()
-    #     self.clear_functions()

@@ -15,15 +15,16 @@ SVD points = [  [vtx.x,  vtx.y,  vtx.z],
                 [cls0.x, cls0.y, cls0.z],
                 [cls1.x, cls1.y, cls1.z],
                 [cls2.x, cls2.y, cls2.z],
-                [cls3.x, cls3.y, cls3.z]  ]
+                [cls3.x, cls3.y, cls3.z], 
+                ...  ]
 
-Chi2 points = [ [vtx.x,  cls0.x, cls1.x, cls2.x, cls3.x],
-                [vtx.y,  cls0.y, cls1.y, cls2.y, cls3.y],
-                [vtx.z,  cls0.z, cls1.z, cls2.z, cls3.z] ]
+Chi2 points = [ [vtx.x,  cls0.x, cls1.x, cls2.x, cls3.x,...],
+                [vtx.y,  cls0.y, cls1.y, cls2.y, cls3.y,...],
+                [vtx.z,  cls0.z, cls1.z, cls2.z, cls3.z,...] ]
 '''
 
 
-def Candudate_SVDtoChi2(points,errors):
+def Candidate_SVDtoChi2(points,errors):
     clusters_x = []
     clusters_y = []
     clusters_z = []
@@ -43,7 +44,7 @@ def Candudate_SVDtoChi2(points,errors):
     return points,errors
 
 
-def Candudate_Chi2toSVD(points,errors):
+def Candidate_Chi2toSVD(points,errors):
     clusters = []
     clerrors = []
     npoints = len(points[0])

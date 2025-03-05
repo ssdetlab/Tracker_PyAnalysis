@@ -21,13 +21,15 @@ import ctypes
 import random
 
 import argparse
-parser = argparse.ArgumentParser(description='serial_analyzer.py...')
+parser = argparse.ArgumentParser(description='alignment_fitter.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
-parser.add_argument('-ref', metavar='reference detector', required=False,  help='reference detector')
+parser.add_argument('-beam', metavar='is beam run?',required=True, help='is this a beam run? [0/1]')
+parser.add_argument('-ref',  metavar='reference detector', required=False,  help='reference detector')
 parser.add_argument('-mult', metavar='multi run?',  required=False, help='is this a multirun? [0/1]')
 argus = parser.parse_args()
 configfile = argus.conf
-refdet     = argus.ref if(argus.ref is not None) else ""
+isbeamrun  = argus.beam if(argus.beam is not None and int(argus.beam)==1) else False
+refdet     = argus.ref  if(argus.ref is not None) else ""
 ismutirun  = argus.mult if(argus.mult is not None and int(argus.mult)==1) else False
 
 import config
@@ -67,29 +69,16 @@ ROOT.gStyle.SetOptFit(0)
 ### defined below as global
 allhistos = {}
 
-
-# def getfileslist(directory,pattern,suff):
-#     files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
-#     ff = []
-#     for f in files: ff.append(f)
-#     return ff
-#
-#
-# def getfiles(tfilenamein):
-#     words = tfilenamein.split("/")
-#     directory = ""
-#     for w in range(len(words)-1):
-#         directory += words[w]+"/"
-#     strippedname = words[-1].split(".pkl")[0]
-#     words = strippedname.split("_")
-#     pattern = ""
-#     for w in range(len(words)):
-#         word = words[w].replace(".root","")
-#         pattern += word+"_"
-#     print("directory:",directory)
-#     print("pattern:",pattern)
-#     files = getfileslist(directory,pattern,".pkl")
-#     return files
+def alignment_selections(track):
+    ### require good chi2 range and other cuts
+    if(track.chi2ndof<cfg["minchi2align"]): return False
+    if(track.chi2ndof>cfg["maxchi2align"]): return False
+    ### FOR BEAM ONLY: require pointing to the pdc window and the dipole exit aperture and inclined up as a positron, etc
+    if(isbeamrun):
+        if(track.maxcls>cfg["cut_maxcls"]):   return False
+        if(not pass_geoacc_selection(track)): return False
+    return True
+    
 
 
 def fitSVD(track,dx,dy,theta,refdet=""):
@@ -204,11 +193,8 @@ def fit_misalignment(events,ndet2align,refdet,axes):
         for event in events:
             for track in event.tracks:
                 
-                ### require good chi2
-                if(track.chi2ndof<cfg["minchi2align"]): continue
-                if(track.chi2ndof>cfg["maxchi2align"]): continue
-                ### require pointing to the pdc window, inclined up as a positron
-                # if(not pass_geoacc_selection(track)): continue
+                ### require some relevant cuts
+                if(not alignment_selections(track)): continue
                 
                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
                 nvalidtracks += 1
@@ -294,11 +280,8 @@ if __name__ == "__main__":
                     chisq,ndof,dabs,dX,dY = fitSVD(track,[0.]*ndet2align,[0.]*ndet2align,[0.]*ndet2align,refdet)
                     chi2dof = chisq/ndof
                     
-                    ### require good chi2
-                    if(chi2dof<cfg["minchi2align"]): continue
-                    if(chi2dof>cfg["maxchi2align"]): continue
-                    ### require pointing to the pdc window, inclined up as a positron
-                    # if(not pass_geoacc_selection(track)): continue
+                    ### require some relevant cuts
+                    if(not alignment_selections(track)): continue
                     
                     ### count and proceed
                     if(ngoodtracks%100==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")

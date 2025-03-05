@@ -7,8 +7,6 @@ import ROOT
 
 import config
 from config import *
-# import objects
-# from objects import *
 
 
 ERRORS = ["BUSY_VIOLATION", "INCOMPLETE", "STROBE_EXTENDED", "BUSY_TRANSITION",
@@ -18,6 +16,8 @@ ERRORS = ["BUSY_VIOLATION", "INCOMPLETE", "STROBE_EXTENDED", "BUSY_TRANSITION",
 def check_errors(evt):
     errors  = {}
     nerrors = 0
+    if(cfg["isMC"]): return nerrors,errors
+    
     for det in cfg["detectors"]: errors.update({det:[]})
     staves = evt.event.st_ev_buffer
     for istv in range(staves.size()):

@@ -1,35 +1,21 @@
 [RUN]
-isMC           = 0
+isMC           = 1
 doVtx          = 0
-pdgIdMatch     = 13
+pdgIdMatch     = 11
 runtype        = beam
+skiptracking   = 0
 
-### run001 (cosmics):
-# first2process  = 0
-### run409 (beam-only):
-first2process  = 540
-### run446 (positrons):
-# first2process  = 2749
+### run000:
+first2process  = 0
 
-### run001 (cosmics):
-# nmax2process = 1000000000000000
-# nmax2process = 560
-### run409 (beam-only):
-nmax2process = 100
+### run000:
+nmax2process = 1000000000000000
 
 nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
-### old cosmics run facing the sky (use for alignment)
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_09_2024_Run001.root
-### long positron run with the foil and the blob in the middle of the chips
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run404.root
-### short positron run with the foil and the blob in the middle of the chips
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_03_2024_Run405.root
-### last run with positrons towards the end
-# inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_05_2024_Run446.root
 ### background only run
-inputfile = test_data/e320_prototype_beam_2024/runs/tree_11_04_2024_Run409.root
+inputfile = test_data/e320_prototype_mc/runs/AallPix2_mc_prototype_beam_beryllium_window_Run000.root
 
 [MULTIRUN]
 runnums = 255
@@ -37,7 +23,8 @@ runnums = 255
 
 [CLUSTERSMULT]
 cls_mult_low = 20
-cls_mult_mid = 200
+# cls_mult_mid = 200
+cls_mult_mid = 1000
 cls_mult_hgh = 8000
 cls_mult_inf = 50000
 
@@ -164,8 +151,12 @@ zeroSupp = 1
 nSigma   = 25
 
 [DETECTOR]
+# pixels_00_00_1=ALPIDE_0=slot#8
+# pixels_03_00_1=ALPIDE_1=slot#5
+# pixels_05_00_1=ALPIDE_2=slot#3
+# pixels_07_00_1=ALPIDE_3=slot#1
 detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3
-plane2det     = ALPIDE_0:8 ALPIDE_1:5 ALPIDE_2:3 ALPIDE_3:1
+plane2det     = ALPIDE_0:0 ALPIDE_1:3 ALPIDE_2:5 ALPIDE_3:7
 rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,36.03 ALPIDE_2:0,0,60.05 ALPIDE_3:0,0,84.07
 
 [WINDOW]
