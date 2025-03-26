@@ -192,10 +192,28 @@ def book_histos(tfo):
         histos.update( { "h_csize_vs_y_"+det        : ROOT.TH2D("h_csize_vs_y_"+det,";y;Cluster size;Clusters",cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2., 100,0.5,100.5) } )
         histos.update( { "h_csize_vs_y_masked_"+det : ROOT.TH2D("h_csize_vs_y_masked_"+det,";y;Cluster size;Clusters",cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2., 100,0.5,100.5) } )
         
-        histos.update( { "h_response_x_"+det : ROOT.TH1D("h_response_x_"+det,";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-5,+5) } )
-        histos.update( { "h_response_y_"+det : ROOT.TH1D("h_response_y_"+det,";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-5,+5) } )
-        histos.update( { "h_response_x_vs_csize_"+det : ROOT.TH2D("h_response_x_vs_csize_"+det,";Cluster size in x;#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",10,1,11, 30,-5,+5) } )
-        histos.update( { "h_response_y_vs_csize_"+det : ROOT.TH2D("h_response_y_vs_csize_"+det,";Cluster size in y;#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",10,1,11, 30,-5,+5) } )
+        histos.update( { "h_response_x_"+det : ROOT.TH1D("h_response_x_"+det,";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",100,-12.5,+12.5) } )
+        histos.update( { "h_response_y_"+det : ROOT.TH1D("h_response_y_"+det,";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",100,-12.5,+12.5) } )
+        histos.update( { "h_response_x_vs_csize_"+det : ROOT.TH2D("h_response_x_vs_csize_"+det,";Cluster size in x;#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",10,1,11, 50,-12.5,+12.5) } )
+        histos.update( { "h_response_y_vs_csize_"+det : ROOT.TH2D("h_response_y_vs_csize_"+det,";Cluster size in y;#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",10,1,11, 50,-12.5,+12.5) } )
+        
+        histos.update( { "h_Chi2fit_res_trk2cls_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+
+        histos.update( { "h_Chi2fit_res_trk2cls_pass_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_x_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_pass_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_y_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+
+        histos.update( { "h_Chi2fit_res_trk2cls_x_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_mid_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_y_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_mid_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+
+        histos.update( { "h_Chi2fit_res_trk2cls_pass_x_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_x_mid_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_pass_y_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_y_mid_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        
+        histos.update( { "h_Chi2fit_res_trk2cls_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_full_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_full_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+
+        histos.update( { "h_Chi2fit_res_trk2cls_pass_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_x_full_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        histos.update( { "h_Chi2fit_res_trk2cls_pass_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_y_full_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
         
         histos.update( { "h_csize_vs_trupos_"+det : ROOT.TH2D("h_csize_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
         histos.update( { "h_ntrks_vs_trupos_"+det : ROOT.TH2D("h_ntrks_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Mean cluster size",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
@@ -216,24 +234,6 @@ def book_histos(tfo):
         histos.update( { "h_ntrks_n_vs_trupos_"+det : ROOT.TH2D("h_ntrks_n_vs_trupos_"+det,";x_{tru} [mm]; y_{tru} [mm];Cluster size>4",80,0.,2.*cfg["pix_x"], 80,0.,2.*cfg["pix_y"]) } )
                 
         histos.update( { "h_big_cls_2D_"+det : ROOT.TH2D("h_big_cls_2D_"+det,";Fit x; Fit y",pix_x_nbins,pix_x_min,pix_x_max, pix_y_nbins,pix_y_min,pix_y_max) } )
-
-        histos.update( { "h_Chi2fit_res_trk2cls_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-        histos.update( { "h_Chi2fit_res_trk2cls_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-
-        histos.update( { "h_Chi2fit_res_trk2cls_pass_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_x_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-        histos.update( { "h_Chi2fit_res_trk2cls_pass_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_y_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-
-        histos.update( { "h_Chi2fit_res_trk2cls_x_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_mid_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-        histos.update( { "h_Chi2fit_res_trk2cls_y_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_mid_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-
-        histos.update( { "h_Chi2fit_res_trk2cls_pass_x_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_x_mid_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-        histos.update( { "h_Chi2fit_res_trk2cls_pass_y_mid_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_y_mid_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-        
-        histos.update( { "h_Chi2fit_res_trk2cls_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_x_full_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
-        histos.update( { "h_Chi2fit_res_trk2cls_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_y_full_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
-
-        histos.update( { "h_Chi2fit_res_trk2cls_pass_x_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_x_full_"+det,";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
-        histos.update( { "h_Chi2fit_res_trk2cls_pass_y_full_"+det : ROOT.TH1D("h_Chi2fit_res_trk2cls_pass_y_full_"+det,";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
     
         histos.update( { "h_Chi2fit_res_trk2tru_x_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_x_"+det,";"+det+" x_{trk}-x_{tru} [mm];Events",nResBins,-absRes,+absRes) } )
         histos.update( { "h_Chi2fit_res_trk2tru_y_"+det : ROOT.TH1D("h_Chi2fit_res_trk2tru_y_"+det,";"+det+" y_{trk}-y_{tru} [mm];Events",nResBins,-absRes,+absRes) } )    

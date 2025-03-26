@@ -222,19 +222,18 @@ class Config:
         self.add("det_frst", frstdet)
         self.add("det_last", lastdet)
         
+        self.add("use_large_clserr_for_algnmnt", self.getB('ALIGNMENT','use_large_clserr_for_algnmnt'))
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
         self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
         self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
         self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
         self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
         self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
-        # print("Before:",self.map["misalignment"])
         if(self.map["isMC"]):
             print("Ignoring misalignment for MC")
             for key1 in self.map["misalignment"]:
                 for key2 in self.map["misalignment"][key1]:
                     self.map["misalignment"][key1][key2] = 0
-        # print("After:",self.map["misalignment"])
         
         self.add("zWindow",       self.getF('WINDOW','zWindow'))
         self.add("xWindow",       self.getF('WINDOW','xWindow'))
@@ -283,7 +282,7 @@ class Config:
         self.add("offsets_x", offsets_x)
         self.add("offsets_y", offsets_y)
         
-        self.add("fit_large_clserr_for_algnmnt", self.getB('FIT','fit_large_clserr_for_algnmnt'))
+        # self.add("use_large_clserr_for_algnmnt", self.getB('FIT','use_large_clserr_for_algnmnt'))
         self.add("fit_method",       self.getArrS('FIT','fit_method'))
         self.add("fit_chi2_fast",    self.getB('FIT',   'fit_chi2_fast'))
         self.add("fit_chi2_method0", self.getS('FIT',   'fit_chi2_method0'))
@@ -306,22 +305,37 @@ class Config:
     def error(self,msg):
         sys.exit(msg)
     
+    def is_non0_misalignment(self):
+        non0_misalignment = False
+        for key1 in self.map["misalignment"]:
+            for key2 in self.map["misalignment"][key1]:
+                if(self.map["misalignment"][key1][key2]!=0):
+                    non0_misalignment = True
+                    break
+                if(non0_misalignment):
+                    break
+        return non0_misalignment
+        
     def check_inputs(self):
         print(f"Checking config file integrity...")
-        if(self.map["fit_large_clserr_for_algnmnt"] and not self.map["seed_allow_negative_vertical_inclination"]):
-            self.error(f"fit_large_clserr_for_algnmnt must not be 1 if seed_allow_negative_vertical_inclination is 0")
-        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["maxchi2align"]>1000):
-            self.error(f'fit_large_clserr_for_algnmnt must not be 1 if maxchi2align is>100 (it is set to {self.map["maxchi2align"]})')
-        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["fit_method"][0]!="SVD"):
-            self.error(f'if fit_large_clserr_for_algnmnt is 1 then fit_method must be SVD (it is set to {self.map["fit_method"]})')
-        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["maxchi2align"]!=self.map["cut_chi2dof"]):
-            self.error(f'if fit_large_clserr_for_algnmnt is 1 then maxchi2align must be equal to cut_chi2dof')
-        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["minchi2align"]==0):
-            self.error(f'if fit_large_clserr_for_algnmnt is 1 then minchi2align must be >0')
-        # if(not self.map["fit_large_clserr_for_algnmnt"] and self.map["cut_chi2dof"]>25):
-        #     self.error(f'if fit_large_clserr_for_algnmnt is 0 then cut_chi2dof should be smaller than 25 (it is set to {self.map["cut_chi2dof"]}) or you can adjust the condition in check_inputs()')
-        if(self.map["fit_large_clserr_for_algnmnt"] and self.map["minchi2align"]>=self.map["maxchi2align"]):
-            self.error(f'if fit_large_clserr_for_algnmnt is 1 then minchi2align cannot be greater than or equal to maxchi2align')
+        # if(self.map["use_large_clserr_for_algnmnt"] and self.is_non0_misalignment()):
+        #     self.error(f"use_large_clserr_for_algnmnt can be 1 only if all misalignment parameters are set to zero")
+        # if(not self.map["use_large_clserr_for_algnmnt"] and not self.is_non0_misalignment()):
+        #     self.error(f"use_large_clserr_for_algnmnt can be 0 only if misalignment parameters are not all set to zero")
+        # if(self.map["use_large_clserr_for_algnmnt"] and not self.map["seed_allow_negative_vertical_inclination"]):
+        #     self.error(f"use_large_clserr_for_algnmnt must not be 1 if seed_allow_negative_vertical_inclination is 0")
+        if(self.map["use_large_clserr_for_algnmnt"] and self.map["maxchi2align"]>1000):
+            self.error(f'use_large_clserr_for_algnmnt must not be 1 if maxchi2align is>1000 (it is set to {self.map["maxchi2align"]})')
+        if(self.map["use_large_clserr_for_algnmnt"] and self.map["fit_method"][0]!="SVD"):
+            self.error(f'if use_large_clserr_for_algnmnt is 1 then fit_method must be SVD (it is set to {self.map["fit_method"]})')
+        if(self.map["use_large_clserr_for_algnmnt"] and self.map["maxchi2align"]!=self.map["cut_chi2dof"]):
+            self.error(f'if use_large_clserr_for_algnmnt is 1 then maxchi2align must be equal to cut_chi2dof')
+        if(self.map["use_large_clserr_for_algnmnt"] and self.map["minchi2align"]==0):
+            self.error(f'if use_large_clserr_for_algnmnt is 1 then minchi2align must be >0')
+        # if(not self.map["use_large_clserr_for_algnmnt"] and self.map["cut_chi2dof"]>25):
+        #     self.error(f'if use_large_clserr_for_algnmnt is 0 then cut_chi2dof should be smaller than 25 (it is set to {self.map["cut_chi2dof"]}) or you can adjust the condition in check_inputs()')
+        if(self.map["use_large_clserr_for_algnmnt"] and self.map["minchi2align"]>=self.map["maxchi2align"]):
+            self.error(f'if use_large_clserr_for_algnmnt is 1 then minchi2align cannot be greater than or equal to maxchi2align')
         print(f"Config file integrity check passed!")
 
     def __str__(self):

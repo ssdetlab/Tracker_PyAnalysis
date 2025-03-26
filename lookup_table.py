@@ -45,10 +45,11 @@ class LookupTable:
         else:
             sys.exit(f"In lookup_table ncls:ncls>cls_mult_inf, not implemented. exitting")
         
-        self.chipXmin = -( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
-        self.chipXmax = +( cfg["chipX"]*(1.+cfg["lut_scaleX"]) )/2.
-        self.chipYmin = -( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
-        self.chipYmax = +( cfg["chipY"]*(1.+cfg["lut_scaleY"]) )/2.
+        xalgnmax,yalgnmax = self.find_alignment_bounds()
+        self.chipXmin = -( (cfg["chipX"]+xalgnmax)*(1.+cfg["lut_scaleX"]) )/2.
+        self.chipXmax = +( (cfg["chipX"]+xalgnmax)*(1.+cfg["lut_scaleX"]) )/2.
+        self.chipYmin = -( (cfg["chipY"]+yalgnmax)*(1.+cfg["lut_scaleY"]) )/2.
+        self.chipYmax = +( (cfg["chipY"]+yalgnmax)*(1.+cfg["lut_scaleY"]) )/2.
         # print(f"LUT: ncls={ncls}, xlim[{self.chipXmin:.3f},{self.chipXmax:.3f}], ylim[{self.chipYmin:.3f},{self.chipYmax:.3f}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
         ### call in the constructor:
         self.init_axs()
@@ -65,6 +66,17 @@ class LookupTable:
     def init_lut(self):
         for det in cfg["detectors"]:
             self.LUT.update({ det:{} })
+
+    def find_alignment_bounds(self):
+        xmax = 0
+        ymax = 0
+        for key1 in cfg["misalignment"]:
+            for key2 in cfg["misalignment"][key1]:
+                d = abs(cfg["misalignment"][key1][key2])
+                xmax = d if(key2=="dx" and d>xmax) else xmax
+                ymax = d if(key2=="dy" and d>ymax) else ymax
+        # print(f"In lookup table: alignment modifier to x is {xmax} and to y is {ymax}")
+        return xmax,ymax
     
     def fill_lut(self,clusters):
         for det in cfg["detectors"]:

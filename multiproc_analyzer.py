@@ -107,7 +107,7 @@ def GetTree(tfilename):
     nevents = ttree.GetEntries()
     return tfile,ttree,nevents
 
-def analyze(tfilenamein,irange,evt_range,masked):
+def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
     lock = mp.Lock()
     lock.acquire()
     
@@ -178,6 +178,11 @@ def analyze(tfilenamein,irange,evt_range,masked):
         ### all events...
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
+
+        ### skip bad triggers...
+        if(not cfg["isMC"] and cfg["runtype"]=="beam"):
+            if(int(trigger) in badtrigs): continue
+        histos["h_cutflow"].Fill( cfg["cuts"].index("BeamQC") )
         
         ### check event errors
         nerrors,errors = check_errors(ttree)
@@ -299,8 +304,8 @@ def analyze(tfilenamein,irange,evt_range,masked):
         n_selected_tracks   = 0
         for seed in seeds:
             ### get the points
-            xclserr = seed.xsize if(cfg["fit_large_clserr_for_algnmnt"]) else seed.dx
-            yclserr = seed.ysize if(cfg["fit_large_clserr_for_algnmnt"]) else seed.dy
+            xclserr = seed.xsize if(cfg["use_large_clserr_for_algnmnt"]) else seed.dx
+            yclserr = seed.ysize if(cfg["use_large_clserr_for_algnmnt"]) else seed.dy
             points_SVD, errors_SVD  = SVD_candidate(seed.x,seed.y,seed.z,xclserr,yclserr,vtx,evtx)
             points_Chi2,errors_Chi2 = Chi2_candidate(seed.x,seed.y,seed.z,xclserr,yclserr,vtx,evtx)
             chisq     = None
@@ -438,8 +443,8 @@ if __name__ == "__main__":
         ROOT.gSystem.Load('libeudaq_det_event_dict.so')
     else:
         print("On mac: must first add DetectorEvent lib:")
-        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20240911:$LD_LIBRARY_PATH")
-        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20240911/')
+        print("export LD_LIBRARY_PATH=$PWD/DetectorEvent/20252302:$LD_LIBRARY_PATH")
+        ROOT.gInterpreter.AddIncludePath('DetectorEvent/20252302/')
         ROOT.gSystem.Load('libtrk_event_dict.dylib')
     print("---- finish loading libs")
     
@@ -448,6 +453,11 @@ if __name__ == "__main__":
     
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
+    fpkltrgname = tfilenamein.replace(".root","_BadTriggers.pkl")
+    fpkltrigger = open(fpkltrgname,'rb')
+    badtriggers = pickle.load(fpkltrigger)
+    print(f"Found {len(badtriggers)} bad triggers")
+    
     masked = {}
     if(cfg["skipmasking"]):
         print("\n----------------------------")
@@ -520,9 +530,9 @@ if __name__ == "__main__":
     for irng,rng in enumerate(ranges):
         print(f"Submitting range[{irng}]: {rng[0]},...,{rng[-1]}")
         if(debug):
-            histos = analyze(tfilenamein,irng,rng,masked)
+            histos = analyze(tfilenamein,irng,rng,masked,badtriggers)
         else:
-            pool.apply_async(analyze, args=(tfilenamein,irng,rng,masked), callback=collect_histos, error_callback=collect_errors)
+            pool.apply_async(analyze, args=(tfilenamein,irng,rng,masked,badtriggers), callback=collect_histos, error_callback=collect_errors)
     
     ### Wait for all the workers to finish
     pool.close()

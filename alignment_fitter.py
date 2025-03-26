@@ -28,7 +28,7 @@ parser.add_argument('-ref',  metavar='reference detector', required=False,  help
 parser.add_argument('-mult', metavar='multi run?',  required=False, help='is this a multirun? [0/1]')
 argus = parser.parse_args()
 configfile = argus.conf
-isbeamrun  = argus.beam if(argus.beam is not None and int(argus.beam)==1) else False
+isbeamrun  = (int(argus.beam)==1)
 refdet     = argus.ref  if(argus.ref is not None) else ""
 ismutirun  = argus.mult if(argus.mult is not None and int(argus.mult)==1) else False
 
@@ -36,7 +36,7 @@ import config
 from config import *
 ### must be called here (first) and only once!
 init_config(configfile,False)
-
+print(f"isbeamrun={isbeamrun}")
 
 import utils
 from utils import *
@@ -62,6 +62,7 @@ from candidate import *
 import selections
 from selections import *
 
+
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
 # ROOT.gStyle.SetOptStat(0)
@@ -69,7 +70,7 @@ ROOT.gStyle.SetOptFit(0)
 ### defined below as global
 allhistos = {}
 
-def alignment_selections(track):
+def pass_alignment_selections(track):
     ### require good chi2 range and other cuts
     if(track.chi2ndof<cfg["minchi2align"]): return False
     if(track.chi2ndof>cfg["maxchi2align"]): return False
@@ -78,7 +79,6 @@ def alignment_selections(track):
         if(track.maxcls>cfg["cut_maxcls"]):   return False
         if(not pass_geoacc_selection(track)): return False
     return True
-    
 
 
 def fitSVD(track,dx,dy,theta,refdet=""):
@@ -110,8 +110,8 @@ def fitSVD(track,dx,dy,theta,refdet=""):
         x = track.trkcls[det].xmm
         y = track.trkcls[det].ymm
         z = track.trkcls[det].zmm
-        ex = track.trkcls[det].xsizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dxmm
-        ey = track.trkcls[det].ysizemm if(cfg["fit_large_clserr_for_algnmnt"]) else track.trkcls[det].dymm
+        ex = track.trkcls[det].xsizemm if(cfg["use_large_clserr_for_algnmnt"]) else track.trkcls[det].dxmm
+        ey = track.trkcls[det].ysizemm if(cfg["use_large_clserr_for_algnmnt"]) else track.trkcls[det].dymm
         ### only for the non-reference detectors or all detectors?
         if(refdet!=""):
             if(det!=refdet):
@@ -134,8 +134,8 @@ def fitSVD(track,dx,dy,theta,refdet=""):
     
     dabs = 0
     for det in cfg["detectors"]:
-        dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
-        # dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
+        # dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
+        dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
         dabs += math.sqrt(dx*dx + dy*dy)
     dabs /= len(cfg["detectors"])
     return chisq_SVD,ndof_SVD,dabs,dx,dy
@@ -194,14 +194,14 @@ def fit_misalignment(events,ndet2align,refdet,axes):
             for track in event.tracks:
                 
                 ### require some relevant cuts
-                if(not alignment_selections(track)): continue
+                if(not pass_alignment_selections(track)): continue
                 
                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
                 nvalidtracks += 1
-                sum_dabs += dabs
-                sum_dx += dX
-                sum_dy += dY
-                sum_chi2 += (chisq/ndof)
+                sum_dabs     += dabs
+                sum_dx       += dX
+                sum_dy       += dY
+                sum_chi2     += (chisq/ndof)
         # return sum_chi2/nvalidtracks
         return sum_dabs/nvalidtracks
     
@@ -228,14 +228,17 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     print("range_params:",range_params)
     ### https://stackoverflow.com/questions/52438263/scipy-optimize-gets-trapped-in-local-minima-what-can-i-do
     ### https://stackoverflow.com/questions/25448296/scipy-basin-hopping-minimization-on-function-with-free-and-fixed-parameters
-    # result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "bounds":range_params})
-    result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True })
+    result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "bounds":range_params})
+    # result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True })
     
     ### get the chi^2 value and the number of degrees of freedom
     chisq = result.fun
     params  = result.x
     success = result.success
     return params,chisq,success
+
+
+
 
 
 if __name__ == "__main__":
@@ -268,6 +271,7 @@ if __name__ == "__main__":
     dX0    = 0
     dY0    = 0
     allevents = 0
+    alltracks = 0
     ngoodtracks = 0
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
@@ -276,21 +280,27 @@ if __name__ == "__main__":
             for event in data:
                 if(allevents%50==0 and allevents>0): print(f"Reading event #{allevents}")
                 allevents += 1
+                alltracks += len(event.tracks)
+                evtgoodtracks = 0
                 for track in event.tracks:
+                    
+                    ### require some relevant cuts
+                    if(not pass_alignment_selections(track)): continue
+                    
                     chisq,ndof,dabs,dX,dY = fitSVD(track,[0.]*ndet2align,[0.]*ndet2align,[0.]*ndet2align,refdet)
                     chi2dof = chisq/ndof
                     
-                    ### require some relevant cuts
-                    if(not alignment_selections(track)): continue
-                    
                     ### count and proceed
                     if(ngoodtracks%100==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")
+                    
                     ngoodtracks += 1
-                    events.append(event)
+                    evtgoodtracks += 1 
                     chisq0 += chi2dof
                     dabs0  += dabs
                     dX0    += dX
                     dY0    += dY
+                
+                if(evtgoodtracks>0): events.append(event)
 
     if(ngoodtracks<25):
         print(f'Too few tracks collected ({ngoodtracks}) for the chi2/dof cut of maxchi2align={cfg["maxchi2align"]} --> try to increase it in the config file.')
@@ -298,9 +308,11 @@ if __name__ == "__main__":
         quit()
     chisq0 = chisq0/ngoodtracks
     dabs0  = dabs0/ngoodtracks
-    print(f"Done collecting {ngoodtracks} tracks with chisq0={chisq0} and dabs0={dabs0}. Now going to fit misalignments")
+    print(f"Done collecting {ngoodtracks} tracks (out of {alltracks} in {allevents} events, or {float(alltracks)/float(allevents)} trks/evt) with chisq0={chisq0} and dabs0={dabs0}. Now going to fit misalignments")
     
-    ### fit
+    #######################
+    ### Run the fit !!! ###
+    #######################
     params,result,success = fit_misalignment(events,ndet2align,refdet,axes)
     
     ### check
@@ -313,16 +325,11 @@ if __name__ == "__main__":
     dxFinal,dyFinal,thetaFinal,nparperdet = init_params(axes,ndet2align,params)
     for event in events:
         for track in event.tracks:
+            ### require some relevant cuts
+            if(not pass_alignment_selections(track)): continue
+            
             chisq,ndof,dabs,dX,dY = fitSVD(track,dxFinal,dyFinal,thetaFinal,refdet)
             chi2dof = chisq/ndof
-            
-            print(f"chi2dof={chi2dof} ngoodtracks={ngoodtracks}")
-            
-            ### require good chi2
-            if(chi2dof<cfg["minchi2align"]): continue
-            if(chi2dof>cfg["maxchi2align"]): continue
-            ### require pointing to the pdc window, inclined up as a positron
-            # if(not pass_geoacc_selection(track)): continue
             
             ngoodtracks += 1
             chisq1 += chi2dof

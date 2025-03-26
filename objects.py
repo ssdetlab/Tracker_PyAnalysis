@@ -40,7 +40,7 @@ class Cls:
         self.ymm0 = self.y*cfg["pix_y"]-cfg["chipY"]/2. ### original y (with misalignment)
         self.xmm,self.ymm = align(det,self.xmm0,self.ymm0) ### aligned x,y
         self.zmm  = cfg["rdetectors"][det][2]
-        ### add known offset in x-y if any (MC...)
+        ### add known offset in x-y if any
         self.xmm0 += cfg["offsets_x"][det]
         self.ymm0 += cfg["offsets_y"][det]
         self.xmm  += cfg["offsets_x"][det]
@@ -74,52 +74,10 @@ class Cls:
         mu_y2 = mu_y2/self.n
         varx  = mu_x2-mu_x**2
         vary  = mu_y2-mu_y**2
-        # stdx  = 1./_s12_ if(self.n==1 or varx==0) else math.sqrt(varx)
-        # stdy  = 1./_s12_ if(self.n==1 or vary==0) else math.sqrt(vary)
-        # se_x  = 0.5*stdx/math.sqrt(self.n)
-        # se_y  = 0.5*stdy/math.sqrt(self.n)
-        
-        # stdx  = 1./_s12_ if(self.n==1 or varx==0) else math.sqrt(varx)/_s12_
-        # stdy  = 1./_s12_ if(self.n==1 or vary==0) else math.sqrt(vary)/_s12_
-        # se_x  = stdx/math.sqrt(self.n)
-        # se_y  = stdy/math.sqrt(self.n)
-        
-        # se_x  = 0.5*nx/_s12_
-        # se_y  = 0.5*ny/_s12_
-        
-        se_x  = 0.7*_1s12_/math.sqrt(self.n)
-        se_y  = 0.7*_1s12_/math.sqrt(self.n)
-
-        # if(self.n==1):
-        #     se_x  = 0.1
-        #     se_y  = 0.1
-        # elif(self.n==2):
-        #     se_x  = 0.25
-        #     se_y  = 0.25
-        # elif(self.n==3):
-        #     se_x  = 0.5
-        #     se_y  = 0.5
-        # else:
-        #     se_x  = 0.15
-        #     se_y  = 0.15
-        # se_x *= (nx * _1s12_)
-        # se_y *= (ny * _1s12_)
-        
-        # if(self.n==1):
-        #     se_x  = 0.1
-        #     se_y  = 0.1
-        # elif(self.n==2):
-        #     se_x  = 0.25
-        #     se_y  = 0.25
-        # elif(self.n==3):
-        #     se_x  = 0.5
-        #     se_y  = 0.5
-        # else:
-        #     se_x  = 0.15
-        #     se_y  = 0.15
-        # se_x *= ((nx*_1s12_)/math.sqrt(self.n))
-        # se_y *= ((ny*_1s12_)/math.sqrt(self.n))
-        
+        # se_x  = 0.7*_1s12_/math.sqrt(self.n)
+        # se_y  = 0.7*_1s12_/math.sqrt(self.n)
+        se_x  = _1s12_/math.sqrt(self.n)
+        se_y  = _1s12_/math.sqrt(self.n)
         return mu_x,mu_y,se_x,se_y,nx,ny
     def __str__(self):
         # for p in self.pixels: print(p)

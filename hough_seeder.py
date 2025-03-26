@@ -351,7 +351,7 @@ class HoughSeeder:
         return cells
     
     def get_tunnels(self):
-        print(f"in get tunnels with {len(self.cells)}")
+        # print(f"in get tunnels with {len(self.cells)}"))
         tunnels = []
         hough_coord = []
         for icell,cell in enumerate(self.cells):

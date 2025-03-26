@@ -78,7 +78,7 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax3.add_collection3d(Poly3DCollection(window, facecolors='gray', linewidths=0.5, edgecolors='k', alpha=.20))
     ax4.add_collection3d(Poly3DCollection(window, facecolors='gray', linewidths=0.5, edgecolors='k', alpha=.20))
     
-    # ### print all clusters
+    # ### print ALL clusters
     # clsx = []
     # clsy = []
     # clsz = []
@@ -94,19 +94,30 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     # ax4.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
 
     ### then the track
-    # trkcols = ['r','b','m','c','y','k','g']
     goodtrk = 0
     trkcol = 'r'
     linewidth = 0.1
     for track in tracks:
+        
         if(track.chi2ndof>chi2threshold): continue
-        # trkcol = trkcols[goodtrk]
+        
         goodtrk += 1
         
-        r = transform_to_real_space( [track.points[0],track.points[1],track.points[2]] )
-        x = r[0]
-        y = r[1]
-        z = r[2]
+        # r = transform_to_real_space( [track.points[0],track.points[1],track.points[2]] )
+        # x = r[0]
+        # y = r[1]
+        # z = r[2]
+        
+        # ### for printing only track clusters
+        # clsx = []
+        # clsy = []
+        # clsz = []
+        # for det in cfg["detectors"]:
+        #     for cluster in clusters[det]:
+        #         r = transform_to_real_space( [track.trkcls[det].xmm,track.trkcls[det].ymm,track.trkcls[det].zmm] )
+        #         clsx.append( r[0] )
+        #         clsy.append( r[1] )
+        #         clsz.append( r[2] )
         
         # Plot the points and the fitted line
         xFrst,yFrst,zFrst = line(cfg["rdetectors"][cfg["det_frst"]][2], track.params)
@@ -137,11 +148,11 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
             trkcol = 'orange' 
             linewidth = 0.2
         
-        # # plot the tracks clusters
-        # ax1.scatter(x,y,z,s=0.92,c='r',marker='o')
-        # ax2.scatter(x,y,z,s=0.92,c='r',marker='o')
-        # ax3.scatter(x,y,z,s=0.92,c='r',marker='o')
-        # ax4.scatter(x,y,z,s=0.92,c='r',marker='o')
+        # # plot only the tracks clusters
+        # ax1.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+        # ax2.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+        # ax3.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+        # ax4.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
         ### plot the tracks lines in the detector volume only
         ax1.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)
         ax2.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)

@@ -91,6 +91,7 @@ cut_ROI_ymax = 512
 cut_maxcls = 8
 
 [ALIGNMENT]
+use_large_clserr_for_algnmnt = 0
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0
 ### measured at SLAC when the detector is facing the sky, threshold is 117e, runs 129,130,131,139,156,158 ==> rake name run001, w/ref plane ALPIDE_0, minimize instead of basinhopping:
@@ -101,12 +102,11 @@ misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=-0.1273,dy=-0.102,theta=0
 minchi2align  = 9
 maxchi2align  = 15
 axes2align    = xytheta
-naligniter    = 200
+naligniter    = 500
 alignmentbounds = dx:min=-1.0,max=+1.0 dy:min=-1.0,max=1.0 theta:min=-0.2,max=+0.2
 
 
 [FIT]
-fit_large_clserr_for_algnmnt = 0
 # fit_method = CHI2
 fit_method = SVD
 # fit_method = SVD CHI2
