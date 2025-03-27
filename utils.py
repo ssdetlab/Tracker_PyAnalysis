@@ -55,6 +55,7 @@ def make_run_dirs(name):
     for i in range(len(paths)-1): rundir += paths[i]+"/"
     rundir += srun
     evtdir = rundir+"/event_displays"
+    trgdir = rundir+"/beam_quality"
     filecopy = f"{rundir}/{infile}"
     if(not os.path.isdir(rundir)):
         print(f"Making dir {rundir}")
@@ -62,6 +63,9 @@ def make_run_dirs(name):
     if(not os.path.isdir(evtdir)):
         print(f"Making dir {evtdir}")
         ROOT.gSystem.Exec(f"/bin/mkdir -p {evtdir}")
+    if(not os.path.isdir(trgdir)):
+        print(f"Making dir {trgdir}")
+        ROOT.gSystem.Exec(f"/bin/mkdir -p {trgdir}")
     # if(not os.path.isfile(filecopy)):
     #     print(f"Copying input file {name} to run dir {rundir}")
     #     ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
@@ -454,9 +458,6 @@ def natural_keys(text):
 
 ### pickle files
 def getfileslist(directory,pattern,suff):
-    # files = Path( os.path.expanduser(directory) ).glob(pattern+'*'+suff)
-    # ff = []
-    # for f in files: ff.append(f)
     path = Path(os.path.expanduser(directory))
     ff = [str(file) for file in path.glob(pattern + '*' + suff)]
     ff.sort(key=natural_keys)

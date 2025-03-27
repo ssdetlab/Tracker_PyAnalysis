@@ -453,7 +453,7 @@ if __name__ == "__main__":
     
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
-    fpkltrgname = tfilenamein.replace(".root","_BadTriggers.pkl")
+    fpkltrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
     fpkltrigger = open(fpkltrgname,'rb')
     badtriggers = pickle.load(fpkltrigger)
     print(f"Found {len(badtriggers)} bad triggers")

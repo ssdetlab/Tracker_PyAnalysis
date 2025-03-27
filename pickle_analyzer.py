@@ -79,6 +79,7 @@ if __name__ == "__main__":
     else:
         tfilenamein = make_run_dirs(cfg["inputfile"])
         files = getfiles(tfilenamein)
+    files = [fx for fx in files if '_BadTriggers' not in fx]
     for f in files: print(f)
     
     ### counters

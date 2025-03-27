@@ -97,8 +97,7 @@ if __name__ == "__main__":
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
     
-    infile = tfilenamein
-    tfile = ROOT.TFile(infile,"READ")
+    tfile = ROOT.TFile(tfilenamein,"READ")
     ttree = tfile.Get("MyTree")
     nentries = ttree.GetEntries()
     print(f"Entries in tree: {nentries}")
@@ -319,7 +318,7 @@ if __name__ == "__main__":
     # print(final_fltr_trgs)
     print(f'After neighbours removal, removed {len(final_fltr_trgs)}, which is {len(final_fltr_trgs)/len(x_trg)*100:.2f}% of the total')
     
-    pklname = infile.replace(".root","_BadTriggers.pkl")
+    pklname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
     fpkl = open(pklname,"wb")
     pickle.dump(final_fltr_trgs, fpkl, protocol=pickle.HIGHEST_PROTOCOL)
     fpkl.close()
@@ -485,6 +484,8 @@ if __name__ == "__main__":
     ################################################################
     ################################################################
     
+    ftrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_trigger_analysis.pdf")
+    
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -507,7 +508,7 @@ if __name__ == "__main__":
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf(")
+    cnv.SaveAs(f"{ftrgname}(")
     
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
@@ -531,7 +532,7 @@ if __name__ == "__main__":
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
@@ -553,7 +554,7 @@ if __name__ == "__main__":
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -574,7 +575,7 @@ if __name__ == "__main__":
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     
     
@@ -601,7 +602,7 @@ if __name__ == "__main__":
     # mg.SetMinimum(800)
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
@@ -626,7 +627,7 @@ if __name__ == "__main__":
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     
     # cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
@@ -648,7 +649,7 @@ if __name__ == "__main__":
     # mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     # cnv.RedrawAxis()
     # cnv.Update()
-    # cnv.SaveAs("hits_vs_triggers.pdf")
+    # cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -660,7 +661,7 @@ if __name__ == "__main__":
     lines["rad"].Draw("same")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -668,7 +669,7 @@ if __name__ == "__main__":
     hR.Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
@@ -680,7 +681,7 @@ if __name__ == "__main__":
     lines["bpm_pb_3156"].Draw("same")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -704,7 +705,7 @@ if __name__ == "__main__":
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
@@ -715,7 +716,7 @@ if __name__ == "__main__":
     graphs["foilm2"].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -725,7 +726,7 @@ if __name__ == "__main__":
     graphs["dt"].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf")
+    cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
@@ -733,5 +734,5 @@ if __name__ == "__main__":
     hT.Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("hits_vs_triggers.pdf)")
+    cnv.SaveAs(f"{ftrgname})")
 

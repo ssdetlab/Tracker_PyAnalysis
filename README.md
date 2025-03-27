@@ -21,10 +21,10 @@ Setup:
   - it is assumed that the file name starts with `tree_` and ends with `RunX.root` where `X` is the EUDAQ run number between 0 and 1000000
 
 Quick start, assuming that the detector is aligned already (but read below...):
-- Must run:  `python3 noise_analyzer.py -conf conf/config_file_name.txt`
-- Then run:  `python3 serial_analyzer.py -conf conf/config_file_name.txt`
-- *OR* run:  `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
-- Summarize: `python3 postproc_analyzer.py -conf conf/config_file_name.txt`
+- If need noize masking run:  `python3 noise_analyzer.py -conf conf/config_file_name.txt`
+- If need trigger filter run: `python3 trigger_analyzer.py -conf conf/config_file_name.txt`
+- Then run the analysis:      `python3 multiproc_analyzer.py -conf conf/config_file_name.txt`
+- Summarize:                  `python3 postproc_analyzer.py -conf conf/config_file_name.txt`
 - Finally, check the `event_displays` dir
 
 Directories and input business:
@@ -40,6 +40,7 @@ Run noise scan:
 
 Run analysis:
 - run noise scan (see above)
+- run trigger filtering (see above)
 - if you want to process only part of the events, set the "nmax2process" / "nmax2processMP" parameter as needed
 - to process all events check that the "nmax2process" / "nmax2processMP" parameter is larger than what you have in data
 - run analysis serially OR in parallel:
