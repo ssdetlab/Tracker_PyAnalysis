@@ -257,6 +257,7 @@ def res_track2clusterErr(detector, points, errors, direction, centroid):
             quit()
     z = zpoints[i]
     xonline,yonline = xyofz(r1,r2,z)
+    # print(f"det={detector}: z={z}.  xfit={xonline:.2E}, xpoint={x[i]:.2E}, dx={xonline-x[i]:.2E}, errx={ex[i]:.2E}.  yfit={yonline:.2E}, ypoint={y[i]:.2E}, dx={yonline-y[i]:.2E}, erry={ey[i]:.2E}")
     dx = (xonline-x[i])/ex[i]
     dy = (yonline-y[i])/ey[i]
     return dx,dy
@@ -276,7 +277,7 @@ def res_track2cluster(detector, points, direction, centroid):
             quit()
     z  = zpoints[i]
     xonline,yonline = xyofz(r1,r2,z)
-    # print(f"det={detector}: z={z}, xfit={xonline}, xpoint{x[i]}, yfit={yonline}, xpoint{y[i]}")
+    # print(f"det={detector}: z={z}.  xfit={xonline:.2E}, xpoint={x[i]:.2E}, dx={xonline-x[i]:.2E}.  yfit={yonline:.2E}, ypoint={y[i]:.2E}, dx={yonline-y[i]:.2E}")
     dx = xonline-x[i]
     dy = yonline-y[i]
     return dx,dy

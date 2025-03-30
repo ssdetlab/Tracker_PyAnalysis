@@ -25,12 +25,17 @@ parser = argparse.ArgumentParser(description='alignment_fitter.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
 parser.add_argument('-beam', metavar='is beam run?',required=True, help='is this a beam run? [0/1]')
 parser.add_argument('-ref',  metavar='reference detector', required=False,  help='reference detector')
+parser.add_argument('-skip', metavar='skip detector(s)', required=False,  help='skip detector(s)')
 parser.add_argument('-mult', metavar='multi run?',  required=False, help='is this a multirun? [0/1]')
 argus = parser.parse_args()
 configfile = argus.conf
 isbeamrun  = (int(argus.beam)==1)
-refdet     = argus.ref  if(argus.ref is not None) else ""
+refdet     = argus.ref  if(argus.ref  is not None) else ""
+skipdets   = argus.skip if(argus.skip is not None) else ""
 ismutirun  = argus.mult if(argus.mult is not None and int(argus.mult)==1) else False
+
+skipdets = skipdets.split(",")
+print(f"skipdets={skipdets}")
 
 import config
 from config import *
@@ -95,6 +100,7 @@ def fitSVD(track,dx,dy,theta,refdet=""):
     i = 0
     for det in cfg["detectors"]:
         if(refdet!="" and det==refdet): continue
+        if(det in skipdets):            continue
         dX.update({det:dx[i]})
         dY.update({det:dy[i]})
         Theta.update({det:theta[i]})
@@ -107,6 +113,7 @@ def fitSVD(track,dx,dy,theta,refdet=""):
     ex = -9999
     ey = -9999
     for det in cfg["detectors"]:
+        if(det in skipdets): continue
         x = track.trkcls[det].xmm
         y = track.trkcls[det].ymm
         z = track.trkcls[det].zmm
@@ -129,13 +136,19 @@ def fitSVD(track,dx,dy,theta,refdet=""):
         clsdy.update({det:ey})
     vtx  = [cfg["xVtx"], cfg["yVtx"],  cfg["zVtx"]]  if(cfg["doVtx"]) else []
     evtx = [cfg["exVtx"],cfg["eyVtx"], cfg["ezVtx"]] if(cfg["doVtx"]) else []
-    points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
+    points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx,skipdets)
     chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
     
     dabs = 0
     for det in cfg["detectors"]:
-        # dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
-        dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
+        if(det in skipdets): continue
+        dx = 0 
+        dy = 0
+        if(cfg["alignmentwerr"]):
+            dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
+        else:
+            dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
+        # print(f"{det}: dx={dx:.2E}, dy={dy:.2E}")
         dabs += math.sqrt(dx*dx + dy*dy)
     dabs /= len(cfg["detectors"])
     return chisq_SVD,ndof_SVD,dabs,dx,dy
@@ -202,8 +215,8 @@ def fit_misalignment(events,ndet2align,refdet,axes):
                 sum_dx       += dX
                 sum_dy       += dY
                 sum_chi2     += (chisq/ndof)
-        # return sum_chi2/nvalidtracks
-        return sum_dabs/nvalidtracks
+        return sum_chi2/nvalidtracks
+        # return sum_dabs/nvalidtracks
     
     nparperdet = -1
     if  (axes=="xytheta"):                                nparperdet = 3
@@ -228,8 +241,14 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     print("range_params:",range_params)
     ### https://stackoverflow.com/questions/52438263/scipy-optimize-gets-trapped-in-local-minima-what-can-i-do
     ### https://stackoverflow.com/questions/25448296/scipy-basin-hopping-minimization-on-function-with-free-and-fixed-parameters
-    result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "bounds":range_params})
-    # result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True })
+    result = None
+    if(cfg["alignmentmethod"]=="SLSQP"):
+        result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "bounds":range_params})
+    elif(cfg["alignmentmethod"]=="COBYLA"):
+        result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True })
+    else:
+        print(f'alignmentmethod={cfg["alignmentmethod"]} is not supported. Quitting.')
+        quit()
     
     ### get the chi^2 value and the number of degrees of freedom
     chisq = result.fun
@@ -275,10 +294,11 @@ if __name__ == "__main__":
     ngoodtracks = 0
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
+        print(f"Opening file {suff}")
         with open(fpkl,'rb') as handle:
             data = pickle.load(handle)
             for event in data:
-                if(allevents%50==0 and allevents>0): print(f"Reading event #{allevents}")
+                if(allevents%50==0 and allevents>0): print(f"Reading event #{allevents} with {ngoodtracks} good tracks")
                 allevents += 1
                 alltracks += len(event.tracks)
                 evtgoodtracks = 0
@@ -291,7 +311,7 @@ if __name__ == "__main__":
                     chi2dof = chisq/ndof
                     
                     ### count and proceed
-                    if(ngoodtracks%100==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")
+                    if(ngoodtracks%25==0 and ngoodtracks>0): print(f"Added {ngoodtracks} tracks")
                     
                     ngoodtracks += 1
                     evtgoodtracks += 1 
@@ -300,9 +320,12 @@ if __name__ == "__main__":
                     dX0    += dX
                     dY0    += dY
                 
-                if(evtgoodtracks>0): events.append(event)
+                if(evtgoodtracks>0):
+                    minevt = MinimalEvent(event.trigger,event.tracks)
+                    events.append(minevt)
+                    # events.append(event)
 
-    if(ngoodtracks<25):
+    if(ngoodtracks<cfg["alignmentmintrks"]):
         print(f'Too few tracks collected ({ngoodtracks}) for the chi2/dof cut of maxchi2align={cfg["maxchi2align"]} --> try to increase it in the config file.')
         print("Quitting")
         quit()
@@ -327,15 +350,16 @@ if __name__ == "__main__":
         for track in event.tracks:
             ### require some relevant cuts
             if(not pass_alignment_selections(track)): continue
-            
+
             chisq,ndof,dabs,dX,dY = fitSVD(track,dxFinal,dyFinal,thetaFinal,refdet)
             chi2dof = chisq/ndof
-            
+
             ngoodtracks += 1
             chisq1 += chi2dof
             dabs1  += dabs
             dX1    += dX
             dY1    += dY
+            
     chisq1 = chisq1/ngoodtracks
     dabs1  = dabs1/ngoodtracks
     dX1    = dX1/ngoodtracks
@@ -358,10 +382,11 @@ if __name__ == "__main__":
     salignment = "misalignment  = "
     k = 0
     for det in cfg["detectors"]:
+        if(det in skipdets): continue
         if(det==refdet):
-            salignment += det+":dx=0,dy=0,theta=0 "
+            salignment += f"{det}:dx=0,dy=0,theta=0 "
         else:
-            salignment += det+":dx="+str(dxFinal[k])+",dy="+str(dyFinal[k])+",theta="+str(thetaFinal[k])+" "
+            salignment += f"{det}:dx={dxFinal[k]:.2E},dy={dyFinal[k]:.2E},theta={thetaFinal[k]:.2E} "
             k += 1
     print(salignment)
     

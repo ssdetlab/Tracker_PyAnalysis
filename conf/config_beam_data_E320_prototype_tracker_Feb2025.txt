@@ -14,9 +14,9 @@ skiptracking   = 0
 ### run501 (beam-only):
 # first2process  = 0
 ### run502 (beam, bewin-in):
-# first2process = 500
-### beam-only, focusing on foil, 6h-long
 first2process = 0
+### beam-only, focusing on foil, 6h-long
+# first2process = 0
 
 ### run490 foil-in allin, focused
 # nmax2process = 10
@@ -27,9 +27,9 @@ first2process = 0
 ### run501 (beam-only, bewin-out):
 # nmax2process = 100000
 ### run502 (beam, bewin-in):
-# nmax2process = 200
-### beam-only, focusing on foil, 6h-long
 nmax2process = 0
+### beam-only, focusing on foil, 6h-long
+# nmax2process = 0
 
 
 
@@ -46,9 +46,9 @@ skipmasking    = 1
 ### beam-only, short run
 # inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 ### Be window, focus on window
-# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 ### beam-only, focusing on foil, 6h-long
-inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
 
 
@@ -132,7 +132,7 @@ lut_widthy_inf = 0.1
 
 [CUTS]
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 120
+cut_chi2dof = 2
 cut_maxcls  = 10
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
@@ -145,15 +145,23 @@ cut_ROI_ymax = 512
 # cut_ROI_ymin = 0
 # cut_ROI_ymax = 150
 
+
 [ALIGNMENT]
-use_large_clserr_for_algnmnt = 0
+use_large_clserr_for_algnmnt = 1
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
-minchi2align  = 20
-maxchi2align  = 120
+minchi2align  = 0.5
+maxchi2align  = 2
 axes2align    = xytheta
 naligniter    = 500
-alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05
+# alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05
+alignmentbounds = dx:min=-2,max=+2 dy:min=-2,max=2 theta:min=-0.5,max=+0.5
+### with 0 it minimizes dabs=sqrt(dx^2+dy^2) while with 1 it minimizes dabs=sqrt((dx/ex)^2+(dy/ey)^2) 
+alignmentwerr = 0
+### fast alignment fit (COBYLA is faster)
+alignmentmethod = COBYLA
+# alignmentmethod = SLSQP
+alignmentmintrks = 25
 
 
 [FIT]
@@ -163,6 +171,8 @@ fit_method = SVD
 fit_chi2_fast = 1
 fit_chi2_method0 = Powell
 fit_chi2_method1 = Nelder-Mead Powell
+
+
 
 
 ####################
@@ -201,9 +211,12 @@ zeroSupp = 1
 nSigma   = 25
 
 [DETECTOR]
-detectors     = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3 ALPIDE_4
-plane2det     = ALPIDE_0:8 ALPIDE_1:6 ALPIDE_2:4 ALPIDE_3:2 ALPIDE_4:0
-rdetectors    = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,24.02 ALPIDE_2:0,0,48.04 ALPIDE_3:0,0,72.06 ALPIDE_4:0,0,96.08
+detectors  = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3 ALPIDE_4
+plane2det  = ALPIDE_0:8 ALPIDE_1:6 ALPIDE_2:4 ALPIDE_3:2 ALPIDE_4:0
+rdetectors = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,20.00 ALPIDE_2:0,0,40.00 ALPIDE_3:0,0,60.00 ALPIDE_4:0,0,80.00
+# detectors  = ALPIDE_0 ALPIDE_1 ALPIDE_2 ALPIDE_3
+# plane2det  = ALPIDE_0:8 ALPIDE_1:6 ALPIDE_2:4 ALPIDE_3:0
+# rdetectors = ALPIDE_0:0,0,0.00 ALPIDE_1:0,0,20.00 ALPIDE_2:0,0,40.00 ALPIDE_3:0,0,60.00
 
 [WINDOW]
 zWindow       = 0.
@@ -218,13 +231,13 @@ yMidWin2PipeCenter = 244.094
 
 [DIPOLE]
 ### this is wrt to the window which I set at z=0
-fDipoleTesla = 0.219
+fDipoleTesla       = 0.219
 zDipoleLenghMeters = 0.914
-zDipoleExit = -3032.155
-xDipoleExitMin = -22.352
-xDipoleExitMax = +22.352
-yDipoleExitMin = -66.927
-yDipoleExitMax = +34.927
+zDipoleExit        = -3032.155
+xDipoleExitMin     = -22.352
+xDipoleExitMax     = +22.352
+yDipoleExitMin     = -66.927
+yDipoleExitMax     = +34.927
 
 
 [TRANSFORMATIONS]

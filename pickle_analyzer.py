@@ -297,7 +297,12 @@ if __name__ == "__main__":
     print(f"Events:{nevents}, Tracks:{ntracks}")                
     
     ### plot the counters
-    plot_counters()
+    fmultpdfname =  = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
+    plot_counters(fmultpdfname)
+
+
+    ### plot the geometry distributions
+    foupdfname = tfilenamein.replace(".root",f"_dipole_window.pdf")
 
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
@@ -312,7 +317,7 @@ if __name__ == "__main__":
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf(")
+    cnv.SaveAs(f"{foupdfname}(")
 
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
@@ -327,7 +332,7 @@ if __name__ == "__main__":
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
@@ -342,7 +347,7 @@ if __name__ == "__main__":
     window.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     # cnv.SetLogy()
@@ -350,14 +355,14 @@ if __name__ == "__main__":
     histos["hTheta_xz"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
     histos["hdExit"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
@@ -370,7 +375,7 @@ if __name__ == "__main__":
     histos["hThetad_yz"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(3,1)
@@ -387,7 +392,7 @@ if __name__ == "__main__":
     histos["hThetar_yz"].Draw("hist")
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(3,1)
@@ -404,28 +409,28 @@ if __name__ == "__main__":
     histos["hPr"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
     histos["hPf"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
     histos["hPd"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
     histos["hPr"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(3,1)
@@ -445,7 +450,7 @@ if __name__ == "__main__":
     histos["hPr_vs_dExit"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(3,1)
@@ -465,7 +470,7 @@ if __name__ == "__main__":
     histos["hPd_vs_thetad"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(3,1)
@@ -485,7 +490,7 @@ if __name__ == "__main__":
     histos["hDexit_vs_thetar"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf")
+    cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
@@ -500,10 +505,11 @@ if __name__ == "__main__":
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
-    cnv.SaveAs("cnv_dipole_window.pdf)")
+    cnv.SaveAs(f"{foupdfname})")
     
-    
-    fout = ROOT.TFile("cnv_dipole_window.root","RECREATE")
+    ### save as root file
+    foutrootname = tfilenamein.replace(".root",f"_dipole_window.root")
+    fout = ROOT.TFile(foutrootname,"RECREATE")
     fout.cd()
     for hname,hist in histos.items(): hist.Write()
     fout.Write()

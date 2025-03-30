@@ -35,22 +35,22 @@ class HoughSeeder:
         n1 = len(clusters[cfg["detectors"][1]])
         n2 = len(clusters[cfg["detectors"][2]])
         n3 = len(clusters[cfg["detectors"][3]])
-        n4 = len(clusters[cfg["detectors"][4]])
+        n4 = len(clusters[cfg["detectors"][4]]) if(len(cfg["detectors"])>4) else 0
         self.x0 = np.zeros(n0)
         self.x1 = np.zeros(n1)
         self.x2 = np.zeros(n2)
         self.x3 = np.zeros(n3)
-        self.x4 = np.zeros(n4)
+        self.x4 = np.zeros(n4) if(len(cfg["detectors"])>4) else None
         self.y0 = np.zeros(n0)
         self.y1 = np.zeros(n1)
         self.y2 = np.zeros(n2)
         self.y3 = np.zeros(n3)
-        self.y4 = np.zeros(n4)
+        self.y4 = np.zeros(n4) if(len(cfg["detectors"])>4) else None
         self.z0 = np.zeros(n0)
         self.z1 = np.zeros(n1)
         self.z2 = np.zeros(n2)
         self.z3 = np.zeros(n3)
-        self.z4 = np.zeros(n4)
+        self.z4 = np.zeros(n4) if(len(cfg["detectors"])>4) else None
         ### all the clusters together
         self.x = None
         self.y = None
@@ -90,7 +90,6 @@ class HoughSeeder:
             self.rho_y_scale   = cfg["seed_rhoy_scale_inf"]
         else: 
             sys.exit(f"In hough_seeder nclusters:{nclusters}>cls_mult_inf, not implemented. exitting")
-            
         self.thetamin_x = np.pi/2-self.theta_x_scale*np.pi/2.
         self.thetamax_x = np.pi/2+self.theta_x_scale*np.pi/2.
         self.thetamin_y = np.pi/2-self.theta_y_scale*np.pi/2.
@@ -108,7 +107,7 @@ class HoughSeeder:
         ### set the clusters
         self.set_clusters(clusters)
         self.zmin = self.z0[0]
-        self.zmax = self.z4[0]
+        self.zmax = self.z4[0] if(len(cfg["detectors"])>4) else self.z3[0]
         self.zmid = (self.zmax-self.zmin)/2.
         self.zmin = self.zmin-self.zmid
         self.zmax = self.zmax+self.zmid
@@ -172,13 +171,13 @@ class HoughSeeder:
                     self.x3[i] = c.xmm
                     self.y3[i] = c.ymm
                     self.z3[i] = c.zmm
-                if(det=="ALPIDE_4"):
+                if(det=="ALPIDE_4" and len(cfg["detectors"])>4):
                     self.x4[i] = c.xmm
                     self.y4[i] = c.ymm
                     self.z4[i] = c.zmm
-        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3,self.x4),axis=0)
-        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3,self.y4),axis=0)
-        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3,self.z4),axis=0)
+        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3,self.x4),axis=0) if(len(cfg["detectors"])>4) else np.concatenate((self.x0,self.x1,self.x2,self.x3),axis=0)
+        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3,self.y4),axis=0) if(len(cfg["detectors"])>4) else np.concatenate((self.y0,self.y1,self.y2,self.y3),axis=0)
+        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3,self.z4),axis=0) if(len(cfg["detectors"])>4) else np.concatenate((self.z0,self.z1,self.z2,self.z3),axis=0)
 
     def set_function(self,name,z,k,thetamin,thetamax):
         ### rho = k*sin(theta) + z*cos(theta)
@@ -220,23 +219,24 @@ class HoughSeeder:
         return mindiff,theta,rho
 
     def get_detpair(self,CA,CB):
-        if(CA.DID==0 and CB.DID==1): return 0
-        if(CA.DID==0 and CB.DID==2): return 1
-        if(CA.DID==0 and CB.DID==3): return 2
-        if(CA.DID==0 and CB.DID==4): return 3
-        if(CA.DID==1 and CB.DID==2): return 4
-        if(CA.DID==1 and CB.DID==3): return 5
-        if(CA.DID==1 and CB.DID==4): return 6
-        if(CA.DID==2 and CB.DID==3): return 7
-        if(CA.DID==2 and CB.DID==4): return 8
-        if(CA.DID==3 and CB.DID==4): return 9
-        
-        # if(CA.DID==0 and CB.DID==1): return 0
-        # if(CA.DID==0 and CB.DID==2): return 1
-        # if(CA.DID==0 and CB.DID==3): return 2
-        # if(CA.DID==1 and CB.DID==2): return 3
-        # if(CA.DID==1 and CB.DID==3): return 4
-        # if(CA.DID==2 and CB.DID==3): return 5
+        if(len(cfg["detectors"])>4):
+            if(CA.DID==0 and CB.DID==1): return 0
+            if(CA.DID==0 and CB.DID==2): return 1
+            if(CA.DID==0 and CB.DID==3): return 2
+            if(CA.DID==0 and CB.DID==4): return 3
+            if(CA.DID==1 and CB.DID==2): return 4
+            if(CA.DID==1 and CB.DID==3): return 5
+            if(CA.DID==1 and CB.DID==4): return 6
+            if(CA.DID==2 and CB.DID==3): return 7
+            if(CA.DID==2 and CB.DID==4): return 8
+            if(CA.DID==3 and CB.DID==4): return 9
+        else:
+            if(CA.DID==0 and CB.DID==1): return 0
+            if(CA.DID==0 and CB.DID==2): return 1
+            if(CA.DID==0 and CB.DID==3): return 2
+            if(CA.DID==1 and CB.DID==2): return 3
+            if(CA.DID==1 and CB.DID==3): return 4
+            if(CA.DID==2 and CB.DID==3): return 5
         
         print(f"unknown combination for CA.DID={CA.DID} and CB.DID={CB.DID} - quitting.")
         quit()
@@ -291,27 +291,28 @@ class HoughSeeder:
         for c0 in clusters["ALPIDE_0"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c0,c3)
-        for c0 in clusters["ALPIDE_0"]:
-            for c4 in clusters["ALPIDE_4"]:
-                self.get_pair(c0,c4)
         for c1 in clusters["ALPIDE_1"]:
             for c2 in clusters["ALPIDE_2"]:
                 self.get_pair(c1,c2)
         for c1 in clusters["ALPIDE_1"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c1,c3)
-        for c1 in clusters["ALPIDE_1"]:
-            for c4 in clusters["ALPIDE_4"]:
-                self.get_pair(c1,c4)
         for c2 in clusters["ALPIDE_2"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c2,c3)
-        for c2 in clusters["ALPIDE_2"]:
-            for c4 in clusters["ALPIDE_4"]:
-                self.get_pair(c2,c4)
-        for c3 in clusters["ALPIDE_3"]:
-            for c4 in clusters["ALPIDE_4"]:
-                self.get_pair(c3,c4)
+        if(len(cfg["detectors"])>4):
+            for c0 in clusters["ALPIDE_0"]:
+                for c4 in clusters["ALPIDE_4"]:
+                    self.get_pair(c0,c4)
+            for c1 in clusters["ALPIDE_1"]:
+                for c4 in clusters["ALPIDE_4"]:
+                    self.get_pair(c1,c4)
+            for c2 in clusters["ALPIDE_2"]:
+                for c4 in clusters["ALPIDE_4"]:
+                    self.get_pair(c2,c4)
+            for c3 in clusters["ALPIDE_3"]:
+                for c4 in clusters["ALPIDE_4"]:
+                    self.get_pair(c3,c4)
         print(f"ievt={self.eventid}: Finished pair search")
         
     
@@ -375,20 +376,24 @@ class HoughSeeder:
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
         det3 = cfg["detectors"][3]
-        det4 = cfg["detectors"][4]
+        det4 = cfg["detectors"][4] if(len(cfg["detectors"])>4) else ""
         for itnl,tunnel in enumerate(self.tunnels):
             candidate = []
             n0 = len(tunnel[det0])
             n1 = len(tunnel[det1])
             n2 = len(tunnel[det2])
             n3 = len(tunnel[det3])
-            n4 = len(tunnel[det4])
-            tunnel_nsseds[itnl] = n0*n1*n2*n3*n4
+            n4 = len(tunnel[det4]) if(len(cfg["detectors"])>4) else 0
+            tunnel_nsseds[itnl] = n0*n1*n2*n3*n4 if(len(cfg["detectors"])>4) else n0*n1*n2*n3
             for c0 in tunnel[det0]:
                 for c1 in tunnel[det1]:
                     for c2 in tunnel[det2]:
                         for c3 in tunnel[det3]:
-                            for c4 in tunnel[det4]:
-                                seeds.append( [c0,c1,c2,c3,c4] )
+                            if(len(cfg["detectors"])>4):
+                                for c4 in tunnel[det4]:
+                                    seeds.append( [c0,c1,c2,c3,c4] )
+                                    tnlid.append( itnl )
+                            else:
+                                seeds.append( [c0,c1,c2,c3] )
                                 tnlid.append( itnl )
         return tunnel_nsseds,tnlid,seeds

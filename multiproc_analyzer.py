@@ -272,7 +272,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         
         ### run the seeding
         seeder = HoughSeeder(clusters,ievt)
-        # #################
+        ###################
         
         nSeeds = seeder.nseeds
         histos["h_nSeeds"].Fill(nSeeds)

@@ -221,6 +221,8 @@ class Config:
         lastdet = self.map["detectors"][-1]
         self.add("det_frst", frstdet)
         self.add("det_last", lastdet)
+        planes = list(self.map["plane2det"].keys())
+        self.add("planes", planes)
         
         self.add("use_large_clserr_for_algnmnt", self.getB('ALIGNMENT','use_large_clserr_for_algnmnt'))
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
@@ -229,6 +231,9 @@ class Config:
         self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
         self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
         self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
+        self.add("alignmentmethod", self.getS('ALIGNMENT','alignmentmethod'))
+        self.add("alignmentwerr", self.getB('ALIGNMENT','alignmentwerr'))
+        self.add("alignmentmintrks", self.getI('ALIGNMENT','alignmentmintrks'))
         if(self.map["isMC"]):
             print("Ignoring misalignment for MC")
             for key1 in self.map["misalignment"]:

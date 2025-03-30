@@ -180,4 +180,8 @@ class Event:
         self.tracks = tracks
     def set_event_mcparticles(self,mcparticles):
         self.mcparticles = mcparticles
-    
+        
+class MinimalEvent:
+    def __init__(self,trigger,tracks):
+        self.trigger = trigger
+        self.tracks  = tracks

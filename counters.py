@@ -27,7 +27,7 @@ def set_global_counter(counter,idx,val):
     counters_y_val[counter][idx] = val
 
 
-def plot_counters():
+def plot_counters(foutpdfname):
     gmax = -1e10
     gmin = +1e10
     for i,counter in enumerate(COUNTERS):
@@ -106,7 +106,8 @@ def plot_counters():
     
     
     cnv.Update()
-    cnv.SaveAs("multiplicities_vs_triggers.pdf")
+    # cnv.SaveAs("multiplicities_vs_triggers.pdf")
+    cnv.SaveAs(f"{foutpdfname}")
     
     ctr = COUNTERS[-1]
     print(f"Avg+/-Std for {ctr}: {np.mean(counters_y_val[ctr])} +/- {np.std(counters_y_val[ctr])}")

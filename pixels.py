@@ -41,6 +41,7 @@ if(cfg["isMC"]):
 #         isactivestave = True
 #         for ichp in range(chips.size()):
 #             chipid   = chips[ichp].chip_id
+#             if(chipid not in cfg["planes"]): continue
 #             detector = cfg["plane2det"][chipid]
 #             nhits    = chips[ichp].hits.size()
 #             n_active_chips += (nhits>0)
@@ -78,6 +79,7 @@ def get_all_pixles(evt,hPixMatrix,ROI={}):
         isactivestave = True
         for ichp in range(chips.size()):
             chipid   = chips[ichp].chip_id
+            if(chipid not in cfg["planes"]): continue
             detector = cfg["plane2det"][chipid]
             nhits    = chips[ichp].hits.size()
             n_active_chips += (nhits>0)

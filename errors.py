@@ -25,6 +25,7 @@ def check_errors(evt):
         chips    = staves[istv].ch_ev_buffer
         for ichp in range(chips.size()):
             chipid   = chips[ichp].chip_id
+            if(chipid not in cfg["planes"]): continue
             detector = cfg["plane2det"][chipid]
             if( chips[ichp].is_busy_violation ):     errors[detector].append("BUSY_VIOLATION")
             if( chips[ichp].is_flushed_incomplete ): errors[detector].append("INCOMPLETE")
