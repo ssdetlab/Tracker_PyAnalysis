@@ -43,11 +43,7 @@ def calculateSVDchi2(points, errors, direction, centroid):
         xonline,yonline = xyofz(r1,r2,z[i])
         dx = xonline-x[i]
         dy = yonline-y[i]
-        err2 = (ex[i]**2 + ey[i]**2)
-        # chisq += (dx**2 + dy**2)/err2 if(err2>0) else 250.
-        chisq += (dx**2)/(ex[i]**2) + (dy**2)/(ex[i]**2) if(ex[i]>0 and ey[i]>0) else 250.
-        # chisq += (dx*dx/(ex[i]*ex[i])+dy*dy/(ey[i]*ey[i]))
-        # chisq += (dx*dx + dy*dy)
+        chisq += (dx/ex[i])**2 + (dy/ex[i])**2 if(ex[i]>0 and ey[i]>0) else 1e10
     return chisq,ndof
 
 

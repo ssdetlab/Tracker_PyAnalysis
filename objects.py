@@ -34,8 +34,8 @@ class Cls:
         self.x,self.y,self.dx,self.dy,self.nx,self.ny = self.build(pixels) 
         self.dxmm = self.dx*cfg["pix_x"]
         self.dymm = self.dy*cfg["pix_y"]
-        self.xsizemm = self.nx*cfg["pix_x"]
-        self.ysizemm = self.ny*cfg["pix_y"]
+        self.xsizemm = self.nx*cfg["pix_x"]/2.
+        self.ysizemm = self.ny*cfg["pix_y"]/2.
         self.xmm0 = self.x*cfg["pix_x"]-cfg["chipX"]/2. ### original x (with misalignment)
         self.ymm0 = self.y*cfg["pix_y"]-cfg["chipY"]/2. ### original y (with misalignment)
         self.xmm,self.ymm = align(det,self.xmm0,self.ymm0) ### aligned x,y
@@ -143,7 +143,7 @@ class Track:
             if(cl.n>maxcls): maxcls = cl.n
         return maxcls
     def __str__(self):
-        return f"Track: "
+        return f"Track: chisq={self.chisq}, ndof={self.ndof}, chi2ndof={self.chi2ndof}"
 
 class Meta:
     def __init__(self,run,start,end,dur):
@@ -155,25 +155,31 @@ class Meta:
         return f"Meta: "
 
 class Event:
-    def __init__(self,meta,trigger,timestamp_bgn,timestamp_end):
-        self.meta        = meta
-        self.trigger     = trigger
+    def __init__(self,meta,trigger,timestamp_bgn,timestamp_end,saveprimitive=True):
+        self.saveprimitive = saveprimitive
+        self.meta          = meta
+        self.trigger       = trigger
         self.timestamp_bgn = timestamp_bgn
         self.timestamp_end = timestamp_end
-        self.errors      = {}
-        self.pixels      = {}
-        self.clusters    = {}
-        self.seeds       = []
-        self.tracks      = []
-        self.mcparticles = []
+        self.errors        = {}
+        self.pixels        = {}
+        self.npixels       = {}
+        self.clusters      = {}
+        self.nclusters     = {}
+        self.seeds         = []
+        self.tracks        = []
+        self.mcparticles   = []
+        self.misalignment  = cfg["misalignment"]
     def __str__(self):
         return f"Event: meta={self.meta}"
     def set_event_errors(self,errors):
         self.errors = errors
     def set_event_pixels(self,pixels):
-        self.pixels = pixels.copy()
+        for det in cfg["detectors"]: self.npixels.update({det:len(pixels[det])})
+        self.pixels = pixels.copy() if(self.saveprimitive) else {}
     def set_event_clusters(self,clusters):
-        self.clusters = clusters
+        for det in cfg["detectors"]: self.nclusters.update({det:len(clusters[det])})
+        self.clusters = clusters if(self.saveprimitive) else {}
     def set_event_seeds(self,seeds):
         self.seeds = seeds
     def set_event_tracks(self,tracks):

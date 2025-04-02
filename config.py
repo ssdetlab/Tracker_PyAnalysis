@@ -121,6 +121,7 @@ class Config:
         self.add("doVtx", self.getB('RUN','doVtx'))
         self.add("runtype", self.getS('RUN','runtype'))
         self.add("skiptracking", self.getB('RUN','skiptracking'))
+        self.add("saveprimitive", self.getB('RUN','saveprimitive'))
         hfilesufx = "_multiprocess_histograms"
         if(self.map["skiptracking"]): hfilesufx += "_notrk"
         self.add("hfilesufx", hfilesufx)

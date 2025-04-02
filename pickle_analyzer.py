@@ -47,6 +47,14 @@ import counters
 from counters import *
 import selections
 from selections import *
+import candidate
+from candidate import *
+import svd_fit
+from svd_fit import *
+import chi2_fit
+from chi2_fit import *
+import hists
+from hists import *
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
@@ -64,12 +72,66 @@ B  = cfg["fDipoleTesla"]
 LB = cfg["zDipoleLenghMeters"]
 mm2m = 1e-3
 
+
+def refit(track):
+    nonzeromisalignment = False
+    for key1 in cfg["misalignment"]:
+        for key2 in cfg["misalignment"][key1]:
+            if(cfg["misalignment"][key1][key2]!=0): 
+                nonzeromisalignment = True
+                break
+        if(nonzeromisalignment): break
+    
+    clusters = track.trkcls
+    seed_x = {}
+    seed_y = {}
+    seed_z = {}
+    seed_dx = {}
+    seed_dy = {}
+    for det in cfg["detectors"]:
+        if(nonzeromisalignment):
+            clusters[det].xmm,clusters[det].ymm = align(det,clusters[det].xmm,clusters[det].ymm)
+        seed_x.update({  det : clusters[det].xmm  })
+        seed_y.update({  det : clusters[det].ymm  })
+        seed_z.update({  det : clusters[det].zmm  })
+        seed_dx.update({ det : clusters[det].xsizemm if(cfg["use_large_clserr_for_algnmnt"]) else clusters[det].dxmm })
+        seed_dy.update({ det : clusters[det].ysizemm if(cfg["use_large_clserr_for_algnmnt"]) else clusters[det].dymm })
+
+    vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
+    evtx = [cfg["exVtx"],cfg["eyVtx"],cfg["ezVtx"]] if(cfg["doVtx"]) else []
+
+    points_SVD, errors_SVD  = SVD_candidate(seed_x,seed_y,seed_z,seed_dx,seed_dy,vtx,evtx)
+    points_Chi2,errors_Chi2 = Chi2_candidate(seed_x,seed_y,seed_z,seed_dx,seed_dy,vtx,evtx)
+    
+    chisq     = None
+    ndof      = None
+    direction = None
+    centroid  = None
+    params    = None
+    success   = None
+    
+    ### svd fit
+    if("SVD" in cfg["fit_method"]):
+        chisq,ndof,direction,centroid = fit_3d_SVD(points_SVD,errors_SVD)
+        params = get_pars_from_centroid_and_direction(centroid,direction)
+        success = True
+    ### chi2 fit
+    if("CHI2" in cfg["fit_method"]):
+        chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2,par_guess)
+    
+    ### set the track
+    track = Track(clusters,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success)
+    return track
+
+
 if __name__ == "__main__":
     # get the start time
     st = time.time()
     
+    
     # print config once
     show_config()
+    
     
     ### get all the files
     tfilenamein = ""
@@ -82,6 +144,12 @@ if __name__ == "__main__":
     files = [fx for fx in files if '_BadTriggers' not in fx]
     for f in files: print(f)
     
+    
+    # ### histos
+    # tfoname = tfilenamein.replace(".root",f'_hist_from_pkl.root')
+    # tfo = ROOT.TFile(tfoname,"RECREATE")
+
+    
     ### counters
     init_global_counters()
     Ndet = len(cfg["detectors"])
@@ -90,6 +158,9 @@ if __name__ == "__main__":
     
     ### some histos
     histos = {}
+    histos.update({ "hChi2DoF_before_alignment": ROOT.TH1D("hChi2DoF_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
+    histos.update({ "hChi2DoF_after_alignment": ROOT.TH1D("hChi2DoF_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
+    
     histos.update({ "hPf_vs_dExit":    ROOT.TH2D("hPf_vs_dExit",";d_{exit} [mm];p(#theta(fit)) [GeV];Tracks",50,0,+35, 50,0,10) })
     histos.update({ "hPd_vs_dExit":    ROOT.TH2D("hPd_vs_dExit",";d_{exit} [mm];p(#theta(d_{exit}) [GeV];Tracks",50,0,+35, 50,0,10) })
     histos.update({ "hPr_vs_dExit":    ROOT.TH2D("hPr_vs_dExit",";d_{exit} [mm];p(#theta(r) [GeV];Tracks",50,0,+35, 50,0,10) })
@@ -173,26 +244,31 @@ if __name__ == "__main__":
                 if(nErrors>0): continue
                 
                 ### check pixels
-                if(len(event.pixels)!=len(cfg["detectors"])): continue
+                # if(len(event.pixels)!=len(cfg["detectors"])): continue
+                if(len(event.npixels)!=len(cfg["detectors"])): continue
                 n_pixels = 0
                 pass_pixels = True
                 for det in cfg["detectors"]:
-                    npix = len( event.pixels[det] )
+                    #npix = len( event.pixels[det] )
+                    npix = event.npixels[det]
                     if(npix==0): pass_pixels = False
                     n_pixels += npix
                 set_global_counter("Pixels/chip",icounter,n_pixels/Ndet)
                 if(not pass_pixels): continue
 
                 ### check clusters
-                if(len(event.clusters)!=len(cfg["detectors"])): continue
+                # if(len(event.clusters)!=len(cfg["detectors"])): continue
+                if(len(event.nclusters)!=len(cfg["detectors"])): continue
                 n_clusters = 0
                 pass_clusters = True
                 for det in cfg["detectors"]:
-                    ncls = len(event.clusters[det])
+                    # ncls = len(event.clusters[det])
+                    ncls = event.nclusters[det]
                     if(ncls==0): pass_clusters = False
                     n_clusters += ncls
                 set_global_counter("Clusters/chip",icounter,n_clusters/Ndet)
                 if(not pass_clusters): continue
+
                 ### check seeds
                 n_seeds = len(event.seeds)
                 set_global_counter("Track Seeds",icounter,n_seeds)
@@ -206,6 +282,12 @@ if __name__ == "__main__":
                 acceptance_tracks = []
                 print(f"I see {len(event.tracks)} tracks in event {nevents-1}")
                 for track in event.tracks:
+                    
+                    
+                    histos["hChi2DoF_before_alignment"].Fill(track.chi2ndof)
+                    new_track = refit(track)
+                    histos["hChi2DoF_after_alignment"].Fill(new_track.chi2ndof)
+                    
                     
                     # print(f"maxcls={track.maxcls}, track.chi2ndof={track.chi2ndof}")
                     
@@ -297,7 +379,7 @@ if __name__ == "__main__":
     print(f"Events:{nevents}, Tracks:{ntracks}")                
     
     ### plot the counters
-    fmultpdfname =  = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
+    fmultpdfname = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
     plot_counters(fmultpdfname)
 
 
@@ -504,6 +586,16 @@ if __name__ == "__main__":
     histos["hThetar_vs_thetaf"].Draw("colz")
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
+    histos["hChi2DoF_before_alignment"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_after_alignment"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_before_alignment"].Draw("hist")
+    histos["hChi2DoF_after_alignment"].Draw("hist same")
+    cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname})")
     

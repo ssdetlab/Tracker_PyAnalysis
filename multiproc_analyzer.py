@@ -90,6 +90,7 @@ if(cfg["isMC"]):
 ### defined below as global
 allhistos = {}
 
+
 def dump_pixels(fpklname,pixels):
     fpkl = open(fpklname,"wb")
     data = {}
@@ -101,18 +102,22 @@ def dump_pixels(fpklname,pixels):
     pickle.dump(data, fpkl, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
     fpkl.close()
 
+
 def GetTree(tfilename):
     tfile = ROOT.TFile(tfilename,"READ")
     ttree = tfile.Get("MyTree")
     nevents = ttree.GetEntries()
     return tfile,ttree,nevents
 
+
 def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
     lock = mp.Lock()
     lock.acquire()
     
+    
     ### important
     sufx = "_"+str(irange)
+    
     
     ### the metadata:
     tfmeta = ROOT.TFile(tfilenamein,"READ")
@@ -138,10 +143,12 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
     meta = Meta(runnumber,starttime,endtime,duration)
     # tfmeta.Close()
     
+    
     ### open the pickle:
     if(not cfg["skiptracking"]):
         picklename = tfilenamein.replace(".root","_"+str(irange)+".pkl")
         fpickle = open(os.path.expanduser(picklename),"wb")
+    
     
     ### histos
     tfoname = tfilenamein.replace(".root",f'{cfg["hfilesufx"]}{sufx}.root')
@@ -152,12 +159,15 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         hist.SetName(name+sufx)
         hist.SetDirectory(0)
     
+    
     ### get the tree
     tfile,ttree,neventsall = GetTree(tfilenamein)
     # truth_tree = tfile.Get("MCParticle") if(cfg["isCVRroot"]) else None
     
+    
     ### needed below
     hPixMatix = GetPixMatrix()
+    
     
     ### start the event loop
     ievt_start = evt_range[0]
@@ -172,17 +182,21 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         timestamp_begin = ttree.event.ts_begin
         timestamp_end   = ttree.event.ts_end
 
+
         ### append the envent no-matter-what:
-        eventslist.append( Event(meta,trigger,timestamp_begin,timestamp_end) )
+        eventslist.append( Event(meta,trigger,timestamp_begin,timestamp_end,saveprimitive=cfg["saveprimitive"]) )
+
 
         ### all events...
         histos["h_events"].Fill(0.5)
         histos["h_cutflow"].Fill( cfg["cuts"].index("All") )
 
+
         ### skip bad triggers...
         if(not cfg["isMC"] and cfg["runtype"]=="beam"):
             if(int(trigger) in badtrigs): continue
         histos["h_cutflow"].Fill( cfg["cuts"].index("BeamQC") )
+
         
         ### check event errors
         nerrors,errors = check_errors(ttree)
@@ -205,6 +219,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         #         xtru,ytru,ztru = getTruPos(det,mcparticles,cfg["pdgIdMatch"])
         #         histos["h_tru_3D"].Fill( xtru,ytru,ztru )
         #         histos["h_tru_occ_2D_"+det].Fill( xtru,ytru )
+
 
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix)

@@ -331,7 +331,7 @@ def fill_trk2cls_response(points,errors,direction,centroid,nxs,nys,trkchi2dof,hn
         histos[hname+"_y_vs_csize_"+det].Fill(ysize,resy)
 
 
-def fill_trk2cls_residuals(points,direction,centroid,trkchi2dof,hname,histos,chi2threshold=1.):
+def fill_trk2cls_residuals(points,direction,centroid,trkchi2dof,hname,histos,chi2threshold=1e10):
     for det in cfg["detectors"]:
         if(trkchi2dof>chi2threshold): continue
         dx,dy = res_track2cluster(det,points,direction,centroid)
