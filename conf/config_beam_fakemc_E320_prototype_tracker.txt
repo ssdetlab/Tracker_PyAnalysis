@@ -1,57 +1,24 @@
 [RUN]
-isMC           = 0
+isMC           = 1
+isFakeMC       = 1
 doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
 skiptracking   = 0
 saveprimitive  = 0
 
-### run490 foil-in allin, focused
-# first2process  = 0
-### run494 (foil-in allin, defocused):
-# first2process  = 2000
-### run496 (foil-in slightly, defocused):
-# first2process  = 0
-### run501 (beam-only):
-# first2process  = 0
-### run502 (beam, bewin-in):
-first2process = 0
-### beam-only, focusing on foil, 6h-long
-# first2process = 0
+### run001 fake particles
+first2process  = 0
 
-### run490 foil-in allin, focused
-# nmax2process = 10
-### run494 (foil-in allin, defocused):
-# nmax2process = 2000
-### run496 (foil-in slightly, defocused):
-# nmax2process = 2000
-### run501 (beam-only, bewin-out):
-# nmax2process = 100000
-### run502 (beam, bewin-in):
-nmax2process = 0
-### beam-only, focusing on foil, 6h-long
-# nmax2process = 0
-
-
+### run001 fake particles
+nmax2process = 10000
 
 nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
 
-### foil-in allin, focused
-# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
-### foil-in allin defocused
-# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run494.root
-### foil-in slightly, defocused
-# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run496.root
-### beam-only, short run
-# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
-### Be window, focus on window
-inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
-### beam-only, focusing on foil, 6h-long
-# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
-
-
+### fake particles
+inputfile = test_data/e320_prototype_fakemc/runs/tree_FakeParticles_particlegun_run_Run001.root
 
 [MULTIRUN]
 runnums = 255
@@ -133,7 +100,7 @@ lut_widthy_inf = 0.1
 
 [CUTS]
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 1000
+cut_chi2dof = 5
 cut_maxcls  = 10
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
@@ -152,7 +119,7 @@ use_large_clserr_for_algnmnt = 1
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
 minchi2align  = 0.01
-maxchi2align  = 1000
+maxchi2align  = 5
 axes2align    = xytheta
 naligniter    = 200
 # alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05
@@ -242,8 +209,8 @@ yDipoleExitMax     = +34.927
 ### thetax/y are the angles in degrees ARROUND the x/y axis in real space, such that
 ### thetax rotates the blob up/down vertically and thetay rotates the blob horizontally.
 ### these are "found" from the dipole exit and energy analysis
-thetax = 0.6
-thetay = 0.25
+thetax = 0.0
+thetay = 0.0
 ### thetaz is just the transformation to real space.
 thetaz = +90.
 xOffset = 0.

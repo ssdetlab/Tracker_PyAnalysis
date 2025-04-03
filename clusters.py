@@ -109,6 +109,27 @@ def BFS_Clustering(cluster_pixels, pivot, pixels_dict):
                 if neighbor in pixels_dict:
                     queue.append(neighbor)
 
+# def BFS_GetAllClusters(pixels,det):
+#     clusters = []
+#     # Create a dictionary for fast pixel lookups
+#     pixels_dict = {(pixel.x, pixel.y): pixel for pixel in pixels}
+#     CID = 0
+#     while pixels_dict:
+#         # Start with an arbitrary pixel from the dictionary as the pivot
+#         pivot = next(iter(pixels_dict))
+#         cluster_pixels = []
+#         # Find all pixels connected to pivot using BFS
+#         BFS_Clustering(cluster_pixels, pivot, pixels_dict)
+#         # Convert back to Pixel objects for Cls if needed
+#         cluster_pixels = [pixels_dict.get((x,y), Hit(det,x,y)) for x,y in cluster_pixels]
+#         # Create and add the cluster to the clusters list
+#         cluster = Cls(det,cluster_pixels,CID)
+#         CID += 1
+#         clusters.append(cluster)
+#         print(f"in BFS: xFake={cluster_pixels[0].xFake}, yFake={cluster_pixels[0].yFake}")
+#         print(f"in BFS: x={cluster.xmm}, y={cluster.ymm}")
+#     return clusters
+
 def BFS_GetAllClusters(pixels,det):
     clusters = []
     # Create a dictionary for fast pixel lookups
@@ -117,13 +138,18 @@ def BFS_GetAllClusters(pixels,det):
     while pixels_dict:
         # Start with an arbitrary pixel from the dictionary as the pivot
         pivot = next(iter(pixels_dict))
+        pivot_pix = pixels_dict[pivot]
         cluster_pixels = []
         # Find all pixels connected to pivot using BFS
         BFS_Clustering(cluster_pixels, pivot, pixels_dict)
         # Convert back to Pixel objects for Cls if needed
         cluster_pixels = [pixels_dict.get((x,y), Hit(det,x,y)) for x,y in cluster_pixels]
+        if(len(cluster_pixels)==1 and cfg["isFakeMC"]):
+            cluster_pixels = [pivot_pix]
         # Create and add the cluster to the clusters list
         cluster = Cls(det,cluster_pixels,CID)
+        # print(f"in BFS: xFake={cluster_pixels[0].xFake}, yFake={cluster_pixels[0].yFake}")
+        # print(f"in BFS: x={cluster.xmm}, y={cluster.ymm}")
         CID += 1
         clusters.append(cluster)
     return clusters

@@ -14,13 +14,15 @@ _s12_  = math.sqrt(12.)
 _1s12_ = 1./_s12_
 
 class Hit:
-    def __init__(self,det,x,y,q=-1):
+    def __init__(self,det,x,y,q=-1,xFake=0,yFake=0):
         self.x = x
         self.y = y
         self.q = q
         self.xmm = self.x*cfg["pix_x"]-cfg["chipX"]/2.
         self.ymm = self.y*cfg["pix_y"]-cfg["chipY"]/2.
         self.zmm = cfg["rdetectors"][det][2]
+        self.xFake = xFake
+        self.yFake = yFake
     def __str__(self):
         return f"Pixel: x={self.x}, y={self.y}, q={self.q}, r=({self.xmm,self.ymm,self.zmm}) [mm]"
 
@@ -38,6 +40,9 @@ class Cls:
         self.ysizemm = self.ny*cfg["pix_y"]/2.
         self.xmm0 = self.x*cfg["pix_x"]-cfg["chipX"]/2. ### original x (with misalignment)
         self.ymm0 = self.y*cfg["pix_y"]-cfg["chipY"]/2. ### original y (with misalignment)
+        if(cfg["isFakeMC"]):
+            self.xmm0 = pixels[0].xFake 
+            self.ymm0 = pixels[0].yFake
         self.xmm,self.ymm = align(det,self.xmm0,self.ymm0) ### aligned x,y
         self.zmm  = cfg["rdetectors"][det][2]
         ### add known offset in x-y if any
@@ -74,8 +79,6 @@ class Cls:
         mu_y2 = mu_y2/self.n
         varx  = mu_x2-mu_x**2
         vary  = mu_y2-mu_y**2
-        # se_x  = 0.7*_1s12_/math.sqrt(self.n)
-        # se_y  = 0.7*_1s12_/math.sqrt(self.n)
         se_x  = _1s12_/math.sqrt(self.n)
         se_y  = _1s12_/math.sqrt(self.n)
         return mu_x,mu_y,se_x,se_y,nx,ny

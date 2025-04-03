@@ -75,7 +75,7 @@ ROOT.gStyle.SetOptFit(0)
 if(cfg["isMC"]):
     # print("Building the classes for MC")
     ### declare the data tree and its classes
-    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; };" )
+    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xFake; Float_t yFake; };" )
     ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
     ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
     ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
@@ -279,10 +279,17 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
 
-
         #####################################
         if(cfg["skiptracking"]): continue ###
         #####################################
+        
+        # for det in cfg["detectors"]:
+        #     for pixel in pixels_save[det]:
+        #         print(f"{det} pixels xFake={pixel.xFake}, yFake={pixel.yFake}")
+        #
+        # for det in cfg["detectors"]:
+        #     for cluster in clusters[det]:
+        #         print(f"{det}: cluster x={cluster.xmm}, y={cluster.ymm}")
 
         
         ### run the seeding
@@ -469,8 +476,11 @@ if __name__ == "__main__":
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
     fpkltrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
-    fpkltrigger = open(fpkltrgname,'rb')
-    badtriggers = pickle.load(fpkltrigger)
+    badtriggers = []
+    if(not cfg["isMC"]):
+        fpkltrigger = open(fpkltrgname,'rb')
+        badtriggers = pickle.load(fpkltrigger)
+        fpkltrigger.close()
     print(f"Found {len(badtriggers)} bad triggers")
     
     masked = {}

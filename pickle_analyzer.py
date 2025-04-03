@@ -238,10 +238,11 @@ if __name__ == "__main__":
                 icounter = len(counters_x_trg)-1
                 
                 ### check errors
-                if(len(event.errors)!=len(cfg["detectors"])): continue
-                nErrors = 0
-                for det in cfg["detectors"]: nErrors += len(event.errors[det])
-                if(nErrors>0): continue
+                if(not cfg["isMC"]):
+                    if(len(event.errors)!=len(cfg["detectors"])): continue
+                    nErrors = 0
+                    for det in cfg["detectors"]: nErrors += len(event.errors[det])
+                    if(nErrors>0): continue
                 
                 ### check pixels
                 # if(len(event.pixels)!=len(cfg["detectors"])): continue

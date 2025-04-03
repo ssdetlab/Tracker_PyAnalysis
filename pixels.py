@@ -14,7 +14,7 @@ from objects import *
 if(cfg["isMC"]):
     # print("Building the classes for MC")
     ### declare the data tree and its classes
-    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; };" )
+    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xFake; Float_t yFake; };" )
     ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
     ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
     ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
@@ -43,13 +43,22 @@ def get_all_pixles(evt,hPixMatrix,ROI={}):
             for ipix in range(nhits):
                 ix = -1
                 iy = -1
+                xFake = 0
+                yFake = 0
                 if(not cfg["isMC"]):
                     ### EUDAQ
                     ix,iy = chips[ichp].hits[ipix]
-                else:
+                elif(cfg["isMC"] and not cfg["isFakeMC"]):
                     ### AllPix converted to EUDAQ
                     ix = chips[ichp].hits[ipix].ix 
                     iy = chips[ichp].hits[ipix].iy
+                elif(cfg["isMC"] and cfg["isFakeMC"]):
+                    ### fake mc converted to EUDAQ
+                    ix = chips[ichp].hits[ipix].ix 
+                    iy = chips[ichp].hits[ipix].iy
+                    xFake = chips[ichp].hits[ipix].xFake
+                    yFake = chips[ichp].hits[ipix].yFake
+                    # print(f"ix={ix}, iy={iy},   xFake={xFake}, yFake={yFake}")
                     
                 if(len(ROI)>0):
                     if(("ix" in ROI) and (ix<ROI["ix"]["min"] or ix>ROI["ix"]["max"])): continue
@@ -59,6 +68,6 @@ def get_all_pixles(evt,hPixMatrix,ROI={}):
                 if(id2d not in ids2d[detector]):
                     ids2d[detector].append(id2d)
                     raws[detector].append(raw)
-                    pixels[detector].append( Hit(detector,ix,iy,raw) )
+                    pixels[detector].append( Hit(detector,ix,iy,raw) if(not cfg["isFakeMC"]) else Hit(detector,ix,iy,raw,xFake,yFake) )
             n_active_staves += (isactivestave)
     return n_active_staves,n_active_chips,pixels

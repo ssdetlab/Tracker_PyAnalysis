@@ -118,6 +118,7 @@ class Config:
         self.read(fname)
         ### set
         self.add("isMC", self.getB('RUN','isMC'))
+        self.add("isFakeMC", self.getB('RUN','isFakeMC'))
         self.add("doVtx", self.getB('RUN','doVtx'))
         self.add("runtype", self.getS('RUN','runtype'))
         self.add("skiptracking", self.getB('RUN','skiptracking'))
@@ -224,6 +225,9 @@ class Config:
         self.add("det_last", lastdet)
         planes = list(self.map["plane2det"].keys())
         self.add("planes", planes)
+        det2plane = {}
+        for plane,det in self.map["plane2det"].items(): det2plane.update({det:plane})
+        self.add("det2plane", det2plane)
         
         self.add("use_large_clserr_for_algnmnt", self.getB('ALIGNMENT','use_large_clserr_for_algnmnt'))
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))

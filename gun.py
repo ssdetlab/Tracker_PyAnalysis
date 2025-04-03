@@ -20,7 +20,7 @@ configfile = argus.conf
 import config
 from config import *
 ### must be called here (first) and only once!
-init_config(configfile,False)
+# init_config(configfile,False)
 
 import objects
 from objects import *
@@ -61,18 +61,20 @@ class ParticleGun:
     def get_slopes(self):
         xz = self.rnd.Uniform(self.slopes["xz"][0],self.slopes["xz"][1])
         yz = self.rnd.Uniform(self.slopes["yz"][0],self.slopes["yz"][1])
+        # midxz = self.slopes["xz"][0] + (self.slopes["xz"][1]-self.slopes["xz"][0])/2.
+        # midyz = self.slopes["yz"][0] + (self.slopes["yz"][1]-self.slopes["yz"][0])/2.
+        # xz = self.rnd.Gaus(midxz,10)
+        # yz = self.rnd.Gaus(midxz,10)
         return [xz,yz]
     
     def get_vertex(self):
         vz = self.vtxsurf["z"]
-        # vx = self.rnd.Uniform(self.vtxsurf["x"][0],self.vtxsurf["x"][1])
-        # vy = self.rnd.Uniform(self.vtxsurf["y"][0],self.vtxsurf["y"][1])
         Rx = (self.vtxsurf["x"][1]-self.vtxsurf["x"][0])/2.
         Ry = (self.vtxsurf["y"][1]-self.vtxsurf["y"][0])/2.
         ctrx = self.vtxsurf["x"][0] + Rx
         ctry = self.vtxsurf["y"][0] + Ry
-        vx = ctrx+self.rnd.Gaus(0,Rx/10)
-        vy = ctry+self.rnd.Gaus(0,Ry/4)
+        vx = ctrx+self.rnd.Gaus(0,Rx/2)
+        vy = ctry+self.rnd.Gaus(-1*vx,Ry/4)
         return [vx,vy,vz]
         
     def get_intercepts(self,vertex,slopes):
@@ -154,7 +156,7 @@ if __name__ == "__main__":
     # print config once
     show_config()
     
-    vtxsurf = {"x":[-21,+21], "y":[0,38], "z":cfg["zDipoleExit"]}
+    vtxsurf = {"x":[-21,+21], "y":[0,30], "z":cfg["zDipoleExit"]}
     slopes  = {"xz":[-5e-3,+5e-3], "yz":[1e-2,3e-2]}
     Ngen = 10000
     

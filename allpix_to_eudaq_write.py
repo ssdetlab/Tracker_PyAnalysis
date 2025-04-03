@@ -14,7 +14,7 @@ def transform(ix,iy):
     return (1023-ix,511-iy)
 
 ### declare the data tree and its classes
-ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; };" )
+ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xFake; Float_t yFake; };" )
 ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
 ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
 ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
@@ -92,6 +92,8 @@ for Event,flist in event_list.items():
             ihit = event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.size()-1
             event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].ix = ix
             event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].iy = iy
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].xFake = 0
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].yFake = 0
     ### fill every event
     tOut.Fill()
 

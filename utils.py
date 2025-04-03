@@ -150,6 +150,20 @@ def transform_to_real_space(v):
     r[2] += cfg["zOffset"]
     return r
 
+def transform_to_chip_space(v):
+    Rz = [[math.cos(cfg["thetaz"]),math.sin(cfg["thetaz"]),0], [-math.sin(cfg["thetaz"]),math.cos(cfg["thetaz"]),0], [0,0,1]]
+    u  = [0,0,0]
+    ### remove the offsets of the real space position of the detector (this is not the alignment offests!)
+    u[0] = v[0]-cfg["xOffset"]
+    u[1] = v[1]-cfg["yOffset"]
+    u[2] = v[2]-cfg["zOffset"]
+    ### rotate x to y
+    r = [0,0,0]
+    r[0] = Rz[0][0]*u[0]+Rz[0][1]*u[1]+Rz[0][2]*u[2]
+    r[1] = Rz[1][0]*u[0]+Rz[1][1]*u[1]+Rz[1][2]*u[2]
+    r[2] = Rz[2][0]*u[0]+Rz[2][1]*u[1]+Rz[2][2]*u[2]
+    return r
+
 def tilt_in_real_space(v):
     Rx = [[1,0,0],[0,math.cos(cfg["thetax"]),-math.sin(cfg["thetax"])], [0,math.sin(cfg["thetax"]),math.cos(cfg["thetax"])]]
     Ry = [[math.cos(cfg["thetay"]),0,math.sin(cfg["thetay"])], [0,1,0], [-math.sin(cfg["thetay"]),0,math.cos(cfg["thetay"])]]
