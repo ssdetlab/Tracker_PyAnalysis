@@ -50,7 +50,7 @@ class LookupTable:
         self.chipXmax = +( (cfg["chipX"]+xalgnmax)*(1.+cfg["lut_scaleX"]) )/2.
         self.chipYmin = -( (cfg["chipY"]+yalgnmax)*(1.+cfg["lut_scaleY"]) )/2.
         self.chipYmax = +( (cfg["chipY"]+yalgnmax)*(1.+cfg["lut_scaleY"]) )/2.
-        # print(f"LUT: ncls={ncls}, xlim[{self.chipXmin:.3f},{self.chipXmax:.3f}], ylim[{self.chipYmin:.3f},{self.chipYmax:.3f}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
+        print(f"LUT: ncls={ncls}, xlim[{self.chipXmin:.3f},{self.chipXmax:.3f}], ylim[{self.chipYmin:.3f},{self.chipYmax:.3f}], nx={self.nbinsx}, ny={self.nbinsy}, tunnel_wx={self.tunnel_width_x}, tunnel_wy={self.tunnel_width_y}")
         ### call in the constructor:
         self.init_axs()
         self.init_lut()
@@ -81,14 +81,17 @@ class LookupTable:
     def fill_lut(self,clusters):
         for det in cfg["detectors"]:
             for clsidx,cluster in enumerate(clusters[det]):
+                bx = self.AXS[det].GetXaxis().FindBin(cluster.xmm)
+                by = self.AXS[det].GetYaxis().FindBin(cluster.ymm)
+                # print(f"In LUT: eventid={self.eventid}  {det}  --> cluster x={cluster.xmm}, y={cluster.ymm}  -->  bx={bx}, by={by}")
                 validx = (cluster.xmm>=self.chipXmin and cluster.xmm<self.chipXmax)
                 validy = (cluster.ymm>=self.chipYmin and cluster.ymm<self.chipYmax)
                 if(not validx or not validy):
                     print(f"in full_lut: validx={validx}, validy={validy} with x={cluster.xmm}, y={cluster.ymm}")
                     print("please increase the lut scale. quitting")
                     quit()
-                # print(f"{det}: cluster x={cluster.xmm}, y={cluster.ymm}")
                 axsbin = self.AXS[det].FindBin(cluster.xmm,cluster.ymm)
+                # print(f"In LUT: eventid={self.eventid}  {det}  -->  axsbin={axsbin}")
                 if(axsbin in self.LUT[det]): self.LUT[det][axsbin].append(clsidx)
                 else:                        self.LUT[det].update( {axsbin:[clsidx]} )
     
@@ -113,44 +116,98 @@ class LookupTable:
         # print(f"AK={AK}, BK={BK}, z={z} --> k={k}")
         return k
     
-    def clusters_in_tunnel(self,theta_x,rho_x,theta_y,rho_y):
-        # print(f"From bin centers: theta_x={theta_x}, rho_x={rho_x}, theta_y={theta_y}, rho_y={rho_y}")
-        tunnel = {}
-        planes = 0
-        AX,BX = self.get_par_lin(theta_x,rho_x)
-        AY,BY = self.get_par_lin(theta_y,rho_y)
-        # print(f"Ax={AX}, BX={BX}, Ax={AY}, BY={BY}")
-        for det in cfg["detectors"]:
+    # def clusters_in_tunnel(self,theta_x,rho_x,theta_y,rho_y):
+    #     print(f"clusters_in_tunnel: eventid={self.eventid}  -->  theta_x={theta_x}, rho_x={rho_x}, theta_y={theta_y}, rho_y={rho_y}")
+    #     tunnel = {}
+    #     planes = 0
+    #     AX,BX = self.get_par_lin(theta_x,rho_x)
+    #     AY,BY = self.get_par_lin(theta_y,rho_y)
+    #     print(f"clusters_in_tunnel: eventid={self.eventid}  -->  Ax={AX}, Bx={BX}, Ay={AY}, By={BY}")
+    #     for det in cfg["detectors"]:
+    #         zdet = cfg["rdetectors"][det][2]
+    #         XX = self.k_of_z(zdet,AX,BX)
+    #         YY = self.k_of_z(zdet,AY,BY)
+    #         print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det} prediction: x={XX}, y={YY}, z={zdet}")
+    #         xmin = XX-self.tunnel_width_x
+    #         xmax = XX+self.tunnel_width_x
+    #         ymin = YY-self.tunnel_width_y
+    #         ymax = YY+self.tunnel_width_y
+    #         xbinmin = self.AXS[det].GetXaxis().FindBin(xmin) if(xmin>=self.chipXmin) else 1
+    #         xbinmax = self.AXS[det].GetXaxis().FindBin(xmax) if(xmax<self.chipXmax)  else self.nbinsx
+    #         ybinmin = self.AXS[det].GetYaxis().FindBin(ymin) if(ymin>=self.chipYmin) else 1
+    #         ybinmax = self.AXS[det].GetYaxis().FindBin(ymax) if(ymax<self.chipYmax)  else self.nbinsy
+    #         ### add neighbour bins:
+    #         if(cfg["seed_allow_neigbours"]):
+    #             nNeigbourBinsX = 1 #if(abs(AX)>0.03) else int(5+2*cfg["detectors"].index(det))
+    #             nNeigbourBinsY = 1 #if(abs(AY)>0.03) else int(5+2*cfg["detectors"].index(det))
+    #             xbinmin = xbinmin-nNeigbourBinsX if(xbinmin-nNeigbourBinsX>0) else 1
+    #             xbinmax = xbinmax+nNeigbourBinsX if(xbinmax+nNeigbourBinsX<self.nbinsx+1) else self.nbinsx
+    #             ybinmin = ybinmin-nNeigbourBinsY if(ybinmin-nNeigbourBinsY>0) else 1
+    #             ybinmax = ybinmax+nNeigbourBinsY if(ybinmax+nNeigbourBinsY<self.nbinsy+1) else self.nbinsy
+    #         print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det}: xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}")
+    #         print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det} xbinmin/max={xbinmin,xbinmax}, ybinmin/max={ybinmin,ybinmax}")
+    #         clsidx_in_tnl = []
+    #         for bx in range(xbinmin,xbinmax+1):
+    #             for by in range(ybinmin,ybinmax+1):
+    #                 axsbin = self.AXS[det].GetBin(bx,by)
+    #                 # print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det}:  bx/y={bx,by}  axsbin={axsbin}")
+    #                 if(axsbin in self.LUT[det]):
+    #                     for c in self.LUT[det][axsbin]:
+    #                         clsidx_in_tnl.append(c)
+    #         tunnel.update( {det:clsidx_in_tnl} )
+    #         print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det}: tunnel={tunnel[det]}")
+    #         planes += (len(clsidx_in_tnl)>0)
+    #     valid = (planes==len(cfg["detectors"]))
+    #     return valid,tunnel
+
+    def get_edges_from_theta_rho_corners(self,det,theta_x,rho_x,theta_y,rho_y):
+        xmin = +1e20
+        xmax = -1e20
+        ymin = +1e20
+        ymax = -1e20
+        for i in range(2):
+            AX,BX = self.get_par_lin(theta_x[i],rho_x[i])
+            AY,BY = self.get_par_lin(theta_y[i],rho_y[i])
             zdet = cfg["rdetectors"][det][2]
             XX = self.k_of_z(zdet,AX,BX)
             YY = self.k_of_z(zdet,AY,BY)
-            # print(f"{det} prediction: x={XX}, y={YY}, z={zdet}")
-            xmin = XX-self.tunnel_width_x
-            xmax = XX+self.tunnel_width_x
-            ymin = YY-self.tunnel_width_y
-            ymax = YY+self.tunnel_width_y
+            # print(f"get_edges_from_theta_rho_corners cornere[i]: eventid={self.eventid}  -->  {det} prediction: x={XX}, y={YY}, z={zdet}")
+            xmin = XX if(XX<xmin) else xmin
+            xmax = XX if(XX>xmax) else xmax
+            ymin = YY if(YY<ymin) else ymin
+            ymax = YY if(YY>ymax) else ymax
+        xmin = xmin-self.tunnel_width_x
+        xmax = xmax+self.tunnel_width_x
+        ymin = ymin-self.tunnel_width_y
+        ymax = ymax+self.tunnel_width_y
+        return xmin,xmax,ymin,ymax
+
+    def clusters_in_tunnel(self,theta_x,rho_x,theta_y,rho_y):
+        # print(f"clusters_in_tunnel: eventid={self.eventid}  -->  theta_x={theta_x}, rho_x={rho_x}, theta_y={theta_y}, rho_y={rho_y}")
+        tunnel = {}
+        planes = 0
+        for det in cfg["detectors"]:
+            xmin,xmax,ymin,ymax = self.get_edges_from_theta_rho_corners(det,theta_x,rho_x,theta_y,rho_y)
             xbinmin = self.AXS[det].GetXaxis().FindBin(xmin) if(xmin>=self.chipXmin) else 1
             xbinmax = self.AXS[det].GetXaxis().FindBin(xmax) if(xmax<self.chipXmax)  else self.nbinsx
             ybinmin = self.AXS[det].GetYaxis().FindBin(ymin) if(ymin>=self.chipYmin) else 1
             ybinmax = self.AXS[det].GetYaxis().FindBin(ymax) if(ymax<self.chipYmax)  else self.nbinsy
-            ### add neighbour bins:
-            if(cfg["seed_allow_neigbours"]):
-                xbinmin = xbinmin-1 if(xbinmin>1)           else xbinmin
-                xbinmax = xbinmax+1 if(xbinmax<self.nbinsx) else xbinmax
-                ybinmin = ybinmin-1 if(ybinmin>1)           else ybinmin
-                ybinmax = ybinmax+1 if(ybinmax<self.nbinsy) else ybinmax
-            # print(f"{det}: xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}")
+            # print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det}: xmin={xmin}, xmax={xmax}, ymin={ymin}, ymax={ymax}")
+            # print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det} xbinmin/max={xbinmin,xbinmax}, ybinmin/max={ybinmin,ybinmax}")
             clsidx_in_tnl = []
             for bx in range(xbinmin,xbinmax+1):
                 for by in range(ybinmin,ybinmax+1):
                     axsbin = self.AXS[det].GetBin(bx,by)
+                    # print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det}:  bx/y={bx,by}  axsbin={axsbin}")
                     if(axsbin in self.LUT[det]):
                         for c in self.LUT[det][axsbin]:
                             clsidx_in_tnl.append(c)
             tunnel.update( {det:clsidx_in_tnl} )
+            # print(f"clusters_in_tunnel: eventid={self.eventid}  -->  {det}: tunnel={tunnel[det]}")
             planes += (len(clsidx_in_tnl)>0)
         valid = (planes==len(cfg["detectors"]))
         return valid,tunnel
+    
         
     def clear_all(self):
         del self.LUT

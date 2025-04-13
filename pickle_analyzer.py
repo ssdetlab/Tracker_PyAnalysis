@@ -159,22 +159,28 @@ if __name__ == "__main__":
     ### some histos
     histos = {}
     histos.update({ "hChi2DoF_before_alignment": ROOT.TH1D("hChi2DoF_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
-    histos.update({ "hChi2DoF_after_alignment": ROOT.TH1D("hChi2DoF_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
+    histos.update({ "hChi2DoF_after_alignment":  ROOT.TH1D("hChi2DoF_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     
-    histos.update({ "hPf_vs_dExit":    ROOT.TH2D("hPf_vs_dExit",";d_{exit} [mm];p(#theta(fit)) [GeV];Tracks",50,0,+35, 50,0,10) })
-    histos.update({ "hPd_vs_dExit":    ROOT.TH2D("hPd_vs_dExit",";d_{exit} [mm];p(#theta(d_{exit}) [GeV];Tracks",50,0,+35, 50,0,10) })
-    histos.update({ "hPr_vs_dExit":    ROOT.TH2D("hPr_vs_dExit",";d_{exit} [mm];p(#theta(r) [GeV];Tracks",50,0,+35, 50,0,10) })
-
-    histos.update({ "hPf_vs_thetaf":   ROOT.TH2D("hPf_vs_thetaf",";#theta_{yz}(fit) [rad];p(#theta(fit)) [GeV];Tracks",50,0,0.05, 50,0,10) })
-    histos.update({ "hPd_vs_thetad":   ROOT.TH2D("hPd_vs_thetad",";#theta_{yz}(d_{exit}) [rad];p(#theta(d_{exit})) [GeV];Tracks",50,0,0.05, 50,0,10) })
-    histos.update({ "hPr_vs_thetar":   ROOT.TH2D("hPr_vs_thetar",";#theta_{yz}(r) [rad];p(#theta(r)) [GeV];Tracks",50,0,0.05, 50,0,10) })
-
-    histos.update({ "hDexit_vs_thetaf":ROOT.TH2D("hDexit_vs_thetaf",";#theta_{yz}(fit) [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
-    histos.update({ "hDexit_vs_thetad":ROOT.TH2D("hDexit_vs_thetad",";#theta_{yz}(d_{exit}) [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
-    histos.update({ "hDexit_vs_thetar":ROOT.TH2D("hDexit_vs_thetar",";#theta_{yz}(r) [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
+    histos.update({ "hChi2DoF_zoom_before_alignment": ROOT.TH1D("hChi2DoF_zoom_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
+    histos.update({ "hChi2DoF_zoom_after_alignment":  ROOT.TH1D("hChi2DoF_zoon_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
     
-    histos.update({ "hThetad_vs_thetaf":ROOT.TH2D("hThetad_vs_thetaf",";#theta_{yz}(fit) [rad];#theta(d_{exit}) [rad];Tracks",50,0,0.05, 50,0,0.05) })
-    histos.update({ "hThetar_vs_thetaf":ROOT.TH2D("hThetar_vs_thetaf",";#theta_{yz}(fit) [rad];#theta(r) [rad];Tracks",50,0,0.05, 50,0,0.05) })
+    histos.update({ "hChi2DoF_0to1_before_alignment": ROOT.TH1D("hChi2DoF_0to1_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
+    histos.update({ "hChi2DoF_0to1_after_alignment":  ROOT.TH1D("hChi2DoF_0to1_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
+    
+    histos.update({ "hPf_vs_dExit": ROOT.TH2D("hPf_vs_dExit",";d_{exit} [mm];p(#theta(fit)) [GeV];Tracks",50,0,+35, 50,0,10) })
+    histos.update({ "hPd_vs_dExit": ROOT.TH2D("hPd_vs_dExit",";d_{exit} [mm];p(#theta(d_{exit}) [GeV];Tracks",50,0,+35, 50,0,10) })
+    histos.update({ "hPr_vs_dExit": ROOT.TH2D("hPr_vs_dExit",";d_{exit} [mm];p(#theta(r) [GeV];Tracks",50,0,+35, 50,0,10) })
+
+    histos.update({ "hPf_vs_thetaf": ROOT.TH2D("hPf_vs_thetaf",";#theta_{yz}(fit) [rad];p(#theta(fit)) [GeV];Tracks",50,0,0.05, 50,0,10) })
+    histos.update({ "hPd_vs_thetad": ROOT.TH2D("hPd_vs_thetad",";#theta_{yz}(d_{exit}) [rad];p(#theta(d_{exit})) [GeV];Tracks",50,0,0.05, 50,0,10) })
+    histos.update({ "hPr_vs_thetar": ROOT.TH2D("hPr_vs_thetar",";#theta_{yz}(r) [rad];p(#theta(r)) [GeV];Tracks",50,0,0.05, 50,0,10) })
+
+    histos.update({ "hDexit_vs_thetaf": ROOT.TH2D("hDexit_vs_thetaf",";#theta_{yz}(fit) [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
+    histos.update({ "hDexit_vs_thetad": ROOT.TH2D("hDexit_vs_thetad",";#theta_{yz}(d_{exit}) [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
+    histos.update({ "hDexit_vs_thetar": ROOT.TH2D("hDexit_vs_thetar",";#theta_{yz}(r) [rad];d_{exit} [mm];Tracks",50,0,0.05, 50,0,+35) })
+    
+    histos.update({ "hThetad_vs_thetaf": ROOT.TH2D("hThetad_vs_thetaf",";#theta_{yz}(fit) [rad];#theta(d_{exit}) [rad];Tracks",50,0,0.05, 50,0,0.05) })
+    histos.update({ "hThetar_vs_thetaf": ROOT.TH2D("hThetar_vs_thetaf",";#theta_{yz}(fit) [rad];#theta(r) [rad];Tracks",50,0,0.05, 50,0,0.05) })
     
     histos.update({ "hD_before_cuts": ROOT.TH2D("hD_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
@@ -184,16 +190,16 @@ if __name__ == "__main__":
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     histos.update({ "hW_after_cuts":  ROOT.TH2D("hW_after_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     
-    histos.update({ "hThetaf_yz":      ROOT.TH1D("hThetaf_yz",";#theta_{yz}(fit) [rad];Tracks",100,0,0.1)})
-    histos.update({ "hThetad_yz":      ROOT.TH1D("hThetad_yz",";#theta_{yz}(d_{exit}) [rad];Tracks",100,0,0.1)})
-    histos.update({ "hThetar_yz":      ROOT.TH1D("hThetar_yz",";#theta_{yz}(r) [rad];Tracks",100,0,0.1)})
+    histos.update({ "hThetaf_yz": ROOT.TH1D("hThetaf_yz",";#theta_{yz}(fit) [rad];Tracks",100,0,0.1)})
+    histos.update({ "hThetad_yz": ROOT.TH1D("hThetad_yz",";#theta_{yz}(d_{exit}) [rad];Tracks",100,0,0.1)})
+    histos.update({ "hThetar_yz": ROOT.TH1D("hThetar_yz",";#theta_{yz}(r) [rad];Tracks",100,0,0.1)})
     
-    histos.update({ "hTheta_xz":      ROOT.TH1D("hTheta_xz",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
-    histos.update({ "hdExit":         ROOT.TH1D("hdExit",";d_{exit} [mm];Tracks",120,-70,+90)})
+    histos.update({ "hTheta_xz": ROOT.TH1D("hTheta_xz",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
+    histos.update({ "hdExit":    ROOT.TH1D("hdExit",";d_{exit} [mm];Tracks",120,-70,+90)})
     
-    histos.update({ "hPf":           ROOT.TH1D("hPf",";p(fit) [GeV];Tracks",100,0,10)})
-    histos.update({ "hPd":           ROOT.TH1D("hPd",";p(d_{exit}) [GeV];Tracks",100,0,10)})
-    histos.update({ "hPr":           ROOT.TH1D("hPr",";p(r) [GeV];Tracks",100,0,10)})
+    histos.update({ "hPf": ROOT.TH1D("hPf",";p(fit) [GeV];Tracks",100,0,10)})
+    histos.update({ "hPd": ROOT.TH1D("hPd",";p(d_{exit}) [GeV];Tracks",100,0,10)})
+    histos.update({ "hPr": ROOT.TH1D("hPr",";p(r) [GeV];Tracks",100,0,10)})
     
     dipole = ROOT.TPolyLine()
     xMinD = cfg["xDipoleExitMin"]
@@ -596,6 +602,26 @@ if __name__ == "__main__":
     histos["hChi2DoF_after_alignment"].SetLineColor(ROOT.kRed)
     histos["hChi2DoF_before_alignment"].Draw("hist")
     histos["hChi2DoF_after_alignment"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
+    histos["hChi2DoF_zoom_before_alignment"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_zoom_after_alignment"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_zoom_before_alignment"].Draw("hist")
+    histos["hChi2DoF_zoom_after_alignment"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
+    histos["hChi2DoF_0to1_before_alignment"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_0to1_after_alignment"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_0to1_before_alignment"].Draw("hist")
+    histos["hChi2DoF_0to1_after_alignment"].Draw("hist same")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname})")

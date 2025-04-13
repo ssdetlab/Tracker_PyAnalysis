@@ -4,6 +4,7 @@ import math
 import subprocess
 import array
 import numpy as np
+from collections import defaultdict
 import ROOT
 
 import config
@@ -28,6 +29,7 @@ class HoughSeeder:
     def __init__(self,clusters,eventid=0):
         ### for not having memory leaks with the TH2D
         self.eventid = eventid
+        self.is5lyr = (len(cfg["detectors"])>4)
         nclusters = 0
         for det in cfg["detectors"]: nclusters += len(clusters[det])
         ### the clusters per detector
@@ -35,22 +37,22 @@ class HoughSeeder:
         n1 = len(clusters[cfg["detectors"][1]])
         n2 = len(clusters[cfg["detectors"][2]])
         n3 = len(clusters[cfg["detectors"][3]])
-        n4 = len(clusters[cfg["detectors"][4]]) if(len(cfg["detectors"])>4) else 0
+        n4 = len(clusters[cfg["detectors"][4]]) if(self.is5lyr) else 0
         self.x0 = np.zeros(n0)
         self.x1 = np.zeros(n1)
         self.x2 = np.zeros(n2)
         self.x3 = np.zeros(n3)
-        self.x4 = np.zeros(n4) if(len(cfg["detectors"])>4) else None
+        self.x4 = np.zeros(n4) if(self.is5lyr) else None
         self.y0 = np.zeros(n0)
         self.y1 = np.zeros(n1)
         self.y2 = np.zeros(n2)
         self.y3 = np.zeros(n3)
-        self.y4 = np.zeros(n4) if(len(cfg["detectors"])>4) else None
+        self.y4 = np.zeros(n4) if(self.is5lyr) else None
         self.z0 = np.zeros(n0)
         self.z1 = np.zeros(n1)
         self.z2 = np.zeros(n2)
         self.z3 = np.zeros(n3)
-        self.z4 = np.zeros(n4) if(len(cfg["detectors"])>4) else None
+        self.z4 = np.zeros(n4) if(self.is5lyr) else None
         ### all the clusters together
         self.x = None
         self.y = None
@@ -63,7 +65,6 @@ class HoughSeeder:
         self.pix_y  = cfg["pix_y"]
         self.xepsilon = 1e-15
         self.fepsilon = 1e-15
-        #TODO: this has to be optimized!!!!
         self.theta_x_scale = 1
         self.rho_x_scale   = 1
         self.theta_y_scale = 1
@@ -103,11 +104,12 @@ class HoughSeeder:
             sys.exit(f"In hough_seeder nclusters:{nclusters}>cls_mult_inf, not implemented. exitting")
         self.minintersections = math.comb(len(cfg["detectors"]),2) ### all pairs out of for detectors w/o repetitions
         self.nmissintersections = cfg["seed_nmiss_neigbours"] ## how many intersectians we are allowed to miss before searching in the neighbouring cells
-        self.neighbourslist = [ i for i in range(-cfg["seed_nmax_neigbours"],cfg["seed_nmax_neigbours"]+1) if(i!=0) ] ### this will be e.g. [-3,-2,-1,+1,+2,+3] if seed_nmax_neigbours=3
+        # self.neighbourslist = [ i for i in range(-cfg["seed_nmax_neigbours"],cfg["seed_nmax_neigbours"]+1) if(i!=0) ] ### this will be e.g. [-3,-2,-1,+1,+2,+3] if seed_nmax_neigbours=3
+        self.neighbourslist = [ i for i in range(-cfg["seed_nmax_neigbours"],cfg["seed_nmax_neigbours"]+1) ] ### this will be e.g. [-3,-2,-1,0,+1,+2,+3] if seed_nmax_neigbours=3
         ### set the clusters
         self.set_clusters(clusters)
         self.zmin = self.z0[0]
-        self.zmax = self.z4[0] if(len(cfg["detectors"])>4) else self.z3[0]
+        self.zmax = self.z4[0] if(self.is5lyr) else self.z3[0]
         self.zmid = (self.zmax-self.zmin)/2.
         self.zmin = self.zmin-self.zmid
         self.zmax = self.zmax+self.zmid
@@ -125,12 +127,17 @@ class HoughSeeder:
         self.LUT = LookupTable(clusters,eventid)
         ### the data structure
         self.accumulator = []
+        ### accumulator = [0-1{key:val}, 0-2{key:val}, 0-3{key:val}, 0-4{key:val}, 1-2{key:val}, 1-3{key:val}, 1-4{key:val}, 2-3{key:val}, 2-4{key:val}, 3-4{key:val}]
+        ### key   = ecoded(brhox,bthetax,brhoy,bthetay)
+        ### value = number of times the 4D key in theta-rho-x/y appears
         for ncomb in range(self.minintersections): self.accumulator.append({})
         self.naccumulators = len(self.accumulator)
+        # print(f"naccumulators={self.naccumulators}")
         ### fill the accumulator
         self.fill_4d_wave_intersections(clusters)
         ### get the 4D bin numbers of the good coordinates
         self.cells = self.get_seed_coordinates()
+        # print(f"cells={self.cells}")
         del self.accumulator
         ### check the accumulator against the LookupTable
         # self.LUT = LookupTable(clusters,eventid)
@@ -171,13 +178,13 @@ class HoughSeeder:
                     self.x3[i] = c.xmm
                     self.y3[i] = c.ymm
                     self.z3[i] = c.zmm
-                if(det=="ALPIDE_4" and len(cfg["detectors"])>4):
+                if(det=="ALPIDE_4" and self.is5lyr):
                     self.x4[i] = c.xmm
                     self.y4[i] = c.ymm
                     self.z4[i] = c.zmm
-        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3,self.x4),axis=0) if(len(cfg["detectors"])>4) else np.concatenate((self.x0,self.x1,self.x2,self.x3),axis=0)
-        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3,self.y4),axis=0) if(len(cfg["detectors"])>4) else np.concatenate((self.y0,self.y1,self.y2,self.y3),axis=0)
-        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3,self.z4),axis=0) if(len(cfg["detectors"])>4) else np.concatenate((self.z0,self.z1,self.z2,self.z3),axis=0)
+        self.x = np.concatenate((self.x0,self.x1,self.x2,self.x3,self.x4),axis=0) if(self.is5lyr) else np.concatenate((self.x0,self.x1,self.x2,self.x3),axis=0)
+        self.y = np.concatenate((self.y0,self.y1,self.y2,self.y3,self.y4),axis=0) if(self.is5lyr) else np.concatenate((self.y0,self.y1,self.y2,self.y3),axis=0)
+        self.z = np.concatenate((self.z0,self.z1,self.z2,self.z3,self.z4),axis=0) if(self.is5lyr) else np.concatenate((self.z0,self.z1,self.z2,self.z3),axis=0)
 
     def set_function(self,name,z,k,thetamin,thetamax):
         ### rho = k*sin(theta) + z*cos(theta)
@@ -219,7 +226,7 @@ class HoughSeeder:
         return mindiff,theta,rho
 
     def get_detpair(self,CA,CB):
-        if(len(cfg["detectors"])>4):
+        if(self.is5lyr):
             if(CA.DID==0 and CB.DID==1): return 0
             if(CA.DID==0 and CB.DID==2): return 1
             if(CA.DID==0 and CB.DID==3): return 2
@@ -275,6 +282,7 @@ class HoughSeeder:
             AX,BX = self.LUT.get_par_lin(thetax,rhox)
             if(AX<0.): return
         detpair = self.get_detpair(CA,CB)
+        # print(f"eventid={self.eventid}  detpair={detpair}  valid={valid}  -->  bthetax={bthetax}, brhox={brhox}, bthetay={bthetay}, brhoy={brhoy}")
         # print(f"detpair={detpair}: thetax={thetax}, rhox={rhox}, thetay={thetay}, rhoy={rhoy}")
         if(valid): self.fill_accumulator(detpair,brhox,bthetax,brhoy,bthetay)
         self.h2waves_zx.Fill(thetax,rhox)
@@ -300,7 +308,7 @@ class HoughSeeder:
         for c2 in clusters["ALPIDE_2"]:
             for c3 in clusters["ALPIDE_3"]:
                 self.get_pair(c2,c3)
-        if(len(cfg["detectors"])>4):
+        if(self.is5lyr):
             for c0 in clusters["ALPIDE_0"]:
                 for c4 in clusters["ALPIDE_4"]:
                     self.get_pair(c0,c4)
@@ -318,38 +326,83 @@ class HoughSeeder:
     
     def search_in_neighbours(self,encoded_key):
         neigbours_vals = 0
-        # neighbours = [-5,-4,-3,-2,-1,0,+1,+2,+3,+4,+5]
+        # neighbours for example: [-5,-4,-3,-2,-1,0,+1,+2,+3,+4,+5]
         key = self.decode_key(encoded_key)
+        # print(f"in search_in_neighbours: key={key}")
         ### d0,d1,d2,,d3 are the brhox,bthetax,brhoy,bthetay
         for d0 in self.neighbourslist:
             for d1 in self.neighbourslist:
                 for d2 in self.neighbourslist:
                     for d3 in self.neighbourslist:
+                        if(d0==0 and d1==0 and d2==0 and d3==0): continue
                         nighbourkey = self.encode_key(key[0]+d0, key[1]+d1, key[2]+d2, key[3]+d3)
-                        for detpair in range(self.naccumulators): ### loop over all layers
+                        # print(f"d0={d0}, d1={d1}, d2={d2}, d3={d3} --> nighbourkey={nighbourkey} --> decodednegkey={ self.decode_key(nighbourkey) }")
+                        for detpair in range(self.naccumulators): ### loop over all detector-pairs
                             neigbours_vals += (self.accumulator[detpair].get(nighbourkey,0)>0)
         return neigbours_vals
 
     def get_seed_coordinates(self):
         cells = []
-        for key,val in self.accumulator[0].items(): ### start with the first layer
-            ### all good: have all 6 intersections
+        
+        ### accumulator = [0-1{key:val}, 0-2{key:val}, 0-3{key:val}, 0-4{key:val}, 1-2{key:val}, 1-3{key:val}, 1-4{key:val}, 2-3{key:val}, 2-4{key:val}, 3-4{key:val}]
+        ### key   = ecoded(brhox,bthetax,brhoy,bthetay)
+        ### value = number of times the 4D key in theta-rho-x/y appears
+        
+        # print(f"accumulator: {self.accumulator}")
+        
+        ### check the index with the most occurances
+        index_of_most_frequent_key = -1
+        # First pass: count occurrences
+        key_counts = defaultdict(int)
+        for d in self.accumulator:
+            for key in d:  # only one key per dict
+                key_counts[key] += 1
+        # Find the key with the highest count
+        most_common_key = max(key_counts, key=key_counts.get)
+        # Second pass: find first index of most common key
+        for idx, d in enumerate(self.accumulator):
+            if most_common_key in d:
+                index_of_most_frequent_key = idx
+                break
+        
+        for key,val in self.accumulator[index_of_most_frequent_key].items(): ### start by looping on all keys of the detector pair with the most repetitions
             nintersections = (val>0)
-            # for detpair in range(1,self.naccumulators): nintersections += self.accumulator[detpair].get(key,0)
+            # print(f"key={key}, val={val} --> nintersections={nintersections}")
+            
             for detpair in range(1,self.naccumulators):
                 nintersections += (self.accumulator[detpair].get(key,0)>0)
+                # print(f"detpair={detpair}: nintersections={nintersections}")
+            # print(f"Final: nintersections={nintersections}, self.minintersections={self.minintersections}")
             if(nintersections>=self.minintersections):
                 cells.append(key)
             
-            ### if a bit too low: have only 4 intersectiosn
-            # if(cfg["seed_allow_neigbours"] and (nintersections<self.minintersections and nintersections>=(self.minintersections-2))):
+            ### if too low:
             if(cfg["seed_allow_neigbours"] and (nintersections<self.minintersections and nintersections>=(self.minintersections-self.nmissintersections))):
-                neigbours_vals = self.search_in_neighbours(key)
-                if(neigbours_vals>=self.minintersections):
+                # print(f"Trying to recover: ")
+                nintersections += self.search_in_neighbours(key)
+                if(nintersections>=self.minintersections):
                     cells.append(key)
+            # print(f"Final nintersections={nintersections}")
             ### otherwise don't bother
-        # print(f"cumulator sizes: {len(self.accumulator[0]),len(self.accumulator[1]),len(self.accumulator[2]),len(self.accumulator[3]),len(self.accumulator[4]),len(self.accumulator[5])}, good cells: {len(cells)}"))
+        # print(f"cumulator sizes: {len(self.accumulator[0]),len(self.accumulator[1]),len(self.accumulator[2]),len(self.accumulator[3]),len(self.accumulator[4]),len(self.accumulator[5]),len(self.accumulator[6]),len(self.accumulator[7]),len(self.accumulator[8]),len(self.accumulator[9])}, good cells: {len(cells)}")
         return cells
+    
+    # def get_tunnels(self):
+    #     # print(f"in get tunnels with {len(self.cells)}"))
+    #     tunnels = []
+    #     hough_coord = []
+    #     for icell,cell in enumerate(self.cells):
+    #         (brhox,bthetax,brhoy,bthetay) = self.decode_key(cell)
+    #         thetax = self.h2waves_zx.GetXaxis().GetBinCenter(bthetax)
+    #         rhox   = self.h2waves_zx.GetYaxis().GetBinCenter(brhox)
+    #         thetay = self.h2waves_zy.GetXaxis().GetBinCenter(bthetay)
+    #         rhoy   = self.h2waves_zy.GetYaxis().GetBinCenter(brhoy)
+    #         valid,tunnel = self.LUT.clusters_in_tunnel(thetax,rhox,thetay,rhoy)
+    #         if(valid):
+    #             tunnels.append( tunnel )
+    #             hough_coord.append( (thetax,rhox,thetay,rhoy) )
+    #         # print(f"Cell[{icell}]: valid?{valid} --> tunnel={tunnel}")
+    #     return tunnels,hough_coord
     
     def get_tunnels(self):
         # print(f"in get tunnels with {len(self.cells)}"))
@@ -357,10 +410,10 @@ class HoughSeeder:
         hough_coord = []
         for icell,cell in enumerate(self.cells):
             (brhox,bthetax,brhoy,bthetay) = self.decode_key(cell)
-            thetax = self.h2waves_zx.GetXaxis().GetBinCenter(bthetax)
-            rhox   = self.h2waves_zx.GetYaxis().GetBinCenter(brhox)
-            thetay = self.h2waves_zy.GetXaxis().GetBinCenter(bthetay)
-            rhoy   = self.h2waves_zy.GetYaxis().GetBinCenter(brhoy)
+            thetax = [self.h2waves_zx.GetXaxis().GetBinLowEdge(bthetax), self.h2waves_zx.GetXaxis().GetBinUpEdge(bthetax) ]
+            rhox   = [self.h2waves_zx.GetYaxis().GetBinLowEdge(brhox),   self.h2waves_zx.GetYaxis().GetBinUpEdge(brhox)   ]
+            thetay = [self.h2waves_zy.GetXaxis().GetBinLowEdge(bthetay), self.h2waves_zy.GetXaxis().GetBinUpEdge(bthetay) ]
+            rhoy   = [self.h2waves_zy.GetYaxis().GetBinLowEdge(brhoy),   self.h2waves_zy.GetYaxis().GetBinUpEdge(brhoy) ]
             valid,tunnel = self.LUT.clusters_in_tunnel(thetax,rhox,thetay,rhoy)
             if(valid):
                 tunnels.append( tunnel )
@@ -376,20 +429,20 @@ class HoughSeeder:
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
         det3 = cfg["detectors"][3]
-        det4 = cfg["detectors"][4] if(len(cfg["detectors"])>4) else ""
+        det4 = cfg["detectors"][4] if(self.is5lyr) else ""
         for itnl,tunnel in enumerate(self.tunnels):
             candidate = []
             n0 = len(tunnel[det0])
             n1 = len(tunnel[det1])
             n2 = len(tunnel[det2])
             n3 = len(tunnel[det3])
-            n4 = len(tunnel[det4]) if(len(cfg["detectors"])>4) else 0
-            tunnel_nsseds[itnl] = n0*n1*n2*n3*n4 if(len(cfg["detectors"])>4) else n0*n1*n2*n3
+            n4 = len(tunnel[det4]) if(self.is5lyr) else 0
+            tunnel_nsseds[itnl] = n0*n1*n2*n3*n4 if(self.is5lyr) else n0*n1*n2*n3
             for c0 in tunnel[det0]:
                 for c1 in tunnel[det1]:
                     for c2 in tunnel[det2]:
                         for c3 in tunnel[det3]:
-                            if(len(cfg["detectors"])>4):
+                            if(self.is5lyr):
                                 for c4 in tunnel[det4]:
                                     seeds.append( [c0,c1,c2,c3,c4] )
                                     tnlid.append( itnl )

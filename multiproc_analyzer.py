@@ -279,19 +279,11 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{cls/det}>0") )
 
+
         #####################################
         if(cfg["skiptracking"]): continue ###
         #####################################
-        
-        # for det in cfg["detectors"]:
-        #     for pixel in pixels_save[det]:
-        #         print(f"{det} pixels xFake={pixel.xFake}, yFake={pixel.yFake}")
-        #
-        # for det in cfg["detectors"]:
-        #     for cluster in clusters[det]:
-        #         print(f"{det}: cluster x={cluster.xmm}, y={cluster.ymm}")
 
-        
         ### run the seeding
         seeder = HoughSeeder(clusters,ievt)
         ###################
@@ -302,8 +294,25 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         histos["h_nSeeds_full"].Fill(nSeeds)
         histos["h_nSeeds_mid"].Fill(nSeeds)
         histos["h_nSeeds_zoom"].Fill(nSeeds)
+        if(nSeeds<1):
+            for det in cfg["detectors"]:
+                print(f"{det}: x={clusters[det][0].xmm}, y={clusters[det][0].ymm}, z={clusters[det][0].zmm}")
+            # print(f"eventid={ievt}: seeder.minintersections = {seeder.minintersections}")
+            # print(f"eventid={ievt}: seeder.nmissintersections = {seeder.nmissintersections}")
+            # print(f"eventid={ievt}: seeder.neighbourslist = {seeder.neighbourslist}")
+            # print(f"eventid={ievt}: seeder.z0[0],z4[0] = {seeder.z0[0],seeder.z4[0]}")
+            # print(f"eventid={ievt}: seeder.zmin,mid,max = {seeder.zmin,seeder.zmid,seeder.zmax}")
+            # print(f"eventid={ievt}: seeder.zx_wave_fmin,max = {seeder.zx_wave_fmin,seeder.zx_wave_fmax}")
+            # print(f"eventid={ievt}: seeder.zy_wave_fmin,max = {seeder.zy_wave_fmin,seeder.zy_wave_fmax}")
+            # print(f"eventid={ievt}: seeder.rhomin_x,max = {seeder.rhomin_x,seeder.rhomax_x}")
+            # print(f"eventid={ievt}: seeder.rhomin_y,max = {seeder.rhomin_y,seeder.rhomax_y}")
+            print(f"eventid={ievt}: seeder.naccumulators = {seeder.naccumulators}")
+            print(f"eventid={ievt}: seeder.cells = {seeder.cells}")
+            print(f"eventid={ievt}: seeder.LUT = {seeder.LUT.LUT}")
+            print(f"eventid={ievt}: seeder.tunnels = {seeder.tunnels}")
+            print(f"eventid={ievt}: seeder.hough_coord = {seeder.hough_coord}")
         if(nSeeds<1): continue ### CUT!!!
-        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )        
+        histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
         
         ### prepare the clusters for the fit
         seeds = []

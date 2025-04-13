@@ -8,10 +8,11 @@ skiptracking   = 0
 saveprimitive  = 0
 
 ### run001 fake particles
+# first2process  = 924
 first2process  = 0
 
 ### run001 fake particles
-nmax2process = 10000
+nmax2process = 1000
 
 nCPU           = 10
 nprintout      = 20
@@ -25,16 +26,19 @@ runnums = 255
 
 
 [CLUSTERSMULT]
-cls_mult_low = 20
+# cls_mult_low = 20
+cls_mult_low = 100
 cls_mult_mid = 200
 cls_mult_hgh = 8000
 cls_mult_inf = 50000
 
 [SEED]
-seed_allow_negative_vertical_inclination = 0
+seed_allow_negative_vertical_inclination = 1
 seed_allow_neigbours  = 1
-seed_nmax_neigbours   = 5
-seed_nmiss_neigbours  = 3
+### this is the neighbours in the 4D rho-theta space
+# seed_nmax_neigbours   = 5
+seed_nmax_neigbours   = 1
+seed_nmiss_neigbours  = 5
 seed_thetax_scale_low = 0.95
 seed_thetax_scale_mid = 0.80
 seed_thetax_scale_hgh = 0.60
@@ -51,48 +55,28 @@ seed_rhoy_scale_low   = 1.00
 seed_rhoy_scale_mid   = 0.90
 seed_rhoy_scale_hgh   = 0.80
 seed_rhoy_scale_inf   = 0.80
-seed_nbins_thetarho_low = 20
-# seed_nbins_thetarho_mid = 300
-# seed_nbins_thetarho_hgh = 400
-# seed_nbins_thetarho_inf = 400
-seed_nbins_thetarho_mid = 50
+seed_nbins_thetarho_low = 100
+seed_nbins_thetarho_mid = 200
 seed_nbins_thetarho_hgh = 400
-seed_nbins_thetarho_inf = 1000
-
+seed_nbins_thetarho_inf = 800
 
 [LUT]
-lut_nbinsx_low = 375
+# lut_nbinsx_low = 375
+lut_nbinsx_low = 750
 lut_nbinsx_mid = 750
 lut_nbinsx_hgh = 4000
 lut_nbinsx_inf = 10000
-lut_nbinsy_low = 200
-lut_nbinsy_mid = 375
+lut_nbinsy_low = 750
+lut_nbinsy_mid = 750
 lut_nbinsy_hgh = 2000
 lut_nbinsy_inf = 5000
 lut_scaleX = 0.20
 lut_scaleY = 0.20
-# lut_widthx_low = 17.0
-# lut_widthx_mid = 0.15
-# lut_widthx_hgh = 0.075
-# lut_widthx_inf = 0.040
-# lut_widthy_low = 7.5
-# lut_widthy_mid = 0.15
-# lut_widthy_hgh = 0.075
-# lut_widthy_inf = 0.040
-# lut_widthx_low = 17.0
-# lut_widthx_mid = 0.300
-# lut_widthx_hgh = 0.150
-# lut_widthx_inf = 0.075
-# lut_widthy_low = 7.5
-# lut_widthy_mid = 0.300
-# lut_widthy_hgh = 0.150
-# lut_widthy_inf = 0.075
-
-lut_widthx_low = 17.0
+lut_widthx_low = 0.1
 lut_widthx_mid = 0.1
 lut_widthx_hgh = 0.1
 lut_widthx_inf = 0.1
-lut_widthy_low = 7.5
+lut_widthy_low = 0.1
 lut_widthy_mid = 0.1
 lut_widthy_hgh = 0.1
 lut_widthy_inf = 0.1
