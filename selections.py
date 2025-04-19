@@ -38,7 +38,7 @@ def remove_tracks_with_shared_clusters(tracks):
                 clsid_to_trackidx[det].update({CID:itrk})
             else:
                 itrk0 = clsid_to_trackidx[det][CID]
-                print(f"found shared cluster for CID={CID}: itrk1={itrk}(chi2={track.chi2ndof}), itrk2={itrk0}(chi2={tracks[itrk0].chi2ndof})")
+                # print(f"found shared cluster for CID={CID}: itrk1={itrk}(chi2={track.chi2ndof}), itrk2={itrk0}(chi2={tracks[itrk0].chi2ndof})")
                 if(tracks[itrk0].chi2ndof>track.chi2ndof):
                     clsid_to_trackidx[det][CID] = itrk
     

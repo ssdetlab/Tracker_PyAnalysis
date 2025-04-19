@@ -75,7 +75,7 @@ ROOT.gStyle.SetOptFit(0)
 if(cfg["isMC"]):
     # print("Building the classes for MC")
     ### declare the data tree and its classes
-    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xFake; Float_t yFake; };" )
+    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xOrig; Float_t yOrig; Float_t xFake; Float_t yFake; Float_t Azx; Float_t Bzx; Float_t Azy; Float_t Bzy; Float_t Vx; Float_t Vy; Float_t Vz; };" )
     ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
     ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
     ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
@@ -227,8 +227,16 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         for det in cfg["detectors"]:
             sprnt += f" Npixels[{det}]={len(pixels[det])},"
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
-        print(sprnt)
+        # print(sprnt)
         
+        ### the fake particles are attached to the pixels (it is enough to take the 1st pixel of the 1st detector) #TODO: this is assuming that there's only one mc particle per event
+        fakemcparticles = []
+        if(cfg["isMC"] and cfg["isFakeMC"]):
+            det0 = cfg["detectors"][0]
+            slp = [pixels[det0][0].Azx, pixels[det0][0].Azy]
+            itp = [pixels[det0][0].Bzx, pixels[det0][0].Bzy]
+            vtx = [pixels[det0][0].Vx, pixels[det0][0].Vy, pixels[det0][0].Vz]
+            fakemcparticles.append( FakeMCparticle(slp,itp,vtx) )
         
         ### non-empty events
         if(n_active_chips==0): continue  ### CUT!!!
@@ -246,7 +254,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         sprnt = f"ievt={ievt} in_ROI_chips={n_active_chips} -->"
         for det in cfg["detectors"]:
             sprnt += f" Npixels[{det}]={len(pixels[det])},"
-        print(sprnt)
+        # print(sprnt)
         if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}^{ROI}>0") )
         # dump_pixels(f"pixels_evt_{ievt}.pkl",pixels)
@@ -273,7 +281,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
             fillClsHists(det,clusters[det],masked[det],histos)
             if(len(det_clusters)>0): nclusters += 1
             sprnt += f" Nclusters[{det}]={len(det_clusters)},"
-        print(sprnt)
+        # print(sprnt)
         eventslist[len(eventslist)-1].set_event_clusters(clusters)
         ### at least one cluster per layer
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!
@@ -294,23 +302,14 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         histos["h_nSeeds_full"].Fill(nSeeds)
         histos["h_nSeeds_mid"].Fill(nSeeds)
         histos["h_nSeeds_zoom"].Fill(nSeeds)
-        if(nSeeds<1):
-            for det in cfg["detectors"]:
-                print(f"{det}: x={clusters[det][0].xmm}, y={clusters[det][0].ymm}, z={clusters[det][0].zmm}")
-            # print(f"eventid={ievt}: seeder.minintersections = {seeder.minintersections}")
-            # print(f"eventid={ievt}: seeder.nmissintersections = {seeder.nmissintersections}")
-            # print(f"eventid={ievt}: seeder.neighbourslist = {seeder.neighbourslist}")
-            # print(f"eventid={ievt}: seeder.z0[0],z4[0] = {seeder.z0[0],seeder.z4[0]}")
-            # print(f"eventid={ievt}: seeder.zmin,mid,max = {seeder.zmin,seeder.zmid,seeder.zmax}")
-            # print(f"eventid={ievt}: seeder.zx_wave_fmin,max = {seeder.zx_wave_fmin,seeder.zx_wave_fmax}")
-            # print(f"eventid={ievt}: seeder.zy_wave_fmin,max = {seeder.zy_wave_fmin,seeder.zy_wave_fmax}")
-            # print(f"eventid={ievt}: seeder.rhomin_x,max = {seeder.rhomin_x,seeder.rhomax_x}")
-            # print(f"eventid={ievt}: seeder.rhomin_y,max = {seeder.rhomin_y,seeder.rhomax_y}")
-            print(f"eventid={ievt}: seeder.naccumulators = {seeder.naccumulators}")
-            print(f"eventid={ievt}: seeder.cells = {seeder.cells}")
-            print(f"eventid={ievt}: seeder.LUT = {seeder.LUT.LUT}")
-            print(f"eventid={ievt}: seeder.tunnels = {seeder.tunnels}")
-            print(f"eventid={ievt}: seeder.hough_coord = {seeder.hough_coord}")
+        # if(nSeeds<1):
+        #     for det in cfg["detectors"]:
+        #         print(f"{det}: x={clusters[det][0].xmm}, y={clusters[det][0].ymm}, z={clusters[det][0].zmm}")
+        #     print(f"eventid={ievt}: seeder.naccumulators = {seeder.naccumulators}")
+        #     print(f"eventid={ievt}: seeder.cells = {seeder.cells}")
+        #     print(f"eventid={ievt}: seeder.LUT = {seeder.LUT.LUT}")
+        #     print(f"eventid={ievt}: seeder.tunnels = {seeder.tunnels}")
+        #     print(f"eventid={ievt}: seeder.hough_coord = {seeder.hough_coord}")
         if(nSeeds<1): continue ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{seeds}>0") )
         
@@ -400,6 +399,8 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
             # if(cfg["isMC"]): fill_trk2tru_residuals(mcparticles,cfg["pdgIdMatch"],points_SVD,direction,centroid,"h_Chi2fit_res_trk2tru",histos)
         
         eventslist[len(eventslist)-1].set_event_tracks(tracks)
+        if(cfg["isMC"] and cfg["isFakeMC"]):
+            eventslist[len(eventslist)-1].set_event_fakemcparticles(fakemcparticles)
         
         histos["h_nTracks"].Fill( n_tracks )
         histos["h_nTracks_log"].Fill( n_tracks if(n_tracks>0) else 0.11 )

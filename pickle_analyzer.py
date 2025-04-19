@@ -68,6 +68,9 @@ ROOT.gStyle.SetPadBottomMargin(0.15)
 ROOT.gStyle.SetPadLeftMargin(0.13)
 ROOT.gStyle.SetPadRightMargin(0.16)
 
+ROOT.gErrorIgnoreLevel = ROOT.kError
+# ROOT.gErrorIgnoreLevel = ROOT.kWarning
+
 B  = cfg["fDipoleTesla"]
 LB = cfg["zDipoleLenghMeters"]
 mm2m = 1e-3
@@ -195,11 +198,49 @@ if __name__ == "__main__":
     histos.update({ "hThetar_yz": ROOT.TH1D("hThetar_yz",";#theta_{yz}(r) [rad];Tracks",100,0,0.1)})
     
     histos.update({ "hTheta_xz": ROOT.TH1D("hTheta_xz",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
+    histos.update({ "hTheta_yz": ROOT.TH1D("hTheta_yz",";#theta_{yz} [rad];Tracks",100,0,0.035)})
+    
+    histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
+    histos.update({ "hTheta_yz_tru": ROOT.TH1D("hTheta_yz_tru",";#theta_{yz} [rad];Tracks",100,0,0.035)})
+    
+    histos.update({ "hTheta_xz_tru_all": ROOT.TH1D("hTheta_xz_tru_all",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
+    histos.update({ "hTheta_yz_tru_all": ROOT.TH1D("hTheta_yz_tru_all",";#theta_{yz} [rad];Tracks",100,0,0.035)})
+    
     histos.update({ "hdExit":    ROOT.TH1D("hdExit",";d_{exit} [mm];Tracks",120,-70,+90)})
+    
+    histos.update({ "hTheta_xz_response": ROOT.TH1D("hThetaf_xz_response",";#frac{#theta_{xz}^{rec}-#theta_{xz}^{tru}}{#theta_{xz}^{tru}};Tracks",100,-0.5,0.5)})
+    histos.update({ "hTheta_yz_response": ROOT.TH1D("hThetaf_yz_response",";#frac{#theta_{yz}^{rec}-#theta_{yz}^{tru}}{#theta_{yz}^{tru}};Tracks",100,-0.05,0.05)})
+    histos.update({ "hD_x_response": ROOT.TH1D("hD_x_response",";#frac{x_{vtx}^{rec}-x_{vtx}^{tru}}{x_{vtx}^{tru}};Tracks",100,-0.5,0.5)})
+    histos.update({ "hD_y_response": ROOT.TH1D("hD_y_response",";#frac{y_{vtx}^{rec}-y_{vtx}^{tru}}{y_{vtx}^{tru}};Tracks",100,-0.5,0.5)})
     
     histos.update({ "hPf": ROOT.TH1D("hPf",";p(fit) [GeV];Tracks",100,0,10)})
     histos.update({ "hPd": ROOT.TH1D("hPd",";p(d_{exit}) [GeV];Tracks",100,0,10)})
     histos.update({ "hPr": ROOT.TH1D("hPr",";p(r) [GeV];Tracks",100,0,10)})
+    
+    absRes   = 0.05
+    nResBins = 50
+    for det in cfg["detectors"]:        
+        histos.update( { f"h_Chi2fit_res_trk2cls_x_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_x_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+        histos.update( { f"h_Chi2fit_res_trk2cls_y_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_y_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+
+        histos.update( { f"h_Chi2fit_res_trk2cls_pass_x_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_x_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+        histos.update( { f"h_Chi2fit_res_trk2cls_pass_y_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_y_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+
+        histos.update( { f"h_Chi2fit_res_trk2cls_x_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_x_mid_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        histos.update( { f"h_Chi2fit_res_trk2cls_y_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_y_mid_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+
+        histos.update( { f"h_Chi2fit_res_trk2cls_pass_x_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_x_mid_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        histos.update( { f"h_Chi2fit_res_trk2cls_pass_y_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_y_mid_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        
+        histos.update( { f"h_Chi2fit_res_trk2cls_x_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_x_full_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        histos.update( { f"h_Chi2fit_res_trk2cls_y_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_y_full_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+
+        histos.update( { f"h_Chi2fit_res_trk2cls_pass_x_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_x_full_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        histos.update( { f"h_Chi2fit_res_trk2cls_pass_y_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_y_full_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        
+        histos.update( { f"h_response_x_{det}" : ROOT.TH1D(f"h_response_x_{det}",";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",100,-12.5,+12.5) } )
+        histos.update( { f"h_response_y_{det}" : ROOT.TH1D(f"h_response_y_{det}",";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",100,-12.5,+12.5) } )
+    
     
     dipole = ROOT.TPolyLine()
     xMinD = cfg["xDipoleExitMin"]
@@ -287,14 +328,23 @@ if __name__ == "__main__":
 
                 good_tracks = []
                 acceptance_tracks = []
-                print(f"I see {len(event.tracks)} tracks in event {nevents-1}")
+                # print(f"I see {len(event.tracks)} tracks in event {nevents-1}")
                 for track in event.tracks:
                     
-                    
                     histos["hChi2DoF_before_alignment"].Fill(track.chi2ndof)
+                    histos["hChi2DoF_zoom_before_alignment"].Fill(track.chi2ndof)
+                    histos["hChi2DoF_0to1_before_alignment"].Fill(track.chi2ndof)
                     new_track = refit(track)
                     histos["hChi2DoF_after_alignment"].Fill(new_track.chi2ndof)
-                    
+                    histos["hChi2DoF_zoom_after_alignment"].Fill(new_track.chi2ndof)
+                    histos["hChi2DoF_0to1_after_alignment"].Fill(new_track.chi2ndof)
+
+                    if(cfg["isMC"] and cfg["isFakeMC"]):
+                        slp = event.fakemcparticles[0].slp
+                        itp = event.fakemcparticles[0].itp
+                        vtx = event.fakemcparticles[0].vtx
+                        histos["hTheta_xz_tru_all"].Fill(slp[0])
+                        histos["hTheta_yz_tru_all"].Fill(slp[1])
                     
                     # print(f"maxcls={track.maxcls}, track.chi2ndof={track.chi2ndof}")
                     
@@ -317,12 +367,25 @@ if __name__ == "__main__":
                     
                     ### require pointing to the pdc window and the dipole exit aperture and inclined up as a positron
                     if(not pass_geoacc_selection(track)): continue
-                    
+                                        
                     ### the fit angles
                     tan_theta_yz = +track.params[1] ### the slope p1x transformed to real space (stays as is)
                     tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
                     thetaf_yz = math.atan(tan_theta_yz)
                     thetaf_xz = math.atan(tan_theta_xz)
+                    
+                    if(cfg["isMC"] and cfg["isFakeMC"]):
+                        slp = event.fakemcparticles[0].slp
+                        itp = event.fakemcparticles[0].itp
+                        vtx = event.fakemcparticles[0].vtx
+                        histos["hTheta_xz_tru"].Fill(slp[0])
+                        histos["hTheta_yz_tru"].Fill(slp[1])
+                        # print(f"thetaf_xz={thetaf_xz}, slp={slp[0]}, thetaf_yz={thetaf_yz}, slp={slp[1]}")
+                        histos["hTheta_xz_response"].Fill( (thetaf_xz-slp[0])/slp[0] if(slp[0]!=0) else -1. )
+                        histos["hTheta_yz_response"].Fill( (thetaf_yz-slp[1])/slp[1] if(slp[1]!=0) else -1. )
+                        histos["hD_x_response"].Fill( (rD[0]-vtx[0])/vtx[0] if(vtx[0]!=0) else -1. )
+                        histos["hD_y_response"].Fill( (rD[1]-vtx[1])/vtx[1] if(vtx[1]!=0) else -1. )
+                        
                     
                     ### the angle in y-z calculated from d_exit
                     thetad_yz = 2.*math.atan(dExit*mm2m/LB)
@@ -358,6 +421,8 @@ if __name__ == "__main__":
                     histos["hThetar_yz"].Fill(thetar_yz)
                     
                     histos["hTheta_xz"].Fill(thetaf_xz)
+                    histos["hTheta_yz"].Fill(thetaf_yz)
+                    
                     histos["hdExit"].Fill(dExit)
                     
                     if(pf>0): histos["hPf"].Fill(pf)
@@ -381,7 +446,7 @@ if __name__ == "__main__":
                     plot_event(event.meta.run,event.meta.start,event.meta.dur,event.trigger,fevtdisplayname,event.clusters,event.tracks,chi2threshold=cfg["cut_chi2dof"])
                     print(fevtdisplayname)
                 
-                print(f"Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
+                print(f"Event[{nevents-1}], Trigger[{event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
     print(f"Events:{nevents}, Tracks:{ntracks}")                
     
@@ -442,9 +507,69 @@ if __name__ == "__main__":
     # cnv.SetLogy()
     cnv.SetTicks(1,1)
     histos["hTheta_xz"].Draw("hist")
+    if(cfg["isMC"] and cfg["isFakeMC"]):
+        histos["hTheta_xz_tru"].SetLineColor(ROOT.kRed)
+        histos["hTheta_xz_tru"].Draw("hist same")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    # cnv.SetLogy()
+    cnv.SetTicks(1,1)
+    histos["hTheta_yz"].Draw("hist")
+    if(cfg["isMC"] and cfg["isFakeMC"]):
+        histos["hTheta_yz_tru"].SetLineColor(ROOT.kRed)
+        histos["hTheta_yz_tru"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    if(cfg["isMC"] and cfg["isFakeMC"]):
+        cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+        cnv.Divide(2,1)
+        cnv.cd(1)
+        ROOT.gPad.SetTicks(1,1)
+        histos["hTheta_xz_response"].Draw("hist")
+        ROOT.gPad.RedrawAxis()
+        cnv.cd(2)
+        ROOT.gPad.SetTicks(1,1)
+        histos["hTheta_yz_response"].Draw("hist")
+        ROOT.gPad.RedrawAxis()
+        cnv.Update()
+        cnv.SaveAs(f"{foupdfname}")
+        
+        cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+        cnv.Divide(2,1)
+        cnv.cd(1)
+        ROOT.gPad.SetTicks(1,1)
+        hTheta_xz_eff = histos["hTheta_xz_tru"].Clone("hTheta_xz_tru_clone") 
+        hTheta_xz_eff.Divide(histos["hTheta_xz_tru_all"])    
+        hTheta_xz_eff.Draw("hist")
+        ROOT.gPad.RedrawAxis()
+        cnv.cd(2)
+        ROOT.gPad.SetTicks(1,1)
+        hTheta_yz_eff = histos["hTheta_yz_tru"].Clone("hTheta_yz_tru_clone") 
+        hTheta_yz_eff.Divide(histos["hTheta_yz_tru_all"])
+        hTheta_yz_eff.Draw("hist")
+        ROOT.gPad.RedrawAxis()
+        cnv.Update()
+        cnv.SaveAs(f"{foupdfname}")
+        
+        
+        
+        cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+        cnv.Divide(2,1)
+        cnv.cd(1)
+        ROOT.gPad.SetTicks(1,1)
+        histos["hD_x_response"].Draw("hist")
+        ROOT.gPad.RedrawAxis()
+        cnv.cd(2)
+        ROOT.gPad.SetTicks(1,1)
+        histos["hD_y_response"].Draw("hist")
+        ROOT.gPad.RedrawAxis()
+        cnv.Update()
+        cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)

@@ -29,12 +29,13 @@ from utils import *
 
 
 class FakeParticle:
-    def __init__(self,vtx,slp,itp,orgpts,smrpts):
-        self.vtx    = vtx
-        self.slp    = slp
-        self.itp    = itp
-        self.orgpts = orgpts
-        self.smrpts = smrpts
+    def __init__(self,vtx,slp,itp,orgpts,smrpts,msalgnpts):
+        self.vtx       = vtx
+        self.slp       = slp
+        self.itp       = itp
+        self.orgpts    = orgpts
+        self.smrpts    = smrpts
+        self.msalgnpts = msalgnpts
 
     # def __del__(self):
         # print(f"deleting")
@@ -44,13 +45,14 @@ class FakeParticle:
 
 
 class ParticleGun:
-    def __init__(self,vtxsurf,slopes,xyres=0.005):
+    def __init__(self,vtxsurf,slopes,xyres=0):
         self.rnd = ROOT.TRandom()
         self.rnd.SetSeed()
         self.vtxsurf = vtxsurf
         self.slopes  = slopes
         self.xyres   = xyres
         self.layers  = getChips()
+        self.misalgn = {}
 
     # def __del__(self):
         # print(f"deleting")
@@ -58,13 +60,13 @@ class ParticleGun:
     def __str__(self):
         return f"ParticleGun"
 
+    def set_misalgnment(self,misalignment):
+        print(f"Fake misalignment in lab frame: {misalignment}")
+        self.misalgn = misalignment
+
     def get_slopes(self):
         xz = self.rnd.Uniform(self.slopes["xz"][0],self.slopes["xz"][1])
         yz = self.rnd.Uniform(self.slopes["yz"][0],self.slopes["yz"][1])
-        # midxz = self.slopes["xz"][0] + (self.slopes["xz"][1]-self.slopes["xz"][0])/2.
-        # midyz = self.slopes["yz"][0] + (self.slopes["yz"][1]-self.slopes["yz"][0])/2.
-        # xz = self.rnd.Gaus(midxz,10)
-        # yz = self.rnd.Gaus(midxz,10)
         return [xz,yz]
     
     def get_vertex(self):
@@ -112,17 +114,31 @@ class ParticleGun:
     def smear(self,points):
         smeared = {}
         for det in points:
-            x = points[det][0]+self.rnd.Gaus(0,self.xyres)
-            y = points[det][1]+self.rnd.Gaus(0,self.xyres)
+            x = points[det][0]+self.rnd.Gaus(0,self.xyres) if(self.xyres>0) else points[det][0]
+            y = points[det][1]+self.rnd.Gaus(0,self.xyres) if(self.xyres>0) else points[det][1]
             z = points[det][2]
             smeared.update({det:[x,y,z]})
         return smeared
+    
+    def misalign(self,smrpts):
+        msalgnpts = {}
+        for det in smrpts:
+            x = smrpts[det][0]
+            y = smrpts[det][1]
+            z = smrpts[det][2]
+            ### apply misalignment:
+            x,y = rotate(self.misalgn[det]["theta"],x,y)
+            x = x+self.misalgn[det]["dx"]
+            y = y+self.misalgn[det]["dy"]
+            msalgnpts.update({det:[x,y,z]})
+        return msalgnpts
     
     def generate(self):
         vtx,slp,itp = self.produce()
         orgpts  = self.propagate(vtx,slp,itp)
         smrpts  = self.smear(orgpts)
-        fkprt = FakeParticle(vtx,slp,itp,orgpts,smrpts)
+        msalgnpts = self.misalign(smrpts)
+        fkprt = FakeParticle(vtx,slp,itp,orgpts,smrpts,msalgnpts)
         return fkprt
         
     def accept(self,fkprt):

@@ -279,8 +279,8 @@ def res_track2clusterErr(detector, points, errors, direction, centroid):
 
 def res_track2cluster(detector, points, direction, centroid):
     r1,r2 = r1r2(direction, centroid)
-    x  = points[:,0]
-    y  = points[:,1]
+    x = points[:,0]
+    y = points[:,1]
     zpoints = points[:,2]
     i  = cfg["detectors"].index(detector)
     if(cfg["doVtx"]):

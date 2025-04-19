@@ -239,11 +239,11 @@ class Config:
         self.add("alignmentmethod", self.getS('ALIGNMENT','alignmentmethod'))
         self.add("alignmentwerr", self.getB('ALIGNMENT','alignmentwerr'))
         self.add("alignmentmintrks", self.getI('ALIGNMENT','alignmentmintrks'))
-        if(self.map["isMC"]):
-            print("Ignoring misalignment for MC")
-            for key1 in self.map["misalignment"]:
-                for key2 in self.map["misalignment"][key1]:
-                    self.map["misalignment"][key1][key2] = 0
+        # if(self.map["isMC"]):
+        #     print("Ignoring misalignment for MC")
+        #     for key1 in self.map["misalignment"]:
+        #         for key2 in self.map["misalignment"][key1]:
+        #             self.map["misalignment"][key1][key2] = 0
         
         self.add("zWindow",       self.getF('WINDOW','zWindow'))
         self.add("xWindow",       self.getF('WINDOW','xWindow'))

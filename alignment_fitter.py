@@ -14,7 +14,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
-from scipy.optimize import curve_fit,basinhopping,brute,shgo
+from scipy.optimize import curve_fit,basinhopping,least_squares
 import pickle
 from pathlib import Path
 import ctypes
@@ -24,18 +24,16 @@ import argparse
 parser = argparse.ArgumentParser(description='alignment_fitter.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
 parser.add_argument('-beam', metavar='is beam run?',required=True, help='is this a beam run? [0/1]')
-parser.add_argument('-ref',  metavar='reference detector', required=False,  help='reference detector')
-parser.add_argument('-skip', metavar='skip detector(s)', required=False,  help='skip detector(s)')
+parser.add_argument('-ref',  metavar='reference detectors', required=False,  help='reference detectors (comma separated)')
 parser.add_argument('-mult', metavar='multi run?',  required=False, help='is this a multirun? [0/1]')
 argus = parser.parse_args()
 configfile = argus.conf
 isbeamrun  = (int(argus.beam)==1)
 refdet     = argus.ref  if(argus.ref  is not None) else ""
-skipdets   = argus.skip if(argus.skip is not None) else ""
 ismutirun  = argus.mult if(argus.mult is not None and int(argus.mult)==1) else False
 
-skipdets = skipdets.split(",")
-print(f"skipdets={skipdets}")
+refdet = refdet.split(",") if(refdet!="") else []
+print(f"Reference detectors for alignment: {refdet}")
 
 import config
 from config import *
@@ -75,6 +73,29 @@ ROOT.gStyle.SetOptFit(0)
 ### defined below as global
 allhistos = {}
 
+
+def pass_0dev_first_layer(track,tolerance=1):
+    clsx  = {}
+    clsy  = {}
+    clsz  = {}
+    clsdx = {}
+    clsdy = {}
+    firstdet = cfg["detectors"][0]
+    for det in cfg["detectors"]:
+        clsx.update({det:track.trkcls[det].xmm})
+        clsy.update({det:track.trkcls[det].ymm})
+        clsz.update({det:track.trkcls[det].zmm})
+        clsdx.update({det:track.trkcls[det].xsizemm})
+        clsdy.update({det:track.trkcls[det].xsizemm})
+    vtx  = [cfg["xVtx"], cfg["yVtx"],  cfg["zVtx"]]  if(cfg["doVtx"]) else []
+    evtx = [cfg["exVtx"],cfg["eyVtx"], cfg["ezVtx"]] if(cfg["doVtx"]) else []
+    points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
+    chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
+    dx,dy = res_track2cluster(firstdet,points_SVD,direction_SVD,centroid_SVD)
+    if(dx>tolerance*cfg["pix_x"]): return False
+    if(dy>tolerance*cfg["pix_y"]): return False
+    return True
+
 def pass_alignment_selections(track):
     ### require good chi2 range and other cuts
     if(track.chi2ndof<cfg["minchi2align"]): return False
@@ -83,10 +104,11 @@ def pass_alignment_selections(track):
     if(isbeamrun):
         if(track.maxcls>cfg["cut_maxcls"]):   return False
         if(not pass_geoacc_selection(track)): return False
+        # if(not pass_0dev_first_layer(track)): return False
     return True
 
 
-def fitSVD(track,dx,dy,theta,refdet=""):
+def fitSVD(track,dx,dy,theta,refdet=[]):
     clsx  = {}
     clsy  = {}
     clsz  = {}
@@ -99,29 +121,22 @@ def fitSVD(track,dx,dy,theta,refdet=""):
     Theta = {}
     i = 0
     for det in cfg["detectors"]:
-        if(refdet!="" and det==refdet): continue
-        if(det in skipdets):            continue
+        if(len(refdet)>0 and det in refdet): continue
         dX.update({det:dx[i]})
         dY.update({det:dy[i]})
         Theta.update({det:theta[i]})
         i += 1
     
     ### prepare the track's clusters with misalignments
-    x = -9999
-    y = -9999
-    z = -9999
-    ex = -9999
-    ey = -9999
     for det in cfg["detectors"]:
-        if(det in skipdets): continue
         x = track.trkcls[det].xmm
         y = track.trkcls[det].ymm
         z = track.trkcls[det].zmm
         ex = track.trkcls[det].xsizemm if(cfg["use_large_clserr_for_algnmnt"]) else track.trkcls[det].dxmm
         ey = track.trkcls[det].ysizemm if(cfg["use_large_clserr_for_algnmnt"]) else track.trkcls[det].dymm
         ### only for the non-reference detectors or all detectors?
-        if(refdet!=""):
-            if(det!=refdet):
+        if(len(refdet)>0):
+            if(det not in refdet):
                 x,y = rotate(Theta[det],x,y)
                 x = x+dX[det]
                 y = y+dY[det]
@@ -136,22 +151,38 @@ def fitSVD(track,dx,dy,theta,refdet=""):
         clsdy.update({det:ey})
     vtx  = [cfg["xVtx"], cfg["yVtx"],  cfg["zVtx"]]  if(cfg["doVtx"]) else []
     evtx = [cfg["exVtx"],cfg["eyVtx"], cfg["ezVtx"]] if(cfg["doVtx"]) else []
-    points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx,skipdets)
+    points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
     chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
     
     dabs = 0
-    for det in cfg["detectors"]:
-        if(det in skipdets): continue
+    dxabs = {}
+    dyabs = {}
+    for idet,det in enumerate(cfg["detectors"]):
         dx = 0 
         dy = 0
         if(cfg["alignmentwerr"]):
             dx,dy = res_track2clusterErr(det,points_SVD,errors_SVD,direction_SVD,centroid_SVD)
         else:
             dx,dy = res_track2cluster(det,points_SVD,direction_SVD,centroid_SVD)
-        # print(f"{det}: dx={dx:.2E}, dy={dy:.2E}")
+
+        # ##############
+        # idet = cfg["detectors"].index(det)
+        # r1,r2 = r1r2(direction_SVD, centroid_SVD)
+        # xonline,yonline = xyofz(r1,r2,points_SVD[idet][2])
+        # print(f"{det}: z={points_SVD[idet][2]} --> dx={dx:.2E}, dy={dy:.2E}  x={points_SVD[idet][0]}-->fitx={xonline}, y={points_SVD[idet][1]}-->fity={yonline}")
+        # ##############
+            
+        dxabs.update( {det:abs(dx)} )
+        dyabs.update( {det:abs(dy)} )
         dabs += math.sqrt(dx*dx + dy*dy)
+    
+    for det in cfg["detectors"]:
+        dxabs[det] /= len(cfg["detectors"])
+        dyabs[det] /= len(cfg["detectors"])
+
     dabs /= len(cfg["detectors"])
-    return chisq_SVD,ndof_SVD,dabs,dx,dy
+    
+    return chisq_SVD,ndof_SVD,dabs,dxabs,dyabs
 
 
 def init_params(axes,ndet2align,params):
@@ -194,7 +225,6 @@ def init_params(axes,ndet2align,params):
 def fit_misalignment(events,ndet2align,refdet,axes):
     ### Define the objective function to minimize (the chi^2 function)
     ### similar to https://root.cern.ch/doc/master/line3Dfit_8C_source.html
-    # def metric_function_to_minimize(events,params):
     def metric_function_to_minimize(params):
         dx,dy,dt,nparperdet = init_params(axes,ndet2align,params)
         sum_dx = 0
@@ -204,7 +234,10 @@ def fit_misalignment(events,ndet2align,refdet,axes):
         nvalidevents = 0
         nvalidtracks = 0
         for event in events:
-            for track in event.tracks:
+            
+            # for track in event.tracks:
+            unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+            for track in unique_tracks:
                 
                 ### require some relevant cuts
                 if(not pass_alignment_selections(track)): continue
@@ -212,11 +245,8 @@ def fit_misalignment(events,ndet2align,refdet,axes):
                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet)
                 nvalidtracks += 1
                 sum_dabs     += dabs
-                sum_dx       += dX
-                sum_dy       += dY
-                sum_chi2     += (chisq/ndof)
-        return sum_chi2/nvalidtracks
-        # return sum_dabs/nvalidtracks
+
+        return sum_dabs/nvalidtracks
     
     nparperdet = -1
     if  (axes=="xytheta"):                                nparperdet = 3
@@ -236,7 +266,6 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     if("y"     in axes): ranges.extend(dy_range)
     if("theta" in axes): ranges.extend(dt_range)
     range_params = tuple(ranges)
-    # for n in range(len(initial_params)): initial_params[n] = random.uniform(range_params[n][0],range_params[n][1])
     print("initial_params:",initial_params)
     print("range_params:",range_params)
     ### https://stackoverflow.com/questions/52438263/scipy-optimize-gets-trapped-in-local-minima-what-can-i-do
@@ -245,7 +274,15 @@ def fit_misalignment(events,ndet2align,refdet,axes):
     if(cfg["alignmentmethod"]=="SLSQP"):
         result = basinhopping(metric_function_to_minimize, initial_params, niter=cfg["naligniter"], minimizer_kwargs={"method":"SLSQP", "bounds":range_params})
     elif(cfg["alignmentmethod"]=="COBYLA"):
-        result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True })
+        result = minimize(metric_function_to_minimize, initial_params, method='COBYLA', bounds=range_params, options={'disp': True, 'maxiter':2000})
+    elif(cfg["alignmentmethod"]=="Powell"):
+        result = minimize(metric_function_to_minimize, initial_params, method='Powell', bounds=range_params, options={'disp': True, 'maxiter':2000})
+        # result = minimize(metric_function_to_minimize, initial_params, method='Powell', bounds=range_params, options={'disp': True, 'maxiter':2000, 'ftol':1e-1, 'xtol':1e-1})
+    elif(cfg["alignmentmethod"]=="least_squares"):
+        lower_bounds = np.array([lo for (lo, hi) in range_params])
+        upper_bounds = np.array([hi for (lo, hi) in range_params])
+        # result = least_squares(metric_function_to_minimize, initial_params, bounds=(lower_bounds, upper_bounds), verbose=2, xtol=1e-15, ftol=1e-15)
+        result = least_squares(metric_function_to_minimize, initial_params, bounds=(lower_bounds, upper_bounds), verbose=2)
     else:
         print(f'alignmentmethod={cfg["alignmentmethod"]} is not supported. Quitting.')
         quit()
@@ -266,9 +303,11 @@ if __name__ == "__main__":
     
     # print config once
     show_config()
-    if(refdet!="" and refdet not in cfg["detectors"]):
-        print("Unknown detector:",refdet," --> quitting")
-        quit()
+    if(len(refdet)>0):
+        for det in refdet:
+            if(det not in cfg["detectors"]):
+                print("Unknown detector:",det," --> quitting")
+                quit()
     
     ### get all the files
     tfilenamein = ""
@@ -281,7 +320,27 @@ if __name__ == "__main__":
     
     ###
     axes       = cfg["axes2align"]
-    ndet2align = len(cfg["detectors"])-1 if(refdet!="") else len(cfg["detectors"])
+    ndet2align = len(cfg["detectors"])-len(refdet)
+    nparperdet = -1
+    if  (axes=="xytheta"):                                nparperdet = 3
+    elif(axes=="xy" or axes=="xtheta" or axes=="ytheta"): nparperdet = 2
+    elif(axes=="x"  or axes=="y"      or axes=="theta"):  nparperdet = 1
+    else:
+        print("Unknown axes combination. Quitting.")
+        quit()
+    
+    
+    ### some histos
+    histos = {}
+    NscanBins = 100
+    for det in cfg["detectors"]:
+        name = f"dx_{det}"; histos.update( {name:ROOT.TH1D(name,";dx [mm];#sum#Deltax [mm]",NscanBins,cfg["alignmentbounds"]["dx"]["min"],cfg["alignmentbounds"]["dx"]["max"])} )
+        name = f"dy_{det}"; histos.update( {name:ROOT.TH1D(name,";dy [mm];#sum#Deltay [mm]",NscanBins,cfg["alignmentbounds"]["dy"]["min"],cfg["alignmentbounds"]["dy"]["max"])} )
+        name = f"dt_{det}"; histos.update( {name:ROOT.TH1D(name,";d#theta [rad];#sum#Deltar [mm]",NscanBins,cfg["alignmentbounds"]["theta"]["min"],cfg["alignmentbounds"]["theta"]["max"])} )
+        if(cfg["isFakeMC"]):
+            name = f"dxhist_{det}"; histos.update( {name:ROOT.TH1D(name,";x_{final}-x_{orig} [mm];Tracks",400,cfg["alignmentbounds"]["dx"]["min"],cfg["alignmentbounds"]["dx"]["max"])} )
+            name = f"dyhist_{det}"; histos.update( {name:ROOT.TH1D(name,";y_{final}-y_{orig} [mm];Tracks",400,cfg["alignmentbounds"]["dy"]["min"],cfg["alignmentbounds"]["dy"]["max"])} )
+    
     
     ### save all events
     events = []
@@ -291,6 +350,7 @@ if __name__ == "__main__":
     dY0    = 0
     allevents = 0
     alltracks = 0
+    nuniquetrks = 0
     ngoodtracks = 0
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
@@ -302,7 +362,10 @@ if __name__ == "__main__":
                 allevents += 1
                 alltracks += len(event.tracks)
                 evtgoodtracks = 0
-                for track in event.tracks:
+                # for track in event.tracks:
+                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                nuniquetrks += len(unique_tracks)
+                for track in unique_tracks:
                     
                     ### require some relevant cuts
                     if(not pass_alignment_selections(track)): continue
@@ -317,8 +380,6 @@ if __name__ == "__main__":
                     evtgoodtracks += 1 
                     chisq0 += chi2dof
                     dabs0  += dabs
-                    dX0    += dX
-                    dY0    += dY
                 
                 if(evtgoodtracks>0):
                     minevt = MinimalEvent(event.trigger,event.tracks)
@@ -331,7 +392,111 @@ if __name__ == "__main__":
         quit()
     chisq0 = chisq0/ngoodtracks
     dabs0  = dabs0/ngoodtracks
-    print(f"Done collecting {ngoodtracks} tracks (out of {alltracks} in {allevents} events, or {float(alltracks)/float(allevents)} trks/evt) with chisq0={chisq0} and dabs0={dabs0}. Now going to fit misalignments")
+    print(f"Done collecting {ngoodtracks} tracks (out of {alltracks} ({nuniquetrks} unique) in {allevents} events, or {float(alltracks)/float(allevents)} trks/evt) with chisq0={chisq0} and dabs0={dabs0}. Now going to fit misalignments")
+    
+    
+    
+    ###################
+    ### fill histos ###
+    ###################
+    
+    ### check truth-wise
+    if(cfg["isFakeMC"]):
+        for event in events:
+            # for itrk,track in enumerate(event.tracks):
+            unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+            for itrk,track in enumerate(unique_tracks):
+                for det in cfg["detectors"]:
+                    xOrig = track.trkcls[det].pixels[0].xOrig
+                    yOrig = track.trkcls[det].pixels[0].yOrig
+                    xFinal = track.trkcls[det].pixels[0].xFake
+                    yFinal = track.trkcls[det].pixels[0].yFake
+                    # print(f"Track[{itrk}] in {det}:  xOrig={xOrig}-->xFinal={xFinal}, yOrig={yOrig}-->yFinal={yFinal}")
+                    histos[f"dxhist_{det}"].Fill(xFinal-xOrig)
+                    histos[f"dyhist_{det}"].Fill(yFinal-yOrig)
+
+    ### scan X
+    for idet,det in enumerate(cfg["detectors"]):
+        params = [0]*(nparperdet*len(cfg["detectors"]))
+        for BX in range(1,histos[f"dx_{det}"].GetNbinsX()+1):
+            params = [0]*(nparperdet*len(cfg["detectors"]))
+            params[idet+0] = histos[f"dx_{det}"].GetBinCenter(BX)
+            if(BX==1): print(f"In {det}, params in first iteration of dx-scan: {params}")
+            dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
+            sum_dx = 0
+            nvalidtracks = 0
+            for event in events:
+                # for track in event.tracks:
+                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                for track in unique_tracks:
+                    ### require some relevant cuts
+                    if(not pass_alignment_selections(track)): continue
+                    chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
+                    nvalidtracks += 1
+                    sum_dx += dX[det]
+            histos[f"dx_{det}"].SetBinContent(BX,sum_dx/nvalidtracks)
+
+    ### scan Y
+    for idet,det in enumerate(cfg["detectors"]):
+        for BY in range(1,histos[f"dy_{det}"].GetNbinsX()+1):
+            params = [0]*(nparperdet*len(cfg["detectors"]))
+            params[idet+len(cfg["detectors"])] = histos[f"dy_{det}"].GetBinCenter(BY)
+            if(BY==1): print(f"In {det}, params in first iteration of dy-scan: {params}")
+            dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
+            sum_dy = 0
+            nvalidtracks = 0
+            for event in events:
+                # for track in event.tracks:
+                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                for track in unique_tracks:
+                    ### require some relevant cuts
+                    if(not pass_alignment_selections(track)): continue
+                    chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
+                    nvalidtracks += 1
+                    sum_dy += dY[det]
+            histos[f"dy_{det}"].SetBinContent(BY,sum_dy/nvalidtracks)
+
+    ### scan Theta
+    for idet,det in enumerate(cfg["detectors"]):
+        for BT in range(1,histos[f"dt_{det}"].GetNbinsX()+1):
+            params = [0]*(nparperdet*len(cfg["detectors"]))
+            params[idet+2*len(cfg["detectors"])] = histos[f"dt_{det}"].GetBinCenter(BT)
+            if(BT==1): print(f"In {det}, params in first iteration of dt-scan: {params}")
+            dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
+            sum_dr = 0
+            nvalidtracks = 0
+            for event in events:
+                # for track in event.tracks:
+                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                for track in unique_tracks:
+                    ### require some relevant cuts
+                    if(not pass_alignment_selections(track)): continue
+                    chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
+                    nvalidtracks += 1
+                    sum_dr += math.sqrt(dX[det]*dX[det] + dY[det]*dY[det])
+            histos[f"dt_{det}"].SetBinContent(BT,sum_dr/nvalidtracks)
+    
+    ### pring summary
+    print("------------------------------")
+    for det in cfg["detectors"]:
+        dxhmin = histos[f"dx_{det}"].GetBinCenter( histos[f"dx_{det}"].GetMinimumBin() )
+        dyhmin = histos[f"dy_{det}"].GetBinCenter( histos[f"dy_{det}"].GetMinimumBin() )
+        dthmin = histos[f"dt_{det}"].GetBinCenter( histos[f"dt_{det}"].GetMinimumBin() )
+        print(f"{det}:")
+        print(f"   - dx at minimum: {dxhmin:.4}")
+        print(f"   - dy at minimum: {dyhmin:.4}")
+        print(f"   - dt at minimum: {dthmin:.5}")
+    print("------------------------------")
+        
+
+    ### save histos
+    fOut = ROOT.TFile("scan.root","RECREATE")
+    fOut.cd()
+    for hname,hist in histos.items(): hist.Write()
+    fOut.Write()
+    fOut.Close()
+    ###################   
+    
     
     #######################
     ### Run the fit !!! ###
@@ -357,19 +522,15 @@ if __name__ == "__main__":
             ngoodtracks += 1
             chisq1 += chi2dof
             dabs1  += dabs
-            dX1    += dX
-            dY1    += dY
             
     chisq1 = chisq1/ngoodtracks
     dabs1  = dabs1/ngoodtracks
-    dX1    = dX1/ngoodtracks
-    dY1    = dY1/ngoodtracks
     
     ### sumarize
     print("\n----------------------------------------")
     print(f"Alignment axes: {axes}")
-    if(refdet!=""): print(f"Reference detector: {refdet}")
-    else:           print(f"No reference detector")
+    if(len(refdet)>0): print(f"Reference detectors: {refdet}")
+    else:              print(f"No reference detector")
     print(f"Events used: {len(events)} out of {allevents}")
     print(f"Tracks used: {ngoodtracks}")
     print(f"Success? {success}")
@@ -382,11 +543,11 @@ if __name__ == "__main__":
     salignment = "misalignment  = "
     k = 0
     for det in cfg["detectors"]:
-        if(det in skipdets): continue
-        if(det==refdet):
+        if(det in refdet):
             salignment += f"{det}:dx=0,dy=0,theta=0 "
         else:
             salignment += f"{det}:dx={dxFinal[k]:.2E},dy={dyFinal[k]:.2E},theta={thetaFinal[k]:.2E} "
+            # salignment += f"{det}:dx={dxf:.2E},dy={dyf:.2E},theta={dtf:.2E} "
             k += 1
     print(salignment)
     

@@ -14,15 +14,26 @@ _s12_  = math.sqrt(12.)
 _1s12_ = 1./_s12_
 
 class Hit:
-    def __init__(self,det,x,y,q=-1,xFake=0,yFake=0):
+    def __init__(self,det,x,y,q=-1,xOrig=0,yOrig=0,xFake=0,yFake=0,Azx=0,Bzx=0,Azy=0,Bzy=0,Vx=0,Vy=0,Vz=0):
         self.x = x
         self.y = y
         self.q = q
         self.xmm = self.x*cfg["pix_x"]-cfg["chipX"]/2.
         self.ymm = self.y*cfg["pix_y"]-cfg["chipY"]/2.
         self.zmm = cfg["rdetectors"][det][2]
-        self.xFake = xFake
-        self.yFake = yFake
+        if(cfg["isMC"] and cfg["isFakeMC"]):
+            self.xOrig = xOrig
+            self.yOrig = yOrig
+            self.xFake = xFake
+            self.yFake = yFake
+            self.Azx   = Azx
+            self.Bzx   = Bzx
+            self.Azy   = Azy
+            self.Bzy   = Bzy
+            self.Vx    = Vx
+            self.Vy    = Vy
+            self.Vz    = Vz
+        
     def __str__(self):
         return f"Pixel: x={self.x}, y={self.y}, q={self.q}, r=({self.xmm,self.ymm,self.zmm}) [mm]"
 
@@ -86,7 +97,6 @@ class Cls:
         # for p in self.pixels: print(p)
         return f"Cluster: xy={self.x,self.y} [pixels], r={self.xmm,self.ymm,self.zmm} [mm], size={self.n}"
 
-
 class MCparticle:
     def __init__(self,det,pdg,loc_start,loc_end):
         self.pdg = pdg
@@ -95,6 +105,13 @@ class MCparticle:
     def __str__(self):
         return f"MCparticle: pdg={self.pdg}, pos1=({self.pos1.X(),self.pos1.Y(),self.pos1.Z()}), pos2=({self.pos2.X(),self.loc_end.Y(),self.pos2.Z()})"
 
+class FakeMCparticle:
+    def __init__(self,slp,itp,vtx):
+        self.slp = slp
+        self.itp = itp
+        self.vtx = vtx
+    def __str__(self):
+        return f"FakeMCparticle: slp={self.slp}, itp={self.itp}, vtx={vtx}"
 
 class TrackSeed:
     def __init__(self,seed,tunnelid,clusters):
@@ -159,19 +176,20 @@ class Meta:
 
 class Event:
     def __init__(self,meta,trigger,timestamp_bgn,timestamp_end,saveprimitive=True):
-        self.saveprimitive = saveprimitive
-        self.meta          = meta
-        self.trigger       = trigger
-        self.timestamp_bgn = timestamp_bgn
-        self.timestamp_end = timestamp_end
-        self.errors        = {}
-        self.pixels        = {}
-        self.npixels       = {}
-        self.clusters      = {}
-        self.nclusters     = {}
-        self.seeds         = []
-        self.tracks        = []
-        self.mcparticles   = []
+        self.saveprimitive   = saveprimitive
+        self.meta            = meta
+        self.trigger         = trigger
+        self.timestamp_bgn   = timestamp_bgn
+        self.timestamp_end   = timestamp_end
+        self.errors          = {}
+        self.pixels          = {}
+        self.npixels         = {}
+        self.clusters        = {}
+        self.nclusters       = {}
+        self.seeds           = []
+        self.tracks          = []
+        self.mcparticles     = []
+        self.fakemcparticles = []
         self.misalignment  = cfg["misalignment"]
     def __str__(self):
         return f"Event: meta={self.meta}"
@@ -189,6 +207,8 @@ class Event:
         self.tracks = tracks
     def set_event_mcparticles(self,mcparticles):
         self.mcparticles = mcparticles
+    def set_event_fakemcparticles(self,fakemcparticles):
+        self.fakemcparticles = fakemcparticles
         
 class MinimalEvent:
     def __init__(self,trigger,tracks):

@@ -78,20 +78,21 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
     ax3.add_collection3d(Poly3DCollection(window, facecolors='gray', linewidths=0.5, edgecolors='k', alpha=.20))
     ax4.add_collection3d(Poly3DCollection(window, facecolors='gray', linewidths=0.5, edgecolors='k', alpha=.20))
     
-    # ### print ALL clusters
-    # clsx = []
-    # clsy = []
-    # clsz = []
-    # for det in cfg["detectors"]:
-    #     for cluster in clusters[det]:
-    #         r = transform_to_real_space( [cluster.xmm,cluster.ymm,cluster.zmm] )
-    #         clsx.append( r[0] )
-    #         clsy.append( r[1] )
-    #         clsz.append( r[2] )
-    # ax1.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
-    # ax2.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
-    # ax3.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
-    # ax4.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+    ### print ALL clusters
+    if(cfg["isFakeMC"]):
+        clsx = []
+        clsy = []
+        clsz = []
+        for det in cfg["detectors"]:
+            for cluster in clusters[det]:
+                r = transform_to_real_space( [cluster.xmm,cluster.ymm,cluster.zmm] )
+                clsx.append( r[0] )
+                clsy.append( r[1] )
+                clsz.append( r[2] )
+        ax1.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+        ax2.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+        ax3.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
+        ax4.scatter(clsx,clsy,clsz,s=0.9,c='k',marker='o',alpha=0.3)
 
     ### then the track
     goodtrk = 0
@@ -148,11 +149,12 @@ def plot_event(run,start,duration,evt,fname,clusters,tracks,chi2threshold=1.):
             trkcol = 'orange' 
             linewidth = 0.2
         
-        # # plot only the tracks clusters
-        # ax1.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
-        # ax2.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
-        # ax3.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
-        # ax4.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+        # plot only the tracks clusters
+        if(cfg["isFakeMC"]):
+            ax1.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+            ax2.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+            ax3.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
+            ax4.scatter(clsx,clsy,clsz,s=0.92,c='r',marker='o')
         ### plot the tracks lines in the detector volume only
         ax1.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)
         ax2.plot([xFrst, xLast], [yFrst, yLast], [zFrst, zLast], c=trkcol, linewidth=linewidth)

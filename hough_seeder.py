@@ -32,6 +32,7 @@ class HoughSeeder:
         self.is5lyr = (len(cfg["detectors"])>4)
         nclusters = 0
         for det in cfg["detectors"]: nclusters += len(clusters[det])
+        nclusters = int(nclusters/len(cfg["detectors"]))
         ### the clusters per detector
         n0 = len(clusters[cfg["detectors"][0]])
         n1 = len(clusters[cfg["detectors"][1]])
@@ -289,7 +290,7 @@ class HoughSeeder:
         self.h2waves_zy.Fill(thetay,rhoy)
 
     def fill_4d_wave_intersections(self,clusters):
-        print(f"ievt={self.eventid}: Starting pair search")
+        # print(f"ievt={self.eventid}: Starting pair search")
         for c0 in clusters["ALPIDE_0"]:
             for c1 in clusters["ALPIDE_1"]:
                 self.get_pair(c0,c1)
@@ -321,7 +322,7 @@ class HoughSeeder:
             for c3 in clusters["ALPIDE_3"]:
                 for c4 in clusters["ALPIDE_4"]:
                     self.get_pair(c3,c4)
-        print(f"ievt={self.eventid}: Finished pair search")
+        # print(f"ievt={self.eventid}: Finished pair search")
         
     
     def search_in_neighbours(self,encoded_key):

@@ -48,7 +48,7 @@ srunnum = "001"
 hPixelMatrix = ROOT.TH2D("pixelmatrix",";x_{pix} [mm];y_{pix} [mm]", cfg["npix_x"]+1,-cfg["chipX"]/2.,+cfg["chipX"]/2., cfg["npix_y"]+1,-cfg["chipY"]/2.,+cfg["chipY"]/2.)
 
 ### declare the data tree and its classes
-ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xFake; Float_t yFake; };" )
+ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; Float_t xOrig; Float_t yOrig; Float_t xFake; Float_t yFake; Float_t Azx; Float_t Bzx; Float_t Azy; Float_t Bzy; Float_t Vx; Float_t Vy; Float_t Vz; };" )
 ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
 ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
 ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
@@ -76,8 +76,20 @@ tOutMeta.Fill()
 
 ### init the particle gun
 vtxsurf = {"x":[-21,+21], "y":[0,30], "z":cfg["zDipoleExit"]}
-slopes  = {"xz":[-5e-3,+5e-3], "yz":[1e-2,3e-2]}    
-gun = ParticleGun(vtxsurf,slopes)
+slopes  = {"xz":[-5e-3,+5e-3], "yz":[1e-2,3e-2]}
+xyresolution = 0.005
+# xyresolution = 0
+gun = ParticleGun(vtxsurf,slopes,xyresolution)
+### this misalignment is in real frame!!! so y-->-x, x-->y to get to the chip frame
+misalignments = {
+    "ALPIDE_0":{"dx":0.,"dy":0.,"theta":0.}, 
+    "ALPIDE_1":{"dx":0.,"dy":0.,"theta":0.}, 
+    "ALPIDE_2":{"dx":0.1,"dy":0.,"theta":0.}, 
+    "ALPIDE_3":{"dx":0.,"dy":0.,"theta":0.}, 
+    "ALPIDE_4":{"dx":0.,"dy":0.,"theta":0.}, 
+}
+# misalignments = {}
+gun.set_misalgnment(misalignments)
 
 Lxmin = gun.layers[0][0][0]*1.2
 Lymin = gun.layers[0][0][1]*1.2
@@ -155,9 +167,17 @@ for Event in range(Nevents):
         fakeprt = gun.generate()
         Ngen += 1
 
+        points = {}
+        for det in cfg["detectors"]: 
+            if(len(misalignments)==0):
+                points.update({ det: [ fakeprt.smrpts[det][0], fakeprt.smrpts[det][1] ] })
+            else: 
+                points.update({ det: [ fakeprt.msalgnpts[det][0], fakeprt.msalgnpts[det][1] ] })
+            
+
         histos["dipole_precuts"].Fill(fakeprt.vtx[0],fakeprt.vtx[1])
         histos["window_precuts"].Fill(gun.k_of_z(cfg["zWindow"],fakeprt.slp[0],fakeprt.itp[0]), gun.k_of_z(cfg["zWindow"],fakeprt.slp[1],fakeprt.itp[1]))
-        for det in cfg["detectors"]: histos[f"{det}_precuts"].Fill(fakeprt.smrpts[det][0],fakeprt.smrpts[det][1])
+        for det in cfg["detectors"]: histos[f"{det}_precuts"].Fill(points[det][0],points[det][1])
         histos["slopexz_precuts"].Fill(fakeprt.slp[0])
         histos["slopeyz_precuts"].Fill(fakeprt.slp[1])
         
@@ -166,18 +186,31 @@ for Event in range(Nevents):
         
         histos["dipole_postcuts"].Fill(fakeprt.vtx[0],fakeprt.vtx[1])
         histos["window_postcuts"].Fill(gun.k_of_z(cfg["zWindow"],fakeprt.slp[0],fakeprt.itp[0]), gun.k_of_z(cfg["zWindow"],fakeprt.slp[1],fakeprt.itp[1]))
-        for det in cfg["detectors"]: histos[f"{det}_postcuts"].Fill(fakeprt.smrpts[det][0],fakeprt.smrpts[det][1])
+        for det in cfg["detectors"]: histos[f"{det}_postcuts"].Fill(points[det][0],points[det][1])
         histos["slopexz_postcuts"].Fill(fakeprt.slp[0])
         histos["slopeyz_postcuts"].Fill(fakeprt.slp[1])
         
         fakeprts.append(fakeprt)
 
+
     hits = {}
+    orgs = {}
+    meta = []
     for det in cfg["detectors"]:
         hits.update({det:[]})
+        orgs.update({det:[]})
     for prt in fakeprts:
+        orgpts = {}
         for det in cfg["detectors"]:
-            hits[det].append(prt.smrpts[det])
+            orgpts.update({det:[]})
+        for det in cfg["detectors"]:
+            point = []
+            if(len(misalignments)==0): point = prt.smrpts[det]
+            else:                      point = prt.msalgnpts[det]
+            hits[det].append(point)
+            orgs[det].append(prt.orgpts[det])
+            orgpts[det].append(prt.orgpts[det])
+        meta.append( {"vtx":prt.vtx, "slp":prt.slp, "itp":prt.itp, "orgpts":orgpts} )
     
     ##############################
     ### nicely clear per event
@@ -200,21 +233,35 @@ for Event in range(Nevents):
         ichip = event.st_ev_buffer[0].ch_ev_buffer.size()-1
         event.st_ev_buffer[0].ch_ev_buffer[ichip].chip_id = int(chipid)
         
-        for hit in hits[det]:
-            ### in lab space
-            x = hit[0]
-            y = hit[1]
-            z = hit[2]
+        for ihit,hit in enumerate(hits[det]):
+            ### in lab space before smearing and misalignment
+            x0 = orgs[det][ihit][0]
+            y0 = orgs[det][ihit][1]
+            z0 = orgs[det][ihit][2]
+            ### in lab space after smearing and misalignment
+            x1 = hit[0]
+            y1 = hit[1]
+            z1 = hit[2]
             ### in chip space
-            r = transform_to_chip_space([x,y,z])
-            ix = hPixelMatrix.GetXaxis().FindBin(r[0])-1 ### TODO: maybe no need for the -1?
-            iy = hPixelMatrix.GetYaxis().FindBin(r[1])-1 ### TODO: maybe no need for the -1?
+            r0 = transform_to_chip_space([x0,y0,z0])
+            r1 = transform_to_chip_space([x1,y1,z1])
+            ix = hPixelMatrix.GetXaxis().FindBin(r1[0])-1 ### TODO: maybe no need for the -1?
+            iy = hPixelMatrix.GetYaxis().FindBin(r1[1])-1 ### TODO: maybe no need for the -1?
             event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.push_back( ROOT.pixel() )
             ihit = event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.size()-1
             event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].ix = ix
             event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].iy = iy
-            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].xFake = r[0]
-            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].yFake = r[1]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].xOrig = r0[0]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].yOrig = r0[1]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].xFake = r1[0]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].yFake = r1[1]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Azx = meta[ihit]["slp"][0]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Bzx = meta[ihit]["itp"][0]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Azy = meta[ihit]["slp"][1]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Bzy = meta[ihit]["itp"][1]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Vx = meta[ihit]["vtx"][0]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Vy = meta[ihit]["vtx"][1]
+            event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].Vz = meta[ihit]["vtx"][2]
         
             # print(f"{det}: xLab={x:.3f}, yLab={y:.3f}, zLab={z:.1f} --> xChp={r[0]:.3f}, yChp={r[1]:.3f}, zChp={r[2]:.1f} --> ix={ix}, iy={iy}")
 
