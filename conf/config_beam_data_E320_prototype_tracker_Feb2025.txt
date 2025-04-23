@@ -29,7 +29,7 @@ first2process = 400
 ### run501 (beam-only, bewin-out):
 # nmax2process = 100000
 ### run502 (beam, bewin-in):
-nmax2process = 1000
+nmax2process = 0
 ### run503 beam-only, focusing on foil, 6h-long
 # nmax2process = 0
 
@@ -87,8 +87,8 @@ seed_rhoy_scale_inf   = 0.80
 ### seed_nbins_thetarho_low = 1100 nominally and 100 for the alignment
 # seed_nbins_thetarho_low = 1100
 # seed_nbins_thetarho_mid = 1100
-seed_nbins_thetarho_low = 700 
-seed_nbins_thetarho_mid = 700
+seed_nbins_thetarho_low = 650 
+seed_nbins_thetarho_mid = 650
 seed_nbins_thetarho_hgh = 2000
 seed_nbins_thetarho_inf = 2000
 
@@ -115,8 +115,9 @@ lut_widthy_inf = 0.0
 
 [CUTS]
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 50
+cut_chi2dof = 3
 cut_maxcls  = 4
+cut_allow_shared_clusters = 0
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
@@ -130,11 +131,21 @@ cut_ROI_ymax = 512
 
 
 [ALIGNMENT]
-use_large_clserr_for_algnmnt = 1
+use_large_clserr_for_algnmnt = 0
+use_large_dk_filter = 0
+
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
-minchi2align  = 10
-maxchi2align  = 50
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
+
+### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<17 USING ALPIDE_0 AS REF
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=9.47E-03,dy=-1.88E-03,theta=-1.37E-03 ALPIDE_2:dx=-5.80E-02,dy=-3.71E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.33E-02,dy=1.63E-02,theta=5.65E-04
+
+### FIRST MANUALLY ADJUSTED SHIFTS BASED ON THE RESIDUALS' MEANS AFTER THE PREVIOUS STEP
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.31E-02,dy=5.10E-04,theta=-1.37E-03 ALPIDE_2:dx=-6.56E-02,dy=-4.26E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.64E-02,dy=1.88E-02,theta=5.65E-04
+
+
+minchi2align  = 0.01
+maxchi2align  = 3
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05
@@ -157,6 +168,9 @@ fit_chi2_method0 = Powell
 fit_chi2_method1 = Nelder-Mead Powell
 
 
+[PLOT]
+plot_online_evtdisp = 0
+plot_offline_evtdisp = 0
 
 
 ####################

@@ -230,6 +230,7 @@ class Config:
         self.add("det2plane", det2plane)
         
         self.add("use_large_clserr_for_algnmnt", self.getB('ALIGNMENT','use_large_clserr_for_algnmnt'))
+        self.add("use_large_dk_filter", self.getB('ALIGNMENT','use_large_dk_filter'))
         self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
         self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
         self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
@@ -305,6 +306,10 @@ class Config:
         self.add("cut_ROI_ymin", self.getF('CUTS','cut_ROI_ymin'))
         self.add("cut_ROI_ymax", self.getF('CUTS','cut_ROI_ymax'))
         self.add("cut_maxcls", self.getF('CUTS','cut_maxcls'))
+        self.add("cut_allow_shared_clusters", self.getB('CUTS','cut_allow_shared_clusters'))
+        
+        self.add("plot_online_evtdisp", self.getB('PLOT','plot_online_evtdisp'))
+        self.add("plot_offline_evtdisp", self.getB('PLOT','plot_offline_evtdisp'))
     
         if(doprint):
             print("Configuration map:")

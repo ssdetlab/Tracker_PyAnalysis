@@ -74,26 +74,16 @@ ROOT.gStyle.SetOptFit(0)
 allhistos = {}
 
 
-def pass_0dev_first_layer(track,tolerance=1):
-    clsx  = {}
-    clsy  = {}
-    clsz  = {}
-    clsdx = {}
-    clsdy = {}
-    firstdet = cfg["detectors"][0]
-    for det in cfg["detectors"]:
-        clsx.update({det:track.trkcls[det].xmm})
-        clsy.update({det:track.trkcls[det].ymm})
-        clsz.update({det:track.trkcls[det].zmm})
-        clsdx.update({det:track.trkcls[det].xsizemm})
-        clsdy.update({det:track.trkcls[det].xsizemm})
-    vtx  = [cfg["xVtx"], cfg["yVtx"],  cfg["zVtx"]]  if(cfg["doVtx"]) else []
-    evtx = [cfg["exVtx"],cfg["eyVtx"], cfg["ezVtx"]] if(cfg["doVtx"]) else []
-    points_SVD,errors_SVD = SVD_candidate(clsx,clsy,clsz,clsdx,clsdy,vtx,evtx)
-    chisq_SVD,ndof_SVD,direction_SVD,centroid_SVD = fit_3d_SVD(points_SVD,errors_SVD)
-    dx,dy = res_track2cluster(firstdet,points_SVD,direction_SVD,centroid_SVD)
-    if(dx>tolerance*cfg["pix_x"]): return False
-    if(dy>tolerance*cfg["pix_y"]): return False
+# def pass_0dev_first_layer(track,tolerance=1):
+#     dx,dy = res_track2cluster(firstdet,track.points,track.direction,track.centroid)
+#     if(dx>tolerance*cfg["pix_x"]): return False
+#     if(dy>tolerance*cfg["pix_y"]): return False
+#     return True
+
+def pass_dk_at_detector(track,detector,dxMin=-999,dxMax=+999,dyMin=-999,dyMax=+999):
+    dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
+    if(dx<dxMin or dx>dxMax): return False
+    if(dy<dyMin or dy>dyMax): return False
     return True
 
 def pass_alignment_selections(track):
@@ -104,7 +94,8 @@ def pass_alignment_selections(track):
     if(isbeamrun):
         if(track.maxcls>cfg["cut_maxcls"]):   return False
         if(not pass_geoacc_selection(track)): return False
-        # if(not pass_0dev_first_layer(track)): return False
+        if(cfg["use_large_dk_filter"]):
+            if(not pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02)): return False
     return True
 
 
@@ -235,9 +226,11 @@ def fit_misalignment(events,ndet2align,refdet,axes):
         nvalidtracks = 0
         for event in events:
             
+            tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+            for track in tracks:
             # for track in event.tracks:
-            unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-            for track in unique_tracks:
+            # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+            # for track in unique_tracks:
                 
                 ### require some relevant cuts
                 if(not pass_alignment_selections(track)): continue
@@ -332,14 +325,33 @@ if __name__ == "__main__":
     
     ### some histos
     histos = {}
-    NscanBins = 100
+    NscanBins = 200
+    absRes    = 0.05
+    nResBins  = 50
+    nResBins2D = 80
     for det in cfg["detectors"]:
-        name = f"dx_{det}"; histos.update( {name:ROOT.TH1D(name,";dx [mm];#sum#Deltax [mm]",NscanBins,cfg["alignmentbounds"]["dx"]["min"],cfg["alignmentbounds"]["dx"]["max"])} )
-        name = f"dy_{det}"; histos.update( {name:ROOT.TH1D(name,";dy [mm];#sum#Deltay [mm]",NscanBins,cfg["alignmentbounds"]["dy"]["min"],cfg["alignmentbounds"]["dy"]["max"])} )
-        name = f"dt_{det}"; histos.update( {name:ROOT.TH1D(name,";d#theta [rad];#sum#Deltar [mm]",NscanBins,cfg["alignmentbounds"]["theta"]["min"],cfg["alignmentbounds"]["theta"]["max"])} )
+        name = f"dx_{det}"; histos.update( {name:ROOT.TH1D(name,det+";dx [mm];#sum#Deltax [mm]",NscanBins,cfg["alignmentbounds"]["dx"]["min"],cfg["alignmentbounds"]["dx"]["max"])} )
+        name = f"dy_{det}"; histos.update( {name:ROOT.TH1D(name,det+";dy [mm];#sum#Deltay [mm]",NscanBins,cfg["alignmentbounds"]["dy"]["min"],cfg["alignmentbounds"]["dy"]["max"])} )
+        name = f"dt_{det}"; histos.update( {name:ROOT.TH1D(name,det+";d#theta [rad];#sum#Deltar [mm]",NscanBins,cfg["alignmentbounds"]["theta"]["min"],cfg["alignmentbounds"]["theta"]["max"])} )
+        
         if(cfg["isFakeMC"]):
             name = f"dxhist_{det}"; histos.update( {name:ROOT.TH1D(name,";x_{final}-x_{orig} [mm];Tracks",400,cfg["alignmentbounds"]["dx"]["min"],cfg["alignmentbounds"]["dx"]["max"])} )
             name = f"dyhist_{det}"; histos.update( {name:ROOT.TH1D(name,";y_{final}-y_{orig} [mm];Tracks",400,cfg["alignmentbounds"]["dy"]["min"],cfg["alignmentbounds"]["dy"]["max"])} )
+
+        name = f"h_residual_x_{det}"; histos.update( {name:ROOT.TH1D(name,"det+;x_{trk}-x_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
+        name = f"h_residual_y_{det}"; histos.update( {name:ROOT.TH1D(name,"det+;y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
+
+        name = f"h_residual_x_mid_{det}"; histos.update( {name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_y_mid_{det}"; histos.update( {name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        
+        name = f"h_residual_xy_{det}";     histos.update( {name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins2D,-absRes*3,+absRes*3, nResBins2D,-absRes*3,+absRes*3) } )
+        name = f"h_residual_xy_mid_{det}"; histos.update( {name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins2D,-absRes*5,+absRes*5, nResBins2D,-absRes*5,+absRes*5) } )
+        
+        # name = f"h_residual_x_full_{det}"; histos.update( {name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*50,+absRes*50) } )
+        # name = f"h_residual_y_full_{det}"; histos.update( {name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*50,+absRes*50) } )
+        
+        name = f"h_response_x_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",100,-12.5,+12.5) } )
+        name = f"h_response_y_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",100,-12.5,+12.5) } )
     
     
     ### save all events
@@ -362,10 +374,12 @@ if __name__ == "__main__":
                 allevents += 1
                 alltracks += len(event.tracks)
                 evtgoodtracks = 0
+                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+                for track in tracks:
                 # for track in event.tracks:
-                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                nuniquetrks += len(unique_tracks)
-                for track in unique_tracks:
+                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                # nuniquetrks += len(unique_tracks)
+                # for track in unique_tracks:
                     
                     ### require some relevant cuts
                     if(not pass_alignment_selections(track)): continue
@@ -400,13 +414,26 @@ if __name__ == "__main__":
     ### fill histos ###
     ###################
     
-    ### check truth-wise
-    if(cfg["isFakeMC"]):
-        for event in events:
-            # for itrk,track in enumerate(event.tracks):
-            unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-            for itrk,track in enumerate(unique_tracks):
-                for det in cfg["detectors"]:
+    for event in events:
+        tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+        for itrk,track in enumerate(tracks):
+        # for itrk,track in enumerate(event.tracks):
+        # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+        # for itrk,track in enumerate(unique_tracks):
+            ### require some relevant cuts
+            if(not pass_alignment_selections(track)): continue
+            for det in cfg["detectors"]:
+                dx,dy = res_track2cluster(det,track.points,track.direction,track.centroid)
+                histos[f"h_residual_xy_{det}"].Fill(dx,dy)
+                histos[f"h_residual_xy_mid_{det}"].Fill(dx,dy)
+                histos[f"h_residual_x_{det}"].Fill(dx)
+                histos[f"h_residual_y_{det}"].Fill(dy)
+                histos[f"h_residual_x_mid_{det}"].Fill(dx)
+                histos[f"h_residual_y_mid_{det}"].Fill(dy)
+                histos[f"h_response_x_{det}"].Fill(dx/track.trkcls[det].dxmm)
+                histos[f"h_response_y_{det}"].Fill(dy/track.trkcls[det].dymm)
+                
+                if(cfg["isFakeMC"]):
                     xOrig = track.trkcls[det].pixels[0].xOrig
                     yOrig = track.trkcls[det].pixels[0].yOrig
                     xFinal = track.trkcls[det].pixels[0].xFake
@@ -426,9 +453,11 @@ if __name__ == "__main__":
             sum_dx = 0
             nvalidtracks = 0
             for event in events:
+                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+                for track in tracks:
                 # for track in event.tracks:
-                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                for track in unique_tracks:
+                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                # for track in unique_tracks:
                     ### require some relevant cuts
                     if(not pass_alignment_selections(track)): continue
                     chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
@@ -446,9 +475,11 @@ if __name__ == "__main__":
             sum_dy = 0
             nvalidtracks = 0
             for event in events:
+                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+                for track in tracks:
                 # for track in event.tracks:
-                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                for track in unique_tracks:
+                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                # for track in unique_tracks:
                     ### require some relevant cuts
                     if(not pass_alignment_selections(track)): continue
                     chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
@@ -466,9 +497,11 @@ if __name__ == "__main__":
             sum_dr = 0
             nvalidtracks = 0
             for event in events:
+                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+                for track in tracks:
                 # for track in event.tracks:
-                unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                for track in unique_tracks:
+                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+                # for track in unique_tracks:
                     ### require some relevant cuts
                     if(not pass_alignment_selections(track)): continue
                     chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
@@ -477,6 +510,7 @@ if __name__ == "__main__":
             histos[f"dt_{det}"].SetBinContent(BT,sum_dr/nvalidtracks)
     
     ### pring summary
+    salignment = "misalignment  = "
     print("------------------------------")
     for det in cfg["detectors"]:
         dxhmin = histos[f"dx_{det}"].GetBinCenter( histos[f"dx_{det}"].GetMinimumBin() )
@@ -486,6 +520,9 @@ if __name__ == "__main__":
         print(f"   - dx at minimum: {dxhmin:.4}")
         print(f"   - dy at minimum: {dyhmin:.4}")
         print(f"   - dt at minimum: {dthmin:.5}")
+        salignment += f"{det}:dx={dxhmin:.2E},dy={dyhmin:.2E},theta={dthmin:.2E} "
+    print("Alignment from scan:")
+    print(salignment)
     print("------------------------------")
         
 
@@ -546,7 +583,11 @@ if __name__ == "__main__":
         if(det in refdet):
             salignment += f"{det}:dx=0,dy=0,theta=0 "
         else:
-            salignment += f"{det}:dx={dxFinal[k]:.2E},dy={dyFinal[k]:.2E},theta={thetaFinal[k]:.2E} "
+            dx = dxFinal[k]    + cfg["misalignment"][det]["dx"]
+            dy = dyFinal[k]    + cfg["misalignment"][det]["dy"]
+            dt = thetaFinal[k] + cfg["misalignment"][det]["theta"]
+            salignment += f"{det}:dx={dx:.2E},dy={dy:.2E},theta={dt:.2E} "
+            # salignment += f"{det}:dx={dxFinal[k]:.2E},dy={dyFinal[k]:.2E},theta={thetaFinal[k]:.2E} "
             # salignment += f"{det}:dx={dxf:.2E},dy={dyf:.2E},theta={dtf:.2E} "
             k += 1
     print(salignment)

@@ -76,6 +76,21 @@ LB = cfg["zDipoleLenghMeters"]
 mm2m = 1e-3
 
 
+def h1h2max(h1,h2):
+    hmax = -1
+    y1 = h1.GetMaximum()
+    y2 = h2.GetMaximum()
+    hmax = y1 if(y1>y2) else y2
+    return hmax
+
+def fit1(h,col,xmin,xmax):
+    g1 = ROOT.TF1("g1", "gaus", xmin,xmax)
+    g1.SetLineColor(col)
+    h.Fit(g1,"EMRS")
+    chi2dof = g1.GetChisquare()/g1.GetNDF() if(g1.GetNDF()>0) else -1
+    print("g1 chi2/Ndof=",chi2dof)
+    return g1
+
 def refit(track):
     nonzeromisalignment = False
     for key1 in cfg["misalignment"]:
@@ -85,6 +100,11 @@ def refit(track):
                 break
         if(nonzeromisalignment): break
     
+    ############################################### 
+    ### don't bother if there's no misalignment ###
+    if(not nonzeromisalignment): return track
+    ###############################################
+    
     clusters = track.trkcls
     seed_x = {}
     seed_y = {}
@@ -92,17 +112,18 @@ def refit(track):
     seed_dx = {}
     seed_dy = {}
     for det in cfg["detectors"]:
+        ### first align!!
         if(nonzeromisalignment):
             clusters[det].xmm,clusters[det].ymm = align(det,clusters[det].xmm,clusters[det].ymm)
+        ### then prepare for refit
         seed_x.update({  det : clusters[det].xmm  })
         seed_y.update({  det : clusters[det].ymm  })
         seed_z.update({  det : clusters[det].zmm  })
         seed_dx.update({ det : clusters[det].xsizemm if(cfg["use_large_clserr_for_algnmnt"]) else clusters[det].dxmm })
         seed_dy.update({ det : clusters[det].ysizemm if(cfg["use_large_clserr_for_algnmnt"]) else clusters[det].dymm })
-
+    ### then prepare for refit
     vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
     evtx = [cfg["exVtx"],cfg["eyVtx"],cfg["ezVtx"]] if(cfg["doVtx"]) else []
-
     points_SVD, errors_SVD  = SVD_candidate(seed_x,seed_y,seed_z,seed_dx,seed_dy,vtx,evtx)
     points_Chi2,errors_Chi2 = Chi2_candidate(seed_x,seed_y,seed_z,seed_dx,seed_dy,vtx,evtx)
     
@@ -126,15 +147,19 @@ def refit(track):
     track = Track(clusters,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success)
     return track
 
+def pass_dk_at_detector(track,detector,dxMin,dxMax,dyMin,dyMax):
+    dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
+    if(dx<dxMin or dx>dxMax): return False
+    if(dy<dyMin or dy>dyMax): return False
+    return True
+
 
 if __name__ == "__main__":
     # get the start time
     st = time.time()
     
-    
     # print config once
     show_config()
-    
     
     ### get all the files
     tfilenamein = ""
@@ -161,14 +186,17 @@ if __name__ == "__main__":
     
     ### some histos
     histos = {}
-    histos.update({ "hChi2DoF_before_alignment": ROOT.TH1D("hChi2DoF_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
-    histos.update({ "hChi2DoF_after_alignment":  ROOT.TH1D("hChi2DoF_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
+    histos.update({ "hChi2DoF_alowshrcls": ROOT.TH1D("hChi2DoF_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
+    histos.update({ "hChi2DoF_zeroshrcls":  ROOT.TH1D("hChi2DoF_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     
-    histos.update({ "hChi2DoF_zoom_before_alignment": ROOT.TH1D("hChi2DoF_zoom_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
-    histos.update({ "hChi2DoF_zoom_after_alignment":  ROOT.TH1D("hChi2DoF_zoon_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
+    histos.update({ "hChi2DoF_full_alowshrcls": ROOT.TH1D("hChi2DoF_full_alowshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
+    histos.update({ "hChi2DoF_full_zeroshrcls":  ROOT.TH1D("hChi2DoF_full_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
     
-    histos.update({ "hChi2DoF_0to1_before_alignment": ROOT.TH1D("hChi2DoF_0to1_before_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
-    histos.update({ "hChi2DoF_0to1_after_alignment":  ROOT.TH1D("hChi2DoF_0to1_after_alignment",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
+    histos.update({ "hChi2DoF_zoom_alowshrcls": ROOT.TH1D("hChi2DoF_zoom_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
+    histos.update({ "hChi2DoF_zoom_zeroshrcls":  ROOT.TH1D("hChi2DoF_zoon_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
+    
+    histos.update({ "hChi2DoF_0to1_alowshrcls": ROOT.TH1D("hChi2DoF_0to1_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
+    histos.update({ "hChi2DoF_0to1_zeroshrcls":  ROOT.TH1D("hChi2DoF_0to1_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
     
     histos.update({ "hPf_vs_dExit": ROOT.TH2D("hPf_vs_dExit",";d_{exit} [mm];p(#theta(fit)) [GeV];Tracks",50,0,+35, 50,0,10) })
     histos.update({ "hPd_vs_dExit": ROOT.TH2D("hPd_vs_dExit",";d_{exit} [mm];p(#theta(d_{exit}) [GeV];Tracks",50,0,+35, 50,0,10) })
@@ -219,27 +247,34 @@ if __name__ == "__main__":
     
     absRes   = 0.05
     nResBins = 50
-    for det in cfg["detectors"]:        
-        histos.update( { f"h_Chi2fit_res_trk2cls_x_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_x_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-        histos.update( { f"h_Chi2fit_res_trk2cls_y_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_y_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
+    nResBins
+    for det in cfg["detectors"]:
+        name = f"h_residual_alowshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
+        name = f"h_residual_alowshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
+        name = f"h_residual_alowshrcls_x_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
+        name = f"h_residual_alowshrcls_y_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
+        name = f"h_residual_alowshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_alowshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
 
-        histos.update( { f"h_Chi2fit_res_trk2cls_pass_x_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_x_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-        histos.update( { f"h_Chi2fit_res_trk2cls_pass_y_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_y_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins,-absRes,+absRes) } )
-
-        histos.update( { f"h_Chi2fit_res_trk2cls_x_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_x_mid_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-        histos.update( { f"h_Chi2fit_res_trk2cls_y_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_y_mid_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-
-        histos.update( { f"h_Chi2fit_res_trk2cls_pass_x_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_x_mid_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
-        histos.update( { f"h_Chi2fit_res_trk2cls_pass_y_mid_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_y_mid_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_response_alowshrcls_x_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_y_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
         
-        histos.update( { f"h_Chi2fit_res_trk2cls_x_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_x_full_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
-        histos.update( { f"h_Chi2fit_res_trk2cls_y_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_y_full_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        name = f"h_residual_zeroshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
+        name = f"h_residual_zeroshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
+        name = f"h_residual_zeroshrcls_x_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
+        name = f"h_residual_zeroshrcls_y_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
+        name = f"h_residual_zeroshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_zeroshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
 
-        histos.update( { f"h_Chi2fit_res_trk2cls_pass_x_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_x_full_{det}",";"+det+" x_{trk}-x_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
-        histos.update( { f"h_Chi2fit_res_trk2cls_pass_y_full_{det}" : ROOT.TH1D(f"h_Chi2fit_res_trk2cls_pass_y_full_{det}",";"+det+" y_{trk}-y_{cls} [mm];Events",nResBins*2,-absRes*50,+absRes*50) } )
+        name = f"h_response_zeroshrcls_x_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-5,+5) } )
+        name = f"h_response_zeroshrcls_y_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-5,+5) } )
+        name = f"h_response_zeroshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_zeroshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
         
-        histos.update( { f"h_response_x_{det}" : ROOT.TH1D(f"h_response_x_{det}",";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",100,-12.5,+12.5) } )
-        histos.update( { f"h_response_y_{det}" : ROOT.TH1D(f"h_response_y_{det}",";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",100,-12.5,+12.5) } )
+        name = f"h_residual_zeroshrcls_xy_{det}";    histos.update( { name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3, nResBins,-absRes*3,+absRes*3) } )
+        name = f"h_residual_zeroshrcls_xy_mid_{det}";histos.update( { name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*5,+absRes*5, nResBins,-absRes*5,+absRes*5) } )
     
     
     dipole = ROOT.TPolyLine()
@@ -279,6 +314,8 @@ if __name__ == "__main__":
             for ievt,event in enumerate(data):
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
+                
+                # if(nevents>100): break
                 
                 counters_x_trg.append( event.trigger )
                 append_global_counters()
@@ -331,13 +368,35 @@ if __name__ == "__main__":
                 # print(f"I see {len(event.tracks)} tracks in event {nevents-1}")
                 for track in event.tracks:
                     
-                    histos["hChi2DoF_before_alignment"].Fill(track.chi2ndof)
-                    histos["hChi2DoF_zoom_before_alignment"].Fill(track.chi2ndof)
-                    histos["hChi2DoF_0to1_before_alignment"].Fill(track.chi2ndof)
-                    new_track = refit(track)
-                    histos["hChi2DoF_after_alignment"].Fill(new_track.chi2ndof)
-                    histos["hChi2DoF_zoom_after_alignment"].Fill(new_track.chi2ndof)
-                    histos["hChi2DoF_0to1_after_alignment"].Fill(new_track.chi2ndof)
+                    ##################################
+                    ### first require max cluster ####
+                    ##################################
+                    if(track.maxcls>cfg["cut_maxcls"]): continue
+                    
+                    ### fill some quantities before alignment
+                    if(track.chi2ndof<=cfg["cut_chi2dof"] and pass_geoacc_selection(track)): ##TODO: missing the shared hits cut here...
+                        histos["hChi2DoF_alowshrcls"].Fill(track.chi2ndof)
+                        histos["hChi2DoF_full_alowshrcls"].Fill(track.chi2ndof)
+                        histos["hChi2DoF_zoom_alowshrcls"].Fill(track.chi2ndof)
+                        histos["hChi2DoF_0to1_alowshrcls"].Fill(track.chi2ndof)
+                        for det in cfg["detectors"]:
+                            dx,dy = res_track2cluster(det,track.points,track.direction,track.centroid)
+                            histos[f"h_residual_alowshrcls_x_sml_{det}"].Fill(dx)
+                            histos[f"h_residual_alowshrcls_x_mid_{det}"].Fill(dx)
+                            histos[f"h_residual_alowshrcls_x_ful_{det}"].Fill(dx)
+                            histos[f"h_residual_alowshrcls_y_sml_{det}"].Fill(dy)
+                            histos[f"h_residual_alowshrcls_y_mid_{det}"].Fill(dy)
+                            histos[f"h_residual_alowshrcls_y_ful_{det}"].Fill(dy)
+                            histos[f"h_response_alowshrcls_x_sml_{det}"].Fill(dx/track.trkcls[det].dxmm)
+                            histos[f"h_response_alowshrcls_x_ful_{det}"].Fill(dx/track.trkcls[det].dxmm)
+                            histos[f"h_response_alowshrcls_y_sml_{det}"].Fill(dy/track.trkcls[det].dymm)
+                            histos[f"h_response_alowshrcls_y_ful_{det}"].Fill(dy/track.trkcls[det].dymm)
+                    
+                    ########################
+                    track = refit(track) ###
+                    ### will be the same if
+                    ### misalignment is 0
+                    ########################
 
                     if(cfg["isMC"] and cfg["isFakeMC"]):
                         slp = event.fakemcparticles[0].slp
@@ -346,11 +405,10 @@ if __name__ == "__main__":
                         histos["hTheta_xz_tru_all"].Fill(slp[0])
                         histos["hTheta_yz_tru_all"].Fill(slp[1])
                     
-                    # print(f"maxcls={track.maxcls}, track.chi2ndof={track.chi2ndof}")
-                    
-                    ### first require max cluster and chi2
-                    if(track.maxcls>cfg["cut_maxcls"]):    continue
-                    if(track.chi2ndof>cfg["cut_chi2dof"]): continue
+                    #########################
+                    ### then require chi2 ###
+                    #########################
+                    if(track.chi2ndof>cfg["cut_chi2dof"]): continue ### this is the new chi2!
                     good_tracks.append(track)
                     
                     ### get the coordinates at extreme points in real space and after tilting the detector
@@ -365,7 +423,11 @@ if __name__ == "__main__":
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
                     
                     
-                    ### require pointing to the pdc window and the dipole exit aperture and inclined up as a positron
+                    ##########################################
+                    ### require pointing to the pdc window ###
+                    ### and the dipole exit aperture       ###
+                    ### and inclined up as a positron      ###
+                    ##########################################
                     if(not pass_geoacc_selection(track)): continue
                                         
                     ### the fit angles
@@ -436,15 +498,44 @@ if __name__ == "__main__":
                 set_global_counter("Good Tracks",icounter,len(good_tracks))
                 
                 ### check for overlaps
-                selected_tracks = remove_tracks_with_shared_clusters(acceptance_tracks)
-                if(len(selected_tracks)!=len(acceptance_tracks)): print(f"nsel:{len(acceptance_tracks)} --> npas={len(selected_tracks)}")
+                selected_tracks = acceptance_tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(acceptance_tracks)
+                # if(len(selected_tracks)!=len(acceptance_tracks)): print(f"nsel:{len(acceptance_tracks)} --> npas={len(selected_tracks)}")
                 set_global_counter("Selected Tracks",icounter,len(selected_tracks))
                 
                 ### event displays
-                if(len(good_tracks)>0):
+                if(cfg["plot_online_evtdisp"] and len(good_tracks)>0):
                     fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_offline_{event.trigger}.pdf")
                     plot_event(event.meta.run,event.meta.start,event.meta.dur,event.trigger,fevtdisplayname,event.clusters,event.tracks,chi2threshold=cfg["cut_chi2dof"])
-                    print(fevtdisplayname)
+                
+                ### plot some selected tracks
+                for track in selected_tracks:
+                    
+                    # dx,dy = res_track2cluster("ALPIDE_3",track.points,track.direction,track.centroid)
+                    # if(dx>-0.01): continue
+                    # if(dy>-0.03): continue
+                    
+                    histos["hChi2DoF_zeroshrcls"].Fill(track.chi2ndof)
+                    histos["hChi2DoF_full_zeroshrcls"].Fill(track.chi2ndof)
+                    histos["hChi2DoF_zoom_zeroshrcls"].Fill(track.chi2ndof)
+                    histos["hChi2DoF_0to1_zeroshrcls"].Fill(track.chi2ndof)
+                    for det in cfg["detectors"]:
+                        dx,dy = res_track2cluster(det,track.points,track.direction,track.centroid)
+                        histos[f"h_residual_zeroshrcls_x_sml_{det}"].Fill(dx)
+                        histos[f"h_residual_zeroshrcls_x_mid_{det}"].Fill(dx)
+                        histos[f"h_residual_zeroshrcls_x_ful_{det}"].Fill(dx)
+                        histos[f"h_residual_zeroshrcls_y_sml_{det}"].Fill(dy)
+                        histos[f"h_residual_zeroshrcls_y_mid_{det}"].Fill(dy)
+                        histos[f"h_residual_zeroshrcls_y_ful_{det}"].Fill(dy)
+                        
+                        histos[f"h_residual_zeroshrcls_xy_{det}"].Fill(dx,dy)
+                        histos[f"h_residual_zeroshrcls_xy_mid_{det}"].Fill(dx,dy)
+                        
+                        histos[f"h_response_zeroshrcls_x_sml_{det}"].Fill(dx/track.trkcls[det].dxmm)
+                        histos[f"h_response_zeroshrcls_x_ful_{det}"].Fill(dx/track.trkcls[det].dxmm)
+                        histos[f"h_response_zeroshrcls_y_sml_{det}"].Fill(dy/track.trkcls[det].dymm)
+                        histos[f"h_response_zeroshrcls_y_ful_{det}"].Fill(dy/track.trkcls[det].dymm)
+                    
+                    
                 
                 print(f"Event[{nevents-1}], Trigger[{event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
@@ -723,31 +814,369 @@ if __name__ == "__main__":
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
-    histos["hChi2DoF_before_alignment"].SetLineColor(ROOT.kBlack)
-    histos["hChi2DoF_after_alignment"].SetLineColor(ROOT.kRed)
-    histos["hChi2DoF_before_alignment"].Draw("hist")
-    histos["hChi2DoF_after_alignment"].Draw("hist same")
+    hmax = h1h2max(histos["hChi2DoF_full_alowshrcls"],histos["hChi2DoF_full_zeroshrcls"])
+    histos["hChi2DoF_full_alowshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_full_zeroshrcls"].SetMaximum(1.1*hmax)  
+    histos["hChi2DoF_full_alowshrcls"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_full_zeroshrcls"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_full_alowshrcls"].Draw("hist")
+    histos["hChi2DoF_full_zeroshrcls"].Draw("hist same")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
-    histos["hChi2DoF_zoom_before_alignment"].SetLineColor(ROOT.kBlack)
-    histos["hChi2DoF_zoom_after_alignment"].SetLineColor(ROOT.kRed)
-    histos["hChi2DoF_zoom_before_alignment"].Draw("hist")
-    histos["hChi2DoF_zoom_after_alignment"].Draw("hist same")
+    hmax = h1h2max(histos["hChi2DoF_alowshrcls"],histos["hChi2DoF_zeroshrcls"])
+    histos["hChi2DoF_alowshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_zeroshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_alowshrcls"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_zeroshrcls"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_alowshrcls"].Draw("hist")
+    histos["hChi2DoF_zeroshrcls"].Draw("hist same")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
-    histos["hChi2DoF_0to1_before_alignment"].SetLineColor(ROOT.kBlack)
-    histos["hChi2DoF_0to1_after_alignment"].SetLineColor(ROOT.kRed)
-    histos["hChi2DoF_0to1_before_alignment"].Draw("hist")
-    histos["hChi2DoF_0to1_after_alignment"].Draw("hist same")
+    hmax = h1h2max(histos["hChi2DoF_zoom_alowshrcls"],histos["hChi2DoF_zoom_zeroshrcls"])
+    histos["hChi2DoF_zoom_alowshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_zoom_zeroshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_zoom_alowshrcls"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_zoom_zeroshrcls"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_zoom_alowshrcls"].Draw("hist")
+    histos["hChi2DoF_zoom_zeroshrcls"].Draw("hist same")
     cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
+    hmax = h1h2max(histos["hChi2DoF_0to1_alowshrcls"],histos["hChi2DoF_0to1_zeroshrcls"])
+    histos["hChi2DoF_0to1_alowshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_0to1_zeroshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_0to1_alowshrcls"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_0to1_zeroshrcls"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_0to1_alowshrcls"].Draw("hist")
+    histos["hChi2DoF_0to1_zeroshrcls"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        histos[f"h_residual_zeroshrcls_xy_{det}"].Draw("colz")
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        histos[f"h_residual_zeroshrcls_xy_mid_{det}"].Draw("colz")
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].Draw("e1p")
+        xmin = histos[f"h_residual_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_residual_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmax()
+        mm2um = 1e3
+        func = fit1(histos[f"h_residual_zeroshrcls_x_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_residual_alowshrcls_x_mid_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_x_mid_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_residual_alowshrcls_x_mid_{det}"].GetMaximum()
+        hamax = histos[f"h_residual_zeroshrcls_x_mid_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_residual_alowshrcls_x_mid_{det}"].SetMaximum(hmax)
+        histos[f"h_residual_zeroshrcls_x_mid_{det}"].SetMaximum(hmax)
+        
+        histos[f"h_residual_alowshrcls_x_mid_{det}"].SetMarkerStyle(20)
+        histos[f"h_residual_alowshrcls_x_mid_{det}"].SetMarkerColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_x_mid_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_x_mid_{det}"].Draw("ep")
+        
+        histos[f"h_residual_zeroshrcls_x_mid_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_x_mid_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_mid_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_mid_{det}"].Draw("ep same")
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_residual_alowshrcls_x_ful_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_x_ful_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_residual_alowshrcls_x_ful_{det}"].GetMaximum()
+        hamax = histos[f"h_residual_zeroshrcls_x_ful_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_residual_alowshrcls_x_ful_{det}"].SetMaximum(hmax)
+        histos[f"h_residual_zeroshrcls_x_ful_{det}"].SetMaximum(hmax)
+        
+        histos[f"h_residual_alowshrcls_x_ful_{det}"].SetMarkerStyle(20)
+        histos[f"h_residual_alowshrcls_x_ful_{det}"].SetMarkerColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_x_ful_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_x_ful_{det}"].Draw("ep")
+        
+        histos[f"h_residual_zeroshrcls_x_ful_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_x_ful_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_ful_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_ful_{det}"].Draw("ep same")
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].Draw("e1p")
+        xmin = histos[f"h_residual_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_residual_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmax()
+        mm2um = 1e3
+        func = fit1(histos[f"h_residual_zeroshrcls_y_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+
+        histos[f"h_residual_alowshrcls_y_mid_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_y_mid_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_residual_alowshrcls_y_mid_{det}"].GetMaximum()
+        hamax = histos[f"h_residual_zeroshrcls_y_mid_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_residual_alowshrcls_y_mid_{det}"].SetMaximum(hmax)
+        histos[f"h_residual_zeroshrcls_y_mid_{det}"].SetMaximum(hmax)
+        
+        histos[f"h_residual_alowshrcls_y_mid_{det}"].SetMarkerStyle(20)
+        histos[f"h_residual_alowshrcls_y_mid_{det}"].SetMarkerColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_y_mid_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_y_mid_{det}"].Draw("ep")
+        
+        histos[f"h_residual_zeroshrcls_y_mid_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_y_mid_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_mid_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_mid_{det}"].Draw("ep same")
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+
+        histos[f"h_residual_alowshrcls_y_ful_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_y_ful_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_residual_alowshrcls_y_ful_{det}"].GetMaximum()
+        hamax = histos[f"h_residual_zeroshrcls_y_ful_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_residual_alowshrcls_y_ful_{det}"].SetMaximum(hmax)
+        histos[f"h_residual_zeroshrcls_y_ful_{det}"].SetMaximum(hmax)
+        
+        histos[f"h_residual_alowshrcls_y_ful_{det}"].SetMarkerStyle(20)
+        histos[f"h_residual_alowshrcls_y_ful_{det}"].SetMarkerColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_y_ful_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_residual_alowshrcls_y_ful_{det}"].Draw("ep")
+        
+        histos[f"h_residual_zeroshrcls_y_ful_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_y_ful_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_ful_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_ful_{det}"].Draw("ep same")
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetMinimum(0)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].Draw("e1p")
+        
+        xmin = histos[f"h_response_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_response_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmax()
+        func = fit1(histos[f"h_response_zeroshrcls_x_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f" % (func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f" % (func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+
+        histos[f"h_response_alowshrcls_x_ful_{det}"].SetMinimum(0)
+        histos[f"h_response_zeroshrcls_x_ful_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_response_alowshrcls_x_ful_{det}"].GetMaximum()
+        hamax = histos[f"h_response_zeroshrcls_x_ful_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_response_alowshrcls_x_ful_{det}"].SetMaximum(hmax)
+        histos[f"h_response_zeroshrcls_x_ful_{det}"].SetMaximum(hmax)
+        
+        histos[f"h_response_alowshrcls_x_ful_{det}"].SetMarkerStyle(20)
+        histos[f"h_response_alowshrcls_x_ful_{det}"].SetMarkerColor(ROOT.kBlack)
+        histos[f"h_response_alowshrcls_x_ful_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_response_alowshrcls_x_ful_{det}"].Draw("ep")
+        
+        histos[f"h_response_zeroshrcls_x_ful_{det}"].SetMarkerStyle(24)
+        histos[f"h_response_zeroshrcls_x_ful_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_x_ful_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_x_ful_{det}"].Draw("ep same")
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetMinimum(0)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].Draw("e1p")
+        
+        xmin = histos[f"h_response_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_response_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmax()
+        func = fit1(histos[f"h_response_zeroshrcls_y_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f" % (func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f" % (func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+
+        histos[f"h_response_alowshrcls_y_ful_{det}"].SetMinimum(0)
+        histos[f"h_response_zeroshrcls_y_ful_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_response_alowshrcls_y_ful_{det}"].GetMaximum()
+        hamax = histos[f"h_response_zeroshrcls_y_ful_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_response_alowshrcls_y_ful_{det}"].SetMaximum(hmax)
+        histos[f"h_response_zeroshrcls_y_ful_{det}"].SetMaximum(hmax)
+        
+        histos[f"h_response_alowshrcls_y_ful_{det}"].SetMarkerStyle(20)
+        histos[f"h_response_alowshrcls_y_ful_{det}"].SetMarkerColor(ROOT.kBlack)
+        histos[f"h_response_alowshrcls_y_ful_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_response_alowshrcls_y_ful_{det}"].Draw("ep")
+        
+        histos[f"h_response_zeroshrcls_y_ful_{det}"].SetMarkerStyle(24)
+        histos[f"h_response_zeroshrcls_y_ful_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_y_ful_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_y_ful_{det}"].Draw("ep same")
+        
+        ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname})")
     

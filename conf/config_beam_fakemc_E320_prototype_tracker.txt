@@ -55,8 +55,8 @@ seed_rhoy_scale_inf   = 0.80
 ### seed_nbins_thetarho_low = 1100 nominally and 100 for the alignment
 # seed_nbins_thetarho_low = 1100
 # seed_nbins_thetarho_mid = 1100
-seed_nbins_thetarho_low = 100
-seed_nbins_thetarho_mid = 100
+seed_nbins_thetarho_low = 650
+seed_nbins_thetarho_mid = 650
 seed_nbins_thetarho_hgh = 2000
 seed_nbins_thetarho_inf = 2000
 
@@ -85,6 +85,7 @@ lut_widthy_inf = 0.0
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
 cut_chi2dof = 1000
 cut_maxcls  = 4
+cut_allow_shared_clusters = 1
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
@@ -99,6 +100,7 @@ cut_ROI_ymax = 512
 
 [ALIGNMENT]
 use_large_clserr_for_algnmnt = 1
+use_large_dk_filter = 1
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
 misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=-0.15,theta=0 ALPIDE_2:dx=0,dy=+0.15,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
@@ -126,6 +128,9 @@ fit_chi2_method0 = Powell
 fit_chi2_method1 = Nelder-Mead Powell
 
 
+[PLOT]
+plot_online_evtdisp = 1
+plot_offline_evtdisp = 1
 
 
 ####################
