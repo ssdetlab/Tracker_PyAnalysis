@@ -206,6 +206,7 @@ class HoughSeeder:
     
     def define_theta_rho_axes(self,name,tmin,tmax,fmin,fmax):
         h2 = ROOT.TH2D("h2waves_map_"+name,";#theta;#rho;",self.nbins_thetarho,tmin,tmax,self.nbins_thetarho,fmin,fmax)
+        h2.SetDirectory(0)
         return h2
     
     def find_waves_intersect(self,k1,z1,k2,z2):

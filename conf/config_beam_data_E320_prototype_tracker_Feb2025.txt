@@ -35,7 +35,7 @@ first2process = 0
 ### run503 beam-only, focusing on foil, 6h-long
 # nmax2process = 0
 ### run510 Be window long run, parasitic
-nmax2process = 0
+nmax2process = 100
 
 
 
@@ -121,7 +121,8 @@ lut_widthy_inf = 0.0
 
 [CUTS]
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
-cut_chi2dof = 3
+# cut_chi2dof = 3
+cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
 ### full chip ROI, i.e. no cuts
@@ -149,9 +150,9 @@ use_large_dk_filter = 0
 ### FIRST MANUALLY ADJUSTED SHIFTS BASED ON THE RESIDUALS' MEANS AFTER THE PREVIOUS STEP
 misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.31E-02,dy=5.10E-04,theta=-1.37E-03 ALPIDE_2:dx=-6.56E-02,dy=-4.26E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.64E-02,dy=1.88E-02,theta=5.65E-04
 
-
 minchi2align  = 0.01
-maxchi2align  = 3
+# maxchi2align  = 3
+maxchi2align  = 1000
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05
