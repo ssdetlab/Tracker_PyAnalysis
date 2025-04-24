@@ -177,7 +177,7 @@ class Meta:
 class Magnets:
     def __init__(self,dipole_in_GeV,quad0,quad1,quad2,m12,m34):
         self.ThetaB = 0.006 ### mrad
-        self.dipole = get_dipole(dipole_in_GeV)
+        self.dipole = self.get_dipole(dipole_in_GeV)
         self.quad0 = quad0
         self.quad1 = quad1
         self.quad2 = quad2
