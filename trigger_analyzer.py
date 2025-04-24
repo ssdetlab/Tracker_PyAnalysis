@@ -570,11 +570,10 @@ if __name__ == "__main__":
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
-    # cnv.SetLogy()
     mg = ROOT.TMultiGraph()
     mg.Add(graphs["dipole"])
     mg.SetMinimum(0)
-    mg.SetMaximum(13)
+    mg.SetMaximum(13.1)
     mg.Draw("al")
     mg.SetTitle(f";Trigger number;Dipole [GeV] (for a 6 mrad deflection at 10 GeV)")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])

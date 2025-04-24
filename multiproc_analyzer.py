@@ -90,6 +90,11 @@ if(cfg["isMC"]):
 ### defined below as global
 allhistos = {}
 
+def get_dipole(Dipole_settings_in_GeV):
+    ThetaB = 0.006 ### mrad
+    B_in_Tesla = Dipole_settings_in_GeV*math.sin(ThetaB)/(0.3*cfg["zDipoleLenghMeters"])
+    return B_in_Tesla
+
 
 def dump_pixels(fpklname,pixels):
     fpkl = open(fpklname,"wb")
@@ -181,10 +186,11 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         trigger         = ttree.event.trg_n
         timestamp_begin = ttree.event.ts_begin
         timestamp_end   = ttree.event.ts_end
+        dipole          = get_dipole(tree.event.epics_frame.espec_dipole_bact)
 
 
         ### append the envent no-matter-what:
-        eventslist.append( Event(meta,trigger,timestamp_begin,timestamp_end,saveprimitive=cfg["saveprimitive"]) )
+        eventslist.append( Event(meta,trigger,timestamp_begin,timestamp_end,dipole,saveprimitive=cfg["saveprimitive"]) )
 
 
         ### all events...

@@ -175,12 +175,13 @@ class Meta:
         return f"Meta: "
 
 class Event:
-    def __init__(self,meta,trigger,timestamp_bgn,timestamp_end,saveprimitive=True):
+    def __init__(self,meta,trigger,timestamp_bgn,timestamp_end,dipole,saveprimitive=True):
         self.saveprimitive   = saveprimitive
         self.meta            = meta
         self.trigger         = trigger
         self.timestamp_bgn   = timestamp_bgn
         self.timestamp_end   = timestamp_end
+        self.dipole          = dipole
         self.errors          = {}
         self.pixels          = {}
         self.npixels         = {}
