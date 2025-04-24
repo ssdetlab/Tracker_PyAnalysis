@@ -130,6 +130,7 @@ if __name__ == "__main__":
     
     y_dt          = np.zeros(nentries)
     y_yag         = np.zeros(nentries)
+    y_dipole      = np.zeros(nentries)
     y_q0act       = np.zeros(nentries)
     y_q1act       = np.zeros(nentries)
     y_q2act       = np.zeros(nentries)
@@ -170,6 +171,7 @@ if __name__ == "__main__":
         
         
         y_dt[counter]       = dt
+        y_dipole[counter]   = entry.event.epics_frame.espec_dipole_bact
         y_q0act[counter]    = entry.event.epics_frame.espec_quad0_bact
         y_q1act[counter]    = entry.event.epics_frame.espec_quad1_bact
         y_q2act[counter]    = entry.event.epics_frame.espec_quad2_bact
@@ -382,6 +384,10 @@ if __name__ == "__main__":
     graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_dt)} )
     graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
     graphs[gname].SetLineColor(ROOT.kBlack)
+    gname = "dipole"
+    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_dipole)} )
+    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
+    graphs[gname].SetLineColor(ROOT.kBlack)
     gname = "q0act"
     graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_q0act)} )
     graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
@@ -562,6 +568,19 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
+    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv.SetTicks(1,1)
+    # cnv.SetLogy()
+    mg = ROOT.TMultiGraph()
+    mg.Add(graphs["dipole"])
+    mg.SetMinimum(0)
+    mg.SetMaximum(13)
+    mg.Draw("al")
+    mg.SetTitle(f";Trigger number;Dipole [GeV] (for a 6 mrad deflection at 10 GeV)")
+    mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
     cnv.SetTicks(1,1)
