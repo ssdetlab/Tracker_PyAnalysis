@@ -181,12 +181,12 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         trigger         = ttree.event.trg_n
         timestamp_begin = ttree.event.ts_begin
         timestamp_end   = ttree.event.ts_end
-        magnes          = Magnets(tree.event.epics_frame.espec_dipole_bact,
-                                  tree.event.epics_frame.espec_quad0_bact,
-                                  tree.event.epics_frame.espec_quad1_bact,
-                                  tree.event.epics_frame.espec_quad2_bact,
-                                  tree.event.epics_frame.mcalc_m12,
-                                  tree.event.epics_frame.mcalc_m34)
+        magnes          = Magnets(ttree.event.epics_frame.espec_dipole_bact,
+                                  ttree.event.epics_frame.espec_quad0_bact,
+                                  ttree.event.epics_frame.espec_quad1_bact,
+                                  ttree.event.epics_frame.espec_quad2_bact,
+                                  ttree.event.epics_frame.mcalc_m12,
+                                  ttree.event.epics_frame.mcalc_m34)
 
 
         ### append the envent no-matter-what:
