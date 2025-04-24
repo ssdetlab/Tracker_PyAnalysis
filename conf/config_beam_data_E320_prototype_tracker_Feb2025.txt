@@ -16,9 +16,11 @@ saveprimitive  = 0
 ### run501 (beam-only):
 # first2process  = 0
 ### run502 (beam, bewin-in):
-first2process = 400
+# first2process = 400
 ### run503 beam-only, focusing on foil, 6h-long
 # first2process = 0
+### run510 beam-only, focusing on foil, 6h-long
+first2process = 0
 
 ### run490 foil-in allin, focused
 # nmax2process = 10
@@ -29,9 +31,11 @@ first2process = 400
 ### run501 (beam-only, bewin-out):
 # nmax2process = 100000
 ### run502 (beam, bewin-in):
-nmax2process = 0
+# nmax2process = 0
 ### run503 beam-only, focusing on foil, 6h-long
 # nmax2process = 0
+### run510 Be window long run, parasitic
+nmax2process = 0
 
 
 
@@ -48,9 +52,11 @@ skipmasking    = 1
 ### beam-only, short run
 # inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 ### Be window, focus on window
-inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+# inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 ### beam-only, focusing on foil, 6h-long
 # inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+### Be window long run, parasitic
+inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
 
 [MULTIRUN]
 runnums = 255
