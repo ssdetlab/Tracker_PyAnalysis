@@ -521,7 +521,7 @@ if __name__ == "__main__":
     ftrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_trigger_analysis.pdf")
     
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c1","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -545,7 +545,7 @@ if __name__ == "__main__":
     cnv.SaveAs(f"{ftrgname}(")
     
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c2","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -568,7 +568,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c3","",1200,500)
     cnv.SetTicks(1,1)
     mg = ROOT.TMultiGraph()
     mg.Add(graphs["dipole"])
@@ -581,7 +581,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c4","",1200,500)
     cnv.SetTicks(1,1)
     # cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -602,7 +602,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c5","",1200,500)
     cnv.SetTicks(1,1)
     # cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -625,7 +625,7 @@ if __name__ == "__main__":
     
     
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c6","",1200,500)
     cnv.SetTicks(1,1)
     # cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -651,7 +651,7 @@ if __name__ == "__main__":
     cnv.SaveAs(f"{ftrgname}")
     
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c7","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -676,7 +676,7 @@ if __name__ == "__main__":
     cnv.SaveAs(f"{ftrgname}")
     
     
-    # cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    # cnv = ROOT.TCanvas("c8","",1200,500)
     # cnv.SetTicks(1,1)
     # # cnv.SetLogy()
     # leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -697,7 +697,7 @@ if __name__ == "__main__":
     # cnv.Update()
     # cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c9","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     graphs["rad"].Draw("al")
@@ -709,7 +709,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c10","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     hR.Draw("hist")
@@ -718,7 +718,7 @@ if __name__ == "__main__":
     cnv.SaveAs(f"{ftrgname}")
     
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c11","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     graphs["bpm_pb_3156"].Draw("al")
@@ -729,7 +729,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c12","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
@@ -754,7 +754,7 @@ if __name__ == "__main__":
     cnv.SaveAs(f"{ftrgname}")
     
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c13","",1200,500)
     cnv.SetTicks(1,1)
     # cnv.SetLogy()
     graphs["foilm2"].Draw("al")
@@ -764,7 +764,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c14","",1200,500)
     cnv.SetTicks(1,1)
     # cnv.SetLogy()
     graphs["dt"].Draw("al")
@@ -774,7 +774,7 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
-    cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1200,500)
+    cnv = ROOT.TCanvas("c15","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     hT.Draw("hist")
