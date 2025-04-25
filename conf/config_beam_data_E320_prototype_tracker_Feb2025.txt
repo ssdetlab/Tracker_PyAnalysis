@@ -121,8 +121,9 @@ lut_widthy_inf = 0.0
 
 [CUTS]
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
+cut_chi2dof = 3.5
 # cut_chi2dof = 3
-cut_chi2dof = 1000
+# cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
 ### full chip ROI, i.e. no cuts
@@ -142,17 +143,18 @@ use_large_clserr_for_algnmnt = 0
 use_large_dk_filter = 0
 
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
 
 ### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<17 USING ALPIDE_0 AS REF
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=9.47E-03,dy=-1.88E-03,theta=-1.37E-03 ALPIDE_2:dx=-5.80E-02,dy=-3.71E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.33E-02,dy=1.63E-02,theta=5.65E-04
 
 ### FIRST MANUALLY ADJUSTED SHIFTS BASED ON THE RESIDUALS' MEANS AFTER THE PREVIOUS STEP
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.31E-02,dy=5.10E-04,theta=-1.37E-03 ALPIDE_2:dx=-6.56E-02,dy=-4.26E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.64E-02,dy=1.88E-02,theta=5.65E-04
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.31E-02,dy=5.10E-04,theta=-1.37E-03 ALPIDE_2:dx=-6.56E-02,dy=-4.26E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.64E-02,dy=1.88E-02,theta=5.65E-04
 
 minchi2align  = 0.01
+maxchi2align  = 3.5
 # maxchi2align  = 3
-maxchi2align  = 1000
+# maxchi2align  = 1000
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05
@@ -246,8 +248,11 @@ yDipoleExitMax     = +34.927
 ### thetax/y are the angles in degrees ARROUND the x/y axis in real space, such that
 ### thetax rotates the blob up/down vertically and thetay rotates the blob horizontally.
 ### these are "found" from the dipole exit and energy analysis
-thetax = 0.6
-thetay = 0.2
+### for runs 502 and 503 thetax=0.6
+# thetax = 0.6
+### for run 510 thetax=0.1
+thetax = 0.1
+thetay = 0.165
 ### thetaz is just the transformation to real space.
 thetaz = +90.
 xOffset = 0.

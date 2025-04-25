@@ -433,8 +433,8 @@ if __name__ == "__main__":
                     ### the fit angles
                     tan_theta_yz = +track.params[1] ### the slope p1x transformed to real space (stays as is)
                     tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
-                    thetaf_yz = math.atan(tan_theta_yz)
-                    thetaf_xz = math.atan(tan_theta_xz)
+                    thetaf_yz = math.atan(tan_theta_yz) - cfg["thetax"] ###TODO: check if - or +
+                    thetaf_xz = math.atan(tan_theta_xz) - cfg["thetay"] ###TODO: check if - or +
                     
                     if(cfg["isMC"] and cfg["isFakeMC"]):
                         slp = event.fakemcparticles[0].slp
@@ -511,8 +511,8 @@ if __name__ == "__main__":
                 for track in selected_tracks:
                     
                     # dx,dy = res_track2cluster("ALPIDE_3",track.points,track.direction,track.centroid)
-                    # if(dx>-0.01): continue
-                    # if(dy>-0.03): continue
+                    # if(dx>-0.02): continue
+                    # if(dy>-0.02): continue
                     
                     histos["hChi2DoF_zeroshrcls"].Fill(track.chi2ndof)
                     histos["hChi2DoF_full_zeroshrcls"].Fill(track.chi2ndof)

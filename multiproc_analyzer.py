@@ -189,7 +189,8 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
                           ttree.event.epics_frame.espec_quad1_bact,
                           ttree.event.epics_frame.espec_quad2_bact,
                           ttree.event.epics_frame.mcalc_m12,
-                          ttree.event.epics_frame.mcalc_m34)
+                          ttree.event.epics_frame.mcalc_m34,
+                          ttree.event.epics_frame.espec_xcor_bact)
 
 
         ### append the envent no-matter-what:

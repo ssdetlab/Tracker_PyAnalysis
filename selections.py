@@ -11,6 +11,18 @@ import utils
 from utils import *
 
 
+def diamond_cut(xL,xR,yT,x,y,tol=4):
+    YBL = yofx([0,0],[xL,yT],x)
+    YTL = yofx([xL,0],[0,yT],x)
+    YTR = yofx([0,yT],[xR,0],x)
+    YBR = yofx([xR,yT],[0,0],x)
+    if(y<YBL-tol): return False
+    if(y>YTL+tol): return False
+    if(y>YTR+tol): return False
+    if(y<YBR-tol): return False
+    return True
+    
+
 def pass_geoacc_selection(track):
     ## r0: first detector, rN: last detector, rW: window, rD: dipole exit
     r0,rN,rW,rD = get_track_point_at_extremes(track)
@@ -19,10 +31,11 @@ def pass_geoacc_selection(track):
     pass_inclination_yz  = ( rN[1]>=r0[1]  and r0[1]>=rW[1]  and rN[1]>=rW[1] )
     pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) )
     pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
+    pass_dipole_diamond  = (diamond_cut(xDipL,xDipR,yDipT,rD[0],rD[1]))
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
     pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
     # print(f"   Selection: pass_inclination_yz={pass_inclination_yz}, pass_vertexatpdc={pass_vertexatpdc}, pass_dipole_aperture={pass_dipole_aperture}, pass_dipole_Eslot={pass_dipole_Eslot}, pass_dipole_Xslot={pass_dipole_Xslot}")
-    return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture)
+    return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_dipole_diamond)
     # return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_dipole_Eslot and pass_dipole_Xslot)
 
 

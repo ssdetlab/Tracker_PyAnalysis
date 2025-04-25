@@ -179,6 +179,17 @@ def tilt_in_real_space(v):
     r = vy
     return r
 
+def yofx(r1,r2,x):
+   dx = r2[0]-r1[0]
+   dy = r2[1]-r1[1]
+   if(dx==0):
+      print("ERROR in yofz: dx=0 --> r1[0]=%g,r2[0]=%g, r1[1]=%g,r2[1]=%g" % (r1[0],r2[0],r1[1],r2[1]))
+      quit()
+   a = dy/dx
+   b = r1[1]-a*r1[0]
+   y = a*x+b
+   return y
+
 def xofz(r1,r2,z):
    dz = r2[2]-r1[2]
    dx = r2[0]-r1[0]
@@ -189,7 +200,6 @@ def xofz(r1,r2,z):
    b = r1[0]-a*r1[2]
    x = a*z+b
    return x
-
 
 def yofz(r1,r2,z):
    dz = r2[2]-r1[2]
