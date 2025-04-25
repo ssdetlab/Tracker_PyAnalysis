@@ -63,6 +63,7 @@ class LookupTable:
     def init_axs(self):
         for det in cfg["detectors"]:
             self.AXS.update({ det:ROOT.TH2D("lut_"+det+"_"+str(self.eventid),";x;y;Clusters",self.nbinsx,self.chipXmin,self.chipXmax, self.nbinsy,self.chipYmin,self.chipYmax) })
+            self.AXS[det].SetDirectory(0)
         
     def init_lut(self):
         for det in cfg["detectors"]:
