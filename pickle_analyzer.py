@@ -158,8 +158,10 @@ if __name__ == "__main__":
     # get the start time
     st = time.time()
     
+    
     # print config once
     show_config()
+    
     
     ### get all the files
     tfilenamein = ""
@@ -173,30 +175,35 @@ if __name__ == "__main__":
     for f in files: print(f)
     
     
-    # ### histos
-    # tfoname = tfilenamein.replace(".root",f'_hist_from_pkl.root')
-    # tfo = ROOT.TFile(tfoname,"RECREATE")
-
+    ### bad triggers
+    fpkltrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
+    badtriggers = []
+    if(not cfg["isMC"]):
+        fpkltrigger = open(fpkltrgname,'rb')
+        badtriggers = pickle.load(fpkltrigger)
+        fpkltrigger.close()
+    nbadtrigs = len(badtriggers)
+    print(f"Found {nbadtrigs} bad triggers")
+    
     
     ### counters
     init_global_counters()
     Ndet = len(cfg["detectors"])
     
-    # thetamin,thetamax = getThetaAperture(0)
     
     ### some histos
     histos = {}
     histos.update({ "hChi2DoF_alowshrcls": ROOT.TH1D("hChi2DoF_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
-    histos.update({ "hChi2DoF_zeroshrcls":  ROOT.TH1D("hChi2DoF_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
+    histos.update({ "hChi2DoF_zeroshrcls": ROOT.TH1D("hChi2DoF_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     
     histos.update({ "hChi2DoF_full_alowshrcls": ROOT.TH1D("hChi2DoF_full_alowshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
-    histos.update({ "hChi2DoF_full_zeroshrcls":  ROOT.TH1D("hChi2DoF_full_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
+    histos.update({ "hChi2DoF_full_zeroshrcls": ROOT.TH1D("hChi2DoF_full_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
     
     histos.update({ "hChi2DoF_zoom_alowshrcls": ROOT.TH1D("hChi2DoF_zoom_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
-    histos.update({ "hChi2DoF_zoom_zeroshrcls":  ROOT.TH1D("hChi2DoF_zoon_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
+    histos.update({ "hChi2DoF_zoom_zeroshrcls": ROOT.TH1D("hChi2DoF_zoon_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
     
     histos.update({ "hChi2DoF_0to1_alowshrcls": ROOT.TH1D("hChi2DoF_0to1_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
-    histos.update({ "hChi2DoF_0to1_zeroshrcls":  ROOT.TH1D("hChi2DoF_0to1_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
+    histos.update({ "hChi2DoF_0to1_zeroshrcls": ROOT.TH1D("hChi2DoF_0to1_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,1)})
     
     histos.update({ "hPf_vs_dExit": ROOT.TH2D("hPf_vs_dExit",";d_{exit} [mm];p(#theta(fit)) [GeV];Tracks",50,0,+35, 50,0,10) })
     histos.update({ "hPd_vs_dExit": ROOT.TH2D("hPd_vs_dExit",";d_{exit} [mm];p(#theta(d_{exit}) [GeV];Tracks",50,0,+35, 50,0,10) })
@@ -244,6 +251,10 @@ if __name__ == "__main__":
     histos.update({ "hPf": ROOT.TH1D("hPf",";p(fit) [GeV];Tracks",100,0,10)})
     histos.update({ "hPd": ROOT.TH1D("hPd",";p(d_{exit}) [GeV];Tracks",100,0,10)})
     histos.update({ "hPr": ROOT.TH1D("hPr",";p(r) [GeV];Tracks",100,0,10)})
+    
+    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",50,1,5)})
+    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",50,1,5)})
+    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",50,1,5)})
     
     absRes   = 0.05
     nResBins = 50
@@ -315,18 +326,23 @@ if __name__ == "__main__":
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
                 
-                # if(nevents>100): break
                 
                 counters_x_trg.append( event.trigger )
                 append_global_counters()
                 icounter = len(counters_x_trg)-1
+
                 
+                ### skip bad triggers...
+                if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(event.trigger) in badtriggers)): continue
+                
+
                 ### check errors
                 if(not cfg["isMC"]):
                     if(len(event.errors)!=len(cfg["detectors"])): continue
                     nErrors = 0
                     for det in cfg["detectors"]: nErrors += len(event.errors[det])
                     if(nErrors>0): continue
+
                 
                 ### check pixels
                 # if(len(event.pixels)!=len(cfg["detectors"])): continue
@@ -487,9 +503,15 @@ if __name__ == "__main__":
                     
                     histos["hdExit"].Fill(dExit)
                     
-                    if(pf>0): histos["hPf"].Fill(pf)
-                    if(pd>0): histos["hPd"].Fill(pd)
-                    if(pr>0): histos["hPr"].Fill(pr)
+                    if(pf>0):
+                        histos["hPf"].Fill(pf)
+                        histos["hPf_zoom"].Fill(pf)
+                    if(pd>0):
+                        histos["hPd"].Fill(pd)
+                        histos["hPd_zoom"].Fill(pd)
+                    if(pr>0):
+                        histos["hPr"].Fill(pr)
+                        histos["hPr_zoom"].Fill(pr)
                     
                     acceptance_tracks.append(track)
                     ntracks += 1
@@ -539,7 +561,8 @@ if __name__ == "__main__":
                 
                 print(f"Event[{nevents-1}], Trigger[{event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
-    print(f"Events:{nevents}, Tracks:{ntracks}")                
+    # print(f"Events:{nevents}, Tracks:{ntracks}")
+    print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
     
     ### plot the counters
     fmultpdfname = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
@@ -669,142 +692,164 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
-    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
-    cnv.Divide(2,1)
-    cnv.cd(1)
-    ROOT.gPad.SetTicks(1,1)
-    histos["hdExit"].Draw("hist")
-    cnv.RedrawAxis()
-    cnv.cd(2)
-    ROOT.gPad.SetTicks(1,1)
-    histos["hThetad_yz"].Draw("hist")
-    cnv.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv.Divide(2,1)
+    # cnv.cd(1)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hdExit"].Draw("hist")
+    # cnv.RedrawAxis()
+    # cnv.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hThetad_yz"].Draw("hist")
+    # cnv.RedrawAxis()
+    # cnv.Update()
+    # cnv.SaveAs(f"{foupdfname}")
     
-    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
-    cnv.Divide(3,1)
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
+    cnv.Divide(2,1)
+    # cnv.Divide(3,1)
     cnv.cd(1)
     ROOT.gPad.SetTicks(1,1)
     histos["hThetaf_yz"].Draw("hist")
     ROOT.gPad.RedrawAxis()
     cnv.cd(2)
-    ROOT.gPad.SetTicks(1,1)
-    histos["hThetad_yz"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hThetad_yz"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.cd(3)
     ROOT.gPad.SetTicks(1,1)
     histos["hThetar_yz"].Draw("hist")
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
-    cnv.Divide(3,1)
+
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
+    cnv.Divide(2,1)
+    # cnv.Divide(3,1)
     cnv.cd(1)
     ROOT.gPad.SetTicks(1,1)
-    histos["hPf"].Draw("hist")
+    histos["hPf_zoom"].Draw("hist")
     cnv.RedrawAxis()
     cnv.cd(2)
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPd"].Draw("hist")
-    cnv.RedrawAxis()
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hPd_zoom"].Draw("hist")
+    # cnv.RedrawAxis()
     cnv.cd(3)
     ROOT.gPad.SetTicks(1,1)
-    histos["hPr"].Draw("hist")
+    histos["hPr_zoom"].Draw("hist")
     cnv.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
-    cnv.SetTicks(1,1)
-    histos["hPf"].Draw("hist")
-    cnv.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
-    cnv.SetTicks(1,1)
-    histos["hPd"].Draw("hist")
-    cnv.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
-    cnv.SetTicks(1,1)
-    histos["hPr"].Draw("hist")
-    cnv.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
-    cnv.Divide(3,1)
-    cnv.cd(1)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPf_vs_dExit"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(2)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPd_vs_dExit"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPr_vs_dExit"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
-    cnv.Divide(3,1)
-    cnv.cd(1)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPf_vs_thetaf"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(2)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPd_vs_thetad"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hPd_vs_thetad"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{foupdfname}")
-    
-    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
-    cnv.Divide(3,1)
-    cnv.cd(1)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hDexit_vs_thetaf"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(2)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hDexit_vs_thetad"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
-    # ROOT.gPad.SetLogy()
-    ROOT.gPad.SetTicks(1,1)
-    histos["hDexit_vs_thetar"].Draw("colz")
-    ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(2,1)
+    # cnv.Divide(3,1)
     cnv.cd(1)
     ROOT.gPad.SetTicks(1,1)
-    histos["hThetad_vs_thetaf"].Draw("colz")
-    dipole.Draw()
+    histos["hPf"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hPd"].Draw("hist")
+    # cnv.RedrawAxis()
+    cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hPr"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
+    histos["hPf"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    # cnv.SetTicks(1,1)
+    # histos["hPd"].Draw("hist")
+    # cnv.RedrawAxis()
+    # cnv.Update()
+    # cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
+    histos["hPr"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
+    # cnv.Divide(2,1)
+    # # cnv.Divide(3,1)
+    # cnv.cd(1)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hPf_vs_dExit"].Draw("colz")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.cd(2)
+    # # ROOT.gPad.SetTicks(1,1)
+    # # histos["hPd_vs_dExit"].Draw("colz")
+    # # ROOT.gPad.RedrawAxis()
+    # # cnv.cd(3)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hPr_vs_dExit"].Draw("colz")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.Update()
+    # cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
+    cnv.Divide(2,1)
+    # cnv.Divide(3,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hPf_vs_thetaf"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hPd_vs_thetad"].Draw("colz")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hPr_vs_thetar"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
+    # cnv.Divide(3,1)
+    # cnv.cd(1)
+    # # ROOT.gPad.SetLogy()
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hDexit_vs_thetaf"].Draw("colz")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.cd(2)
+    # # ROOT.gPad.SetLogy()
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hDexit_vs_thetad"].Draw("colz")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.cd(3)
+    # # ROOT.gPad.SetLogy()
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hDexit_vs_thetar"].Draw("colz")
+    # ROOT.gPad.RedrawAxis()
+    # cnv.Update()
+    # cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv.Divide(2,1)
+    # cnv.cd(1)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hThetad_vs_thetaf"].Draw("colz")
+    # dipole.Draw()
+    # ROOT.gPad.RedrawAxis()
+    # cnv.cd(2)
     ROOT.gPad.SetTicks(1,1)
     histos["hThetar_vs_thetaf"].Draw("colz")
     dipole.Draw()

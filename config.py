@@ -498,7 +498,6 @@ class Config:
         yBoxBot2WinBot = self.map["yPipe2BoxBot"]-self.map["yPipe2WinBot"]
         self.add("yBoxBot2WinBot", yBoxBot2WinBot)
         yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
-        # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["chipX"]/2.
         zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
         self.add("yOffset", yOffset)
         self.add("zOffset", zOffset)
