@@ -147,11 +147,76 @@ def refit(track):
     track = Track(clusters,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success)
     return track
 
+
 def pass_dk_at_detector(track,detector,dxMin,dxMax,dyMin,dyMax):
     dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
     if(dx<dxMin or dx>dxMax): return False
     if(dy<dyMin or dy>dyMax): return False
     return True
+
+
+def get_wave(z,k,thetamin,thetamax):
+    ### rho = k*sin(theta) + z*cos(theta)
+    func = ROOT.TF1(f"func_{name}","[1]*sin(x)+[0]*cos(x)",thetamin,thetamax,2)
+    func.SetParameter(0,z)
+    func.SetParameter(1,k)
+    return func
+
+def find_waves_intersect(k1,z1,k2,z2):
+    dk = (k1-k2) if(abs(k1-k2)>1e-15) else 1e15*np.sign(k1-k2)
+    theta = math.atan2((z2-z1),dk) # the arc tangent of (y/x) in radians
+    rho   = k1*math.sin(theta) + z1*math.cos(theta)
+    # print(f"k1={k1},z1={z1}, k2={k2},z1={z2} --> theta={theta},rho={rho}")
+    return theta,rho
+    
+def fill_pair(a,b,track,hx,hy):
+    pair = [f"ALPIDE_{a}",f"ALPIDE_{b}"]
+    rA = [track.trkcls[pair[0]].xmm,track.trkcls[pair[0]].ymm,track.trkcls[pair[0]].zmm]
+    rB = [track.trkcls[pair[1]].xmm,track.trkcls[pair[1]].ymm,track.trkcls[pair[1]].zmm]
+    thetax,rhox = find_waves_intersect(rA[0],rA[2],rB[0],rB[2])
+    thetay,rhoy = find_waves_intersect(rA[1],rA[2],rB[1],rB[2])
+    hx.Fill(thetax,rhox)
+    hy.Fill(thetay,rhoy)
+
+def get_par_lin(theta_k,rho_k): ### theta and rho from Hough transform
+    if(math.sin(theta_k)==0):
+        print(f"in get_par_lin, sin(theta)=0: quitting.")
+        quit()
+    if(math.tan(theta_k)==0):
+        print(f"in get_par_lin, 1/tan(theta)=0: quitting.")
+        quit()
+    AK = -1./math.tan(theta_k)
+    BK = rho_k/math.sin(theta_k)
+    # print(f"theta_k={theta_k}, rho_k={rho_k} --> AK={AK}, BK={BK}")
+    return AK,BK
+
+def k_of_z(z,AK,BK):
+    k = AK*z + BK
+    # print(f"AK={AK}, BK={BK}, z={z} --> k={k}")
+    return k
+
+def get_edges_from_theta_rho_corners(det,theta_x,rho_x,theta_y,rho_y):
+    xmin = +1e20
+    xmax = -1e20
+    ymin = +1e20
+    ymax = -1e20
+    for i in range(2):
+        AX,BX = get_par_lin(theta_x[i],rho_x[i])
+        AY,BY = get_par_lin(theta_y[i],rho_y[i])
+        zdet = cfg["rdetectors"][det][2]
+        XX = k_of_z(zdet,AX,BX)
+        YY = k_of_z(zdet,AY,BY)
+        # print(f"get_edges_from_theta_rho_corners cornere[i]: eventid={self.eventid}  -->  {det} prediction: x={XX}, y={YY}, z={zdet}")
+        xmin = XX if(XX<xmin) else xmin
+        xmax = XX if(XX>xmax) else xmax
+        ymin = YY if(YY<ymin) else ymin
+        ymax = YY if(YY>ymax) else ymax
+    xmin = xmin-cfg["lut_widthx_mid"]
+    xmax = xmax+cfg["lut_widthx_mid"]
+    ymin = ymin-cfg["lut_widthy_mid"]
+    ymax = ymax+cfg["lut_widthy_mid"]
+    return xmin,xmax,ymin,ymax
+
 
 
 if __name__ == "__main__":
@@ -219,6 +284,9 @@ if __name__ == "__main__":
     
     histos.update({ "hThetad_vs_thetaf": ROOT.TH2D("hThetad_vs_thetaf",";#theta_{yz}(fit) [rad];#theta(d_{exit}) [rad];Tracks",50,0,0.05, 50,0,0.05) })
     histos.update({ "hThetar_vs_thetaf": ROOT.TH2D("hThetar_vs_thetaf",";#theta_{yz}(fit) [rad];#theta(r) [rad];Tracks",50,0,0.05, 50,0,0.05) })
+
+    histos.update({ "hF_before_cuts": ROOT.TH2D("hF_before_cuts","Dipole flange plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
+    histos.update({ "hF_after_cuts":  ROOT.TH2D("hF_after_cuts","Dipole flange plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     
     histos.update({ "hD_before_cuts": ROOT.TH2D("hD_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
@@ -232,10 +300,12 @@ if __name__ == "__main__":
     histos.update({ "hThetad_yz": ROOT.TH1D("hThetad_yz",";#theta_{yz}(d_{exit}) [rad];Tracks",100,0,0.1)})
     histos.update({ "hThetar_yz": ROOT.TH1D("hThetar_yz",";#theta_{yz}(r) [rad];Tracks",100,0,0.1)})
     
-    histos.update({ "hTheta_xz": ROOT.TH1D("hTheta_xz",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
-    histos.update({ "hTheta_yz": ROOT.TH1D("hTheta_yz",";#theta_{yz} [rad];Tracks",100,0,0.035)})
+    histos.update({ "hTheta_xz_before_cuts": ROOT.TH1D("hTheta_xz_before_cuts",";#theta_{xz} [rad];Tracks",100,-0.015,0.015)})
+    histos.update({ "hTheta_xz_after_cuts":  ROOT.TH1D("hTheta_xz_after_cuts",";#theta_{xz} [rad];Tracks",100,-0.015,0.015)})
+    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz} [rad];Tracks",100,0,0.045)})
+    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz} [rad];Tracks",100,0,0.045)})
     
-    histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
+    histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
     histos.update({ "hTheta_yz_tru": ROOT.TH1D("hTheta_yz_tru",";#theta_{yz} [rad];Tracks",100,0,0.035)})
     
     histos.update({ "hTheta_xz_tru_all": ROOT.TH1D("hTheta_xz_tru_all",";#theta_{xz} [rad];Tracks",100,-0.006,0.006)})
@@ -252,41 +322,55 @@ if __name__ == "__main__":
     histos.update({ "hPd": ROOT.TH1D("hPd",";p(d_{exit}) [GeV];Tracks",100,0,10)})
     histos.update({ "hPr": ROOT.TH1D("hPr",";p(r) [GeV];Tracks",100,0,10)})
     
-    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",50,1,5)})
-    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",50,1,5)})
-    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",50,1,5)})
+    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",30,1.5,4.5)})
+    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",30,1.5,4.5)})
+    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",30,1.5,4.5)})
+
+    # thetamin = -np.pi/2*0.95
+    # thetamax = +np.pi/2*0.95
+    thetaxmin = np.pi/2-cfg["seed_thetax_scale_mid"]*np.pi/2.
+    thetaxmax = np.pi/2+cfg["seed_thetax_scale_mid"]*np.pi/2.
+    thetaymin = np.pi/2-cfg["seed_thetay_scale_mid"]*np.pi/2.
+    thetaymax = np.pi/2+cfg["seed_thetay_scale_mid"]*np.pi/2.
+    histos.update({ "hWaves_zx" : ROOT.TH2D("hWaves_zx",";#theta_{zx};#rho_{zx};",cfg["seed_nbins_thetarho_mid"],thetaxmin,thetaxmax,cfg["seed_nbins_thetarho_mid"],-90,90) })
+    histos.update({ "hWaves_zy" : ROOT.TH2D("hWaves_zy",";#theta_{zy};#rho_{zy};",cfg["seed_nbins_thetarho_mid"],thetaymin,thetaymax,cfg["seed_nbins_thetarho_mid"],-90,90) })
+    histos.update({ "hWaves_zx_intersections" : ROOT.TH2D("hWaves_zx_intersections",";#theta_{zx};#rho_{zx};",cfg["seed_nbins_thetarho_mid"],thetaxmin,thetaxmax,cfg["seed_nbins_thetarho_mid"],-90,90) })
+    histos.update({ "hWaves_zy_intersections" : ROOT.TH2D("hWaves_zy_intersections",";#theta_{zy};#rho_{zy};",cfg["seed_nbins_thetarho_mid"],thetaymin,thetaymax,cfg["seed_nbins_thetarho_mid"],-90,90) })
     
     absRes   = 0.05
     nResBins = 50
     nResBins
+    limtnl = {"ALPIDE_0":[0.06,0.22], "ALPIDE_1":[0.06,0.22], "ALPIDE_2":[0.06,0.22], "ALPIDE_3":[0.06,0.22], "ALPIDE_4":[0.06,0.22]}
     for det in cfg["detectors"]:
         name = f"h_residual_alowshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
         name = f"h_residual_alowshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
         name = f"h_residual_alowshrcls_x_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
         name = f"h_residual_alowshrcls_y_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
-        name = f"h_residual_alowshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
-        name = f"h_residual_alowshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_alowshrcls_x_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_alowshrcls_y_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
 
-        name = f"h_response_alowshrcls_x_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
-        name = f"h_response_alowshrcls_y_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
-        name = f"h_response_alowshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
-        name = f"h_response_alowshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_x_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_alowshrcls_y_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
         
         name = f"h_residual_zeroshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
         name = f"h_residual_zeroshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
         name = f"h_residual_zeroshrcls_x_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
         name = f"h_residual_zeroshrcls_y_mid_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3) } )
-        name = f"h_residual_zeroshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
-        name = f"h_residual_zeroshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_zeroshrcls_x_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
+        name = f"h_residual_zeroshrcls_y_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",nResBins*2,-absRes*5,+absRes*5) } )
 
-        name = f"h_response_zeroshrcls_x_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-5,+5) } )
-        name = f"h_response_zeroshrcls_y_sml_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-5,+5) } )
-        name = f"h_response_zeroshrcls_x_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
-        name = f"h_response_zeroshrcls_y_ful_{det}"; histos.update( {name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_zeroshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-5,+5) } )
+        name = f"h_response_zeroshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-5,+5) } )
+        name = f"h_response_zeroshrcls_x_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{x_{trk}-x_{cls}}{#sigma(x_{cls})};Tracks",30,-12.5,+12.5) } )
+        name = f"h_response_zeroshrcls_y_ful_{det}"; histos.update( { name:ROOT.TH1D(name,det+";#frac{y_{trk}-y_{cls}}{#sigma(y_{cls})};Tracks",30,-12.5,+12.5) } )
         
         name = f"h_residual_zeroshrcls_xy_{det}";    histos.update( { name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3, nResBins,-absRes*3,+absRes*3) } )
         name = f"h_residual_zeroshrcls_xy_mid_{det}";histos.update( { name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*5,+absRes*5, nResBins,-absRes*5,+absRes*5) } )
     
+        name = f"h_tunnel_width_x_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width in x [mm];Tracks",100,limtnl[det][0],limtnl[det][1]) } )
+        name = f"h_tunnel_width_y_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width in y [mm];Tracks",100,limtnl[det][0],limtnl[det][1]) } )
     
     dipole = ROOT.TPolyLine()
     xMinD = cfg["xDipoleExitMin"]
@@ -300,6 +384,19 @@ if __name__ == "__main__":
     dipole.SetNextPoint(xMinD,yMinD)
     dipole.SetLineColor(ROOT.kBlue)
     dipole.SetLineWidth(1)
+
+    flange = ROOT.TPolyLine()
+    xMinF = cfg["xFlangeMin"]
+    xMaxF = cfg["xFlangeMax"]
+    yMinF = cfg["yFlangeMin"]
+    yMaxF = cfg["yFlangeMax"]    
+    flange.SetNextPoint(xMinF,yMinF)
+    flange.SetNextPoint(xMinF,yMaxF)
+    flange.SetNextPoint(xMaxF,yMaxF)
+    flange.SetNextPoint(xMaxF,yMinF)
+    flange.SetNextPoint(xMinF,yMinF)
+    flange.SetLineColor(ROOT.kBlue)
+    flange.SetLineWidth(1)
     
     window = ROOT.TPolyLine()
     xMinW = -cfg["xWindowWidth"]/2.
@@ -315,6 +412,8 @@ if __name__ == "__main__":
     window.SetLineWidth(1)
     
     
+    done = False
+    
     ### save all events
     nevents = 0
     ntracks = 0
@@ -326,7 +425,17 @@ if __name__ == "__main__":
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
                 
+                ### check if the tracks are already aligned from the multiproc_analysis.py step
+                isAligned = False
+                for det in cfg["detectors"]:
+                    for axis,value in event.misalignment[det].items():
+                        if(value!=0):
+                            isAligned = True
+                            break
+                    if(isAligned): break
                 
+                
+                ### counters
                 counters_x_trg.append( event.trigger )
                 append_global_counters()
                 icounter = len(counters_x_trg)-1
@@ -408,11 +517,12 @@ if __name__ == "__main__":
                             histos[f"h_response_alowshrcls_y_sml_{det}"].Fill(dy/track.trkcls[det].dymm)
                             histos[f"h_response_alowshrcls_y_ful_{det}"].Fill(dy/track.trkcls[det].dymm)
                     
-                    ########################
-                    track = refit(track) ###
-                    ### will be the same if
-                    ### misalignment is 0
-                    ########################
+                    
+                    ###########################################
+                    if(not isAligned): track = refit(track) ###
+                    ### will be the same if misalignment is 0
+                    ###########################################
+
 
                     if(cfg["isMC"] and cfg["isFakeMC"]):
                         slp = event.fakemcparticles[0].slp
@@ -428,15 +538,24 @@ if __name__ == "__main__":
                     good_tracks.append(track)
                     
                     ### get the coordinates at extreme points in real space and after tilting the detector
-                    r0,rN,rW,rD = get_track_point_at_extremes(track)
+                    r0,rN,rW,rF,rD = get_track_point_at_extremes(track)
 
                     ### the y distance from y=0 in the dipole exit plane
                     dExit = rD[1]
+                    
+                    ### calculate the fit angles
+                    tan_theta_yz = +track.params[1] ### the slope p1x transformed to real space (stays as is)
+                    tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
+                    thetaf_yz = math.atan(tan_theta_yz) - cfg["thetax"] ###TODO: check if - or +
+                    thetaf_xz = math.atan(tan_theta_xz) - cfg["thetay"] ###TODO: check if - or +
 
                     ### fill histos before cuts
+                    histos["hF_before_cuts"].Fill(rF[0],rF[1])
                     histos["hD_before_cuts"].Fill(rD[0],rD[1])
                     histos["hD_zoomout_before_cuts"].Fill(rD[0],rD[1])
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
+                    histos["hTheta_xz_before_cuts"].Fill(thetaf_xz)
+                    histos["hTheta_yz_before_cuts"].Fill(thetaf_yz)
                     
                     
                     ##########################################
@@ -445,12 +564,7 @@ if __name__ == "__main__":
                     ### and inclined up as a positron      ###
                     ##########################################
                     if(not pass_geoacc_selection(track)): continue
-                                        
-                    ### the fit angles
-                    tan_theta_yz = +track.params[1] ### the slope p1x transformed to real space (stays as is)
-                    tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
-                    thetaf_yz = math.atan(tan_theta_yz) - cfg["thetax"] ###TODO: check if - or +
-                    thetaf_xz = math.atan(tan_theta_xz) - cfg["thetay"] ###TODO: check if - or +
+                    
                     
                     if(cfg["isMC"] and cfg["isFakeMC"]):
                         slp = event.fakemcparticles[0].slp
@@ -490,6 +604,7 @@ if __name__ == "__main__":
                     histos["hDexit_vs_thetad"].Fill(thetad_yz,dExit)
                     histos["hDexit_vs_thetar"].Fill(thetar_yz,dExit)
                     
+                    histos["hF_after_cuts"].Fill(rF[0],rF[1])
                     histos["hD_after_cuts"].Fill(rD[0],rD[1])
                     histos["hD_zoomout_after_cuts"].Fill(rD[0],rD[1])
                     histos["hW_after_cuts"].Fill(rW[0],rW[1])
@@ -498,8 +613,8 @@ if __name__ == "__main__":
                     histos["hThetad_yz"].Fill(thetad_yz)
                     histos["hThetar_yz"].Fill(thetar_yz)
                     
-                    histos["hTheta_xz"].Fill(thetaf_xz)
-                    histos["hTheta_yz"].Fill(thetaf_yz)
+                    histos["hTheta_xz_after_cuts"].Fill(thetaf_xz)
+                    histos["hTheta_yz_after_cuts"].Fill(thetaf_yz)
                     
                     histos["hdExit"].Fill(dExit)
                     
@@ -525,9 +640,14 @@ if __name__ == "__main__":
                 set_global_counter("Selected Tracks",icounter,len(selected_tracks))
                 
                 ### event displays
-                if(cfg["plot_online_evtdisp"] and len(good_tracks)>0):
+                if(cfg["plot_offline_evtdisp"] and len(good_tracks)>0):
                     fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_offline_{event.trigger}.pdf")
                     plot_event(event.meta.run,event.meta.start,event.meta.dur,event.trigger,fevtdisplayname,event.clusters,event.tracks,chi2threshold=cfg["cut_chi2dof"])
+                
+                
+                ### the Hough space (for the tunnel widths)
+                hzx = ROOT.TH2D("hzx","",event.hough_space["zx_xbins"],event.hough_space["zx_xmin"],event.hough_space["zx_xmax"],  event.hough_space["zx_ybins"],event.hough_space["zx_ymin"],event.hough_space["zx_ymax"])
+                hzy = ROOT.TH2D("hzy","",event.hough_space["zy_xbins"],event.hough_space["zy_xmin"],event.hough_space["zy_xmax"],  event.hough_space["zy_ybins"],event.hough_space["zy_ymin"],event.hough_space["zy_ymax"])
                 
                 ### plot some selected tracks
                 for track in selected_tracks:
@@ -556,8 +676,75 @@ if __name__ == "__main__":
                         histos[f"h_response_zeroshrcls_x_ful_{det}"].Fill(dx/track.trkcls[det].dxmm)
                         histos[f"h_response_zeroshrcls_y_sml_{det}"].Fill(dy/track.trkcls[det].dymm)
                         histos[f"h_response_zeroshrcls_y_ful_{det}"].Fill(dy/track.trkcls[det].dymm)
+                        
+                        ### draw all waves
+                        rChip = [track.trkcls[det].xmm,track.trkcls[det].ymm,track.trkcls[det].zmm]
+                        xwave = get_wave(rChip[2],rChip[0],thetaxmin,thetaxmax)
+                        ywave = get_wave(rChip[2],rChip[1],thetaymin,thetaymax)
+                        for btheta in range(1,histos["hWaves_zx"].GetNbinsX()+1):
+                            theta = histos["hWaves_zx"].GetXaxis().GetBinCenter(btheta)
+                            rhox  = xwave.Eval(theta)
+                            rhoy  = ywave.Eval(theta)
+                            histos["hWaves_zx"].Fill(theta,rhox)
+                            histos["hWaves_zy"].Fill(theta,rhoy)
+                        del xwave
+                        del ywave
                     
+                    ### draw only wave intersections
+                    fill_pair(0,1,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(0,2,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(0,3,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(0,4,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(1,2,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(1,3,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(1,4,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(2,3,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(2,4,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
+                    fill_pair(3,4,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
                     
+                    # ### assume the bin can be determined by the first pair:
+                    # pair = ["ALPIDE_0","ALPIDE_1"]
+                    # rA = [track.trkcls[pair[0]].xmm,track.trkcls[pair[0]].ymm,track.trkcls[pair[0]].zmm]
+                    # rB = [track.trkcls[pair[1]].xmm,track.trkcls[pair[1]].ymm,track.trkcls[pair[1]].zmm]
+                    # thetax,rhox = find_waves_intersect(rA[0],rA[2],rB[0],rB[2])
+                    # thetay,rhoy = find_waves_intersect(rA[1],rA[2],rB[1],rB[2])
+                    # bthetax = histos["hWaves_zx_intersections"].GetXaxis().FindBin(thetax)
+                    # brhox   = histos["hWaves_zx_intersections"].GetYaxis().FindBin(rhox)
+                    # bthetay = histos["hWaves_zy_intersections"].GetXaxis().FindBin(thetay)
+                    # brhoy   = histos["hWaves_zy_intersections"].GetYaxis().FindBin(rhoy)
+                    # arr_thetax = [ histos["hWaves_zx_intersections"].GetXaxis().GetBinLowEdge(bthetax), histos["hWaves_zx_intersections"].GetXaxis().GetBinUpEdge(bthetax) ]
+                    # arr_rhox   = [ histos["hWaves_zx_intersections"].GetYaxis().GetBinLowEdge(brhox),   histos["hWaves_zx_intersections"].GetYaxis().GetBinUpEdge(brhox)   ]
+                    # arr_thetay = [ histos["hWaves_zy_intersections"].GetXaxis().GetBinLowEdge(bthetay), histos["hWaves_zy_intersections"].GetXaxis().GetBinUpEdge(bthetay) ]
+                    # arr_rhoy   = [ histos["hWaves_zy_intersections"].GetYaxis().GetBinLowEdge(brhoy),   histos["hWaves_zy_intersections"].GetYaxis().GetBinUpEdge(brhoy)   ]
+                    # ### tunnel widths
+                    # for det in cfg["detectors"]:
+                    #     xmin,xmax,ymin,ymax = get_edges_from_theta_rho_corners(det,arr_thetax,arr_rhox,arr_thetay,arr_rhoy)
+                    #     histos[f"h_tunnel_width_x_{det}"].Fill(xmax-xmin)
+                    #     histos[f"h_tunnel_width_y_{det}"].Fill(ymax-ymin)
+                    
+                    ### find the tunnel widths
+                    thetax = track.hough_coords[0]
+                    rhox   = track.hough_coords[1]
+                    thetay = track.hough_coords[2]
+                    rhoy   = track.hough_coords[3]
+                    bthetax = hzx.GetXaxis().FindBin( thetax )
+                    brhox   = hzx.GetXaxis().FindBin( rhox   )
+                    bthetay = hzy.GetXaxis().FindBin( thetay )
+                    brhoy   = hzy.GetXaxis().FindBin( rhoy   )
+                    arr_thetax = [ hzx.GetXaxis().GetBinLowEdge(bthetax), hzx.GetXaxis().GetBinUpEdge(bthetax) ]
+                    arr_rhox   = [ hzx.GetYaxis().GetBinLowEdge(brhox),   hzx.GetYaxis().GetBinUpEdge(brhox)   ]
+                    arr_thetay = [ hzy.GetXaxis().GetBinLowEdge(bthetay), hzy.GetXaxis().GetBinUpEdge(bthetay) ]
+                    arr_rhoy   = [ hzy.GetYaxis().GetBinLowEdge(brhoy),   hzy.GetYaxis().GetBinUpEdge(brhoy)   ]
+                    for det in cfg["detectors"]:
+                        xmin,xmax,ymin,ymax = get_edges_from_theta_rho_corners(det,arr_thetax,arr_rhox,arr_thetay,arr_rhoy)
+                        histos[f"h_tunnel_width_x_{det}"].Fill(xmax-xmin)
+                        histos[f"h_tunnel_width_y_{det}"].Fill(ymax-ymin)
+                
+                
+                ### at the end of the event, clean the Hough space histos
+                del hzx
+                del hzy
+                
                 
                 print(f"Event[{nevents-1}], Trigger[{event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
@@ -591,13 +778,36 @@ if __name__ == "__main__":
     cnv.Divide(2,1)
     cnv.cd(1)
     ROOT.gPad.SetTicks(1,1)
+    ROOT.gPad.SetGridx()
+    ROOT.gPad.SetGridy()
     histos["hD_before_cuts"].Draw("colz")
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.cd(2)
     ROOT.gPad.SetTicks(1,1)
+    ROOT.gPad.SetGridx()
+    ROOT.gPad.SetGridy()
     histos["hD_after_cuts"].Draw("colz")
     dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    ROOT.gPad.SetGridx()
+    ROOT.gPad.SetGridy()
+    histos["hF_before_cuts"].Draw("colz")
+    flange.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    ROOT.gPad.SetGridx()
+    ROOT.gPad.SetGridy()
+    histos["hF_after_cuts"].Draw("colz")
+    flange.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
@@ -606,21 +816,33 @@ if __name__ == "__main__":
     cnv.Divide(2,1)
     cnv.cd(1)
     ROOT.gPad.SetTicks(1,1)
+    ROOT.gPad.SetGridx()
+    ROOT.gPad.SetGridy()
     histos["hW_before_cuts"].Draw("colz")
     window.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.cd(2)
     ROOT.gPad.SetTicks(1,1)
+    ROOT.gPad.SetGridx()
+    ROOT.gPad.SetGridy()
     histos["hW_after_cuts"].Draw("colz")
     window.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
-    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
-    # cnv.SetLogy()
-    cnv.SetTicks(1,1)
-    histos["hTheta_xz"].Draw("hist")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTheta_xz_before_cuts"].Draw("hist")
+    if(cfg["isMC"] and cfg["isFakeMC"]):
+        histos["hTheta_xz_tru"].SetLineColor(ROOT.kRed)
+        histos["hTheta_xz_tru"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTheta_xz_after_cuts"].Draw("hist")
     if(cfg["isMC"] and cfg["isFakeMC"]):
         histos["hTheta_xz_tru"].SetLineColor(ROOT.kRed)
         histos["hTheta_xz_tru"].Draw("hist same")
@@ -628,10 +850,18 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
-    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
-    # cnv.SetLogy()
-    cnv.SetTicks(1,1)
-    histos["hTheta_yz"].Draw("hist")
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTheta_yz_before_cuts"].Draw("hist")
+    if(cfg["isMC"] and cfg["isFakeMC"]):
+        histos["hTheta_yz_tru"].SetLineColor(ROOT.kRed)
+        histos["hTheta_yz_tru"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hTheta_yz_after_cuts"].Draw("hist")
     if(cfg["isMC"] and cfg["isFakeMC"]):
         histos["hTheta_yz_tru"].SetLineColor(ROOT.kRed)
         histos["hTheta_yz_tru"].Draw("hist same")
@@ -1223,7 +1453,56 @@ if __name__ == "__main__":
         
         ROOT.gPad.RedrawAxis()
     cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,1000)
+    cnv.Divide(2,2)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hWaves_zx"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hWaves_zy"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hWaves_zx_intersections"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(4)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hWaves_zy_intersections"].Draw("colz")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
+    cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        histos[f"h_tunnel_width_x_{det}"].SetMinimum(0)
+        histos[f"h_tunnel_width_y_{det}"].SetMinimum(0)
+        hbmax = histos[f"h_tunnel_width_x_{det}"].GetMaximum()
+        hamax = histos[f"h_tunnel_width_y_{det}"].GetMaximum()
+        hmax = hbmax if(hbmax>hamax) else hamax
+        hmax *= 1.2
+        histos[f"h_tunnel_width_x_{det}"].SetMaximum(hmax)
+        histos[f"h_tunnel_width_y_{det}"].SetMaximum(hmax)
+        histos[f"h_tunnel_width_x_{det}"].SetLineColor(ROOT.kBlack)
+        histos[f"h_tunnel_width_x_{det}"].Draw("hist")
+        histos[f"h_tunnel_width_y_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_tunnel_width_y_{det}"].Draw("hist same")
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
     cnv.SaveAs(f"{foupdfname})")
+    
+    
+    
+    
+    
+    
     
     ### save as root file
     foutrootname = tfilenamein.replace(".root",f"_dipole_window.root")
@@ -1232,6 +1511,10 @@ if __name__ == "__main__":
     for hname,hist in histos.items(): hist.Write()
     fout.Write()
     fout.Close()
+    
+    
+    
+    print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
     
     # get the end time
     et = time.time()

@@ -350,17 +350,20 @@ def get_track_point_at_extremes(track):
     z0 = cfg["rdetectors"][det0][2]
     zN = cfg["rdetectors"][detN][2]
     zW = -cfg["zOffset"] ### this is not 0 before transforming to the the real world
+    zF = -(cfg["zOffset"]-cfg["zFlangeExit"])
     zD = -(cfg["zOffset"]-cfg["zDipoleExit"])
     r0 = get_track_point_at_z(track,z0)
     rN = get_track_point_at_z(track,zN)
     rW = get_track_point_at_z(track,zW)
+    rF = get_track_point_at_z(track,zF)
     rD = get_track_point_at_z(track,zD)
     ### tilt the detector around x and y
     r0 = tilt_in_real_space(r0)
     rN = tilt_in_real_space(rN)
     rW = tilt_in_real_space(rW)
+    rF = tilt_in_real_space(rF)
     rD = tilt_in_real_space(rD)
-    return r0,rN,rW,rD
+    return r0,rN,rW,rF,rD
     
 
 def get_pdc_window_bounds():
@@ -370,12 +373,19 @@ def get_pdc_window_bounds():
     yWinT = cfg["yWindowMin"]+cfg["yWindowHeight"]
     return xWinL,xWinR,yWinB,yWinT
 
-def get_pdc_dipole_exit_bounds():
+def get_dipole_exit_bounds():
     xDipL = cfg["xDipoleExitMin"]
     xDipR = cfg["xDipoleExitMax"]
     yDipB = cfg["yDipoleExitMin"]
     yDipT = cfg["yDipoleExitMax"]
     return xDipL,xDipR,yDipB,yDipT
+    
+def get_dipole_flange_bounds():
+    xFlgL = cfg["xFlangeMin"]
+    xFlgR = cfg["xFlangeMax"]
+    yFlgB = cfg["yFlangeMin"]
+    yFlgT = cfg["yFlangeMax"]
+    return xFlgL,xFlgR,yFlgB,yFlgT
 
 
 

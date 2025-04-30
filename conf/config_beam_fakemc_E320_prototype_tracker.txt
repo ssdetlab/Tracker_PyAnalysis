@@ -86,6 +86,10 @@ cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}
 cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 1
+cut_spot = 0
+cut_spot_radius = 10
+cut_spot_xcenter = 0
+cut_spot_ycenter = 13.25
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
@@ -183,6 +187,7 @@ yWindowMin    = 53.5
 [BEAMPIPE]
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
+yZero2PipeTop = 51.65
 
 [DIPOLE]
 ### this is wrt to the window which I set at z=0
@@ -193,6 +198,11 @@ xDipoleExitMin     = -22.352
 xDipoleExitMax     = +22.352
 yDipoleExitMin     = -66.927
 yDipoleExitMax     = +34.927
+zFlangeExit        = -2772.115
+xFlangeMin         = -22.352
+xFlangeMax         = +22.352
+yFlangeMin         = -63.752
+yFlangeMax         = +31.752
 
 
 [TRANSFORMATIONS]
@@ -206,9 +216,12 @@ thetaz = +90.
 xOffset = 0.
 yPipe2WinBot = 6.1
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
-# yPipe2BoxBot = 9.525
+# yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)
-yPipe2BoxBot = 1.525
+# yPipeTop2BoxBot = 1.525
+### see slides!!!
+# yPipeTop2BoxBot = 0
+yPipeTop2BoxBot = 18.25
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
 zBox2chip = 10.5

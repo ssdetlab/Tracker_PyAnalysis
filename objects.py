@@ -114,9 +114,10 @@ class FakeMCparticle:
         return f"FakeMCparticle: slp={self.slp}, itp={self.itp}, vtx={vtx}"
 
 class TrackSeed:
-    def __init__(self,seed,tunnelid,clusters):
+    def __init__(self,seed,tunnelid,hough_coords,clusters):
         self.clsids = seed
         self.tunnelid = tunnelid
+        self.hough_coords = hough_coords
         self.x  = {}
         self.y  = {}
         self.z  = {}
@@ -137,7 +138,7 @@ class TrackSeed:
         return f"TrackSeed: "
 
 class Track:
-    def __init__(self,trkcls,points,errors,chisq,ndof,direction,centroid,params,success):
+    def __init__(self,trkcls,points,errors,chisq,ndof,direction,centroid,params,success,hough_coords={}):
         self.trkcls = trkcls
         self.points = points
         self.errors = errors
@@ -148,6 +149,7 @@ class Track:
         self.centroid = centroid
         self.params = params
         self.success = success
+        self.hough_coords = hough_coords
         self.theta,self.phi = self.angles(direction)
         self.maxcls = self.max_cls_size()
     def angles(self,direction):
@@ -203,11 +205,12 @@ class Event:
         self.npixels         = {}
         self.clusters        = {}
         self.nclusters       = {}
+        self.hough_space     = {} 
         self.seeds           = []
         self.tracks          = []
         self.mcparticles     = []
         self.fakemcparticles = []
-        self.misalignment  = cfg["misalignment"]
+        self.misalignment    = cfg["misalignment"]
     def __str__(self):
         return f"Event: meta={self.meta}"
     def set_event_errors(self,errors):
@@ -218,8 +221,9 @@ class Event:
     def set_event_clusters(self,clusters):
         for det in cfg["detectors"]: self.nclusters.update({det:len(clusters[det])})
         self.clusters = clusters if(self.saveprimitive) else {}
-    def set_event_seeds(self,seeds):
+    def set_event_seeds(self,seeds,hough_space={}):
         self.seeds = seeds
+        self.hough_space = hough_space
     def set_event_tracks(self,tracks):
         self.tracks = tracks
     def set_event_mcparticles(self,mcparticles):

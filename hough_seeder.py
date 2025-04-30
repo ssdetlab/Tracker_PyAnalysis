@@ -139,15 +139,23 @@ class HoughSeeder:
         ### get the 4D bin numbers of the good coordinates
         self.cells = self.get_seed_coordinates()
         # print(f"cells={self.cells}")
+        ######################
+        ##### cleanup!!! #####
         del self.accumulator
+        ######################
         ### check the accumulator against the LookupTable
         # self.LUT = LookupTable(clusters,eventid)
         self.LUT.fill_lut(clusters)
-        self.tunnels,self.hough_coord = self.get_tunnels()
-        self.tunnel_nsseds, self.tnlid, self.seeds = self.set_seeds(clusters)
+        self.tunnels,self.hough_coords,self.hough_bounds,self.hough_space = self.get_tunnels()
+        self.tunnel_nsseds, self.tnlid, self.coord, self.seeds = self.set_seeds(clusters)
         self.nseeds = len(self.seeds)
+        ######################
+        ##### cleanup!!! #####
         del self.h2waves_zx
         del self.h2waves_zy
+        self.LUT.clear_all()
+        del self.LUT
+        ######################
         minSeedsPerTnl = min(self.tunnel_nsseds) if(len(self.tunnel_nsseds)>0)     else -1
         maxSeedsPerTnl = max(self.tunnel_nsseds) if(len(self.tunnel_nsseds)>0)     else -1
         avgSeedsPerTnl = np.mean(self.tunnel_nsseds) if(len(self.tunnel_nsseds)>0) else -1
@@ -221,7 +229,7 @@ class HoughSeeder:
         flat1 = ROOT.TF1(name1,f"{f1.GetParameter(1)}*sin(x)+{f1.GetParameter(0)}*cos(x)",f1.GetXmin(),f1.GetXmax())
         flat2 = ROOT.TF1(name2,f"{f2.GetParameter(1)}*sin(x)+{f2.GetParameter(0)}*cos(x)",f2.GetXmin(),f2.GetXmax())
         diff  = ROOT.TF1(name1+"-"+name2,"abs("+name1+"-"+name2+")",f1.GetXmin(),f1.GetXmax())
-        mindiff  = diff.GetMinimum()
+        mindiff = diff.GetMinimum()
         theta = diff.GetMinimumX()
         rho   = flat1.Eval(theta)
         del flat1,flat2,diff
@@ -389,44 +397,46 @@ class HoughSeeder:
         # print(f"cumulator sizes: {len(self.accumulator[0]),len(self.accumulator[1]),len(self.accumulator[2]),len(self.accumulator[3]),len(self.accumulator[4]),len(self.accumulator[5]),len(self.accumulator[6]),len(self.accumulator[7]),len(self.accumulator[8]),len(self.accumulator[9])}, good cells: {len(cells)}")
         return cells
     
-    # def get_tunnels(self):
-    #     # print(f"in get tunnels with {len(self.cells)}"))
-    #     tunnels = []
-    #     hough_coord = []
-    #     for icell,cell in enumerate(self.cells):
-    #         (brhox,bthetax,brhoy,bthetay) = self.decode_key(cell)
-    #         thetax = self.h2waves_zx.GetXaxis().GetBinCenter(bthetax)
-    #         rhox   = self.h2waves_zx.GetYaxis().GetBinCenter(brhox)
-    #         thetay = self.h2waves_zy.GetXaxis().GetBinCenter(bthetay)
-    #         rhoy   = self.h2waves_zy.GetYaxis().GetBinCenter(brhoy)
-    #         valid,tunnel = self.LUT.clusters_in_tunnel(thetax,rhox,thetay,rhoy)
-    #         if(valid):
-    #             tunnels.append( tunnel )
-    #             hough_coord.append( (thetax,rhox,thetay,rhoy) )
-    #         # print(f"Cell[{icell}]: valid?{valid} --> tunnel={tunnel}")
-    #     return tunnels,hough_coord
     
     def get_tunnels(self):
         # print(f"in get tunnels with {len(self.cells)}"))
-        tunnels = []
-        hough_coord = []
+        tunnels      = []
+        hough_coords = []
+        hough_bounds = []
+        hough_space  = {
+            "zx_xbins":self.h2waves_zx.GetNbinsX(), "zx_xmin":self.h2waves_zx.GetXaxis().GetXmin(), "zx_xmax":self.h2waves_zx.GetXaxis().GetXmax(),
+            "zx_ybins":self.h2waves_zx.GetNbinsY(), "zx_ymin":self.h2waves_zx.GetYaxis().GetXmin(), "zx_ymax":self.h2waves_zx.GetYaxis().GetXmax(),
+            "zy_xbins":self.h2waves_zy.GetNbinsX(), "zy_xmin":self.h2waves_zy.GetXaxis().GetXmin(), "zy_xmax":self.h2waves_zy.GetXaxis().GetXmax(),
+            "zy_ybins":self.h2waves_zy.GetNbinsY(), "zy_ymin":self.h2waves_zy.GetYaxis().GetXmin(), "zy_ymax":self.h2waves_zy.GetYaxis().GetXmax()
+        }
+        
         for icell,cell in enumerate(self.cells):
             (brhox,bthetax,brhoy,bthetay) = self.decode_key(cell)
-            thetax = [self.h2waves_zx.GetXaxis().GetBinLowEdge(bthetax), self.h2waves_zx.GetXaxis().GetBinUpEdge(bthetax) ]
-            rhox   = [self.h2waves_zx.GetYaxis().GetBinLowEdge(brhox),   self.h2waves_zx.GetYaxis().GetBinUpEdge(brhox)   ]
-            thetay = [self.h2waves_zy.GetXaxis().GetBinLowEdge(bthetay), self.h2waves_zy.GetXaxis().GetBinUpEdge(bthetay) ]
-            rhoy   = [self.h2waves_zy.GetYaxis().GetBinLowEdge(brhoy),   self.h2waves_zy.GetYaxis().GetBinUpEdge(brhoy) ]
+            
+            central_thetax = self.h2waves_zx.GetXaxis().GetBinCenter(bthetax)
+            central_rhox   = self.h2waves_zx.GetYaxis().GetBinCenter(brhox) 
+            central_thetay = self.h2waves_zy.GetXaxis().GetBinCenter(bthetay)
+            central_rhoy   = self.h2waves_zy.GetYaxis().GetBinCenter(brhoy)
+            
+            thetax = [ self.h2waves_zx.GetXaxis().GetBinLowEdge(bthetax), self.h2waves_zx.GetXaxis().GetBinUpEdge(bthetax) ]
+            rhox   = [ self.h2waves_zx.GetYaxis().GetBinLowEdge(brhox),   self.h2waves_zx.GetYaxis().GetBinUpEdge(brhox)   ]
+            thetay = [ self.h2waves_zy.GetXaxis().GetBinLowEdge(bthetay), self.h2waves_zy.GetXaxis().GetBinUpEdge(bthetay) ]
+            rhoy   = [ self.h2waves_zy.GetYaxis().GetBinLowEdge(brhoy),   self.h2waves_zy.GetYaxis().GetBinUpEdge(brhoy)   ]
+            
             valid,tunnel = self.LUT.clusters_in_tunnel(thetax,rhox,thetay,rhoy)
+            
             if(valid):
                 tunnels.append( tunnel )
-                hough_coord.append( (thetax,rhox,thetay,rhoy) )
+                hough_coords.append( (central_thetax,central_rhox,central_thetay,central_rhoy) )
+                hough_bounds.append( (thetax,rhox,thetay,rhoy) )
             # print(f"Cell[{icell}]: valid?{valid} --> tunnel={tunnel}")
-        return tunnels,hough_coord
+        return tunnels,hough_coords,hough_bounds,hough_space
     
     def set_seeds(self,clusters):
         tunnel_nsseds = [1]*len(self.tunnels)
         seeds = []
         tnlid = []
+        coord = []
         det0 = cfg["detectors"][0]
         det1 = cfg["detectors"][1]
         det2 = cfg["detectors"][2]
@@ -448,7 +458,9 @@ class HoughSeeder:
                                 for c4 in tunnel[det4]:
                                     seeds.append( [c0,c1,c2,c3,c4] )
                                     tnlid.append( itnl )
+                                    coord.append( self.hough_coords[itnl] )
                             else:
                                 seeds.append( [c0,c1,c2,c3] )
                                 tnlid.append( itnl )
-        return tunnel_nsseds,tnlid,seeds
+                                coord.append( self.hough_coords[itnl] )
+        return tunnel_nsseds,tnlid,coord,seeds

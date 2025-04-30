@@ -325,12 +325,14 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         
         ### prepare the clusters for the fit
         seeds = []
+        hough_space = seeder.hough_space
         for iseed,seed in enumerate(seeder.seeds):
-            tunnelid = seeder.tnlid[iseed]
-            trkseed = TrackSeed(seed,tunnelid,clusters)
+            tunnelid     = seeder.tnlid[iseed]
+            hough_coords = seeder.coord[iseed] ### the Hough-Transform coordinates
+            trkseed      = TrackSeed(seed,tunnelid,hough_coords,clusters)
             seeds.append(trkseed)
         del seeder
-        eventslist[len(eventslist)-1].set_event_seeds(seeds)
+        eventslist[len(eventslist)-1].set_event_seeds(seeds,hough_space)
 
         ### get the event tracks
         vtx  = [cfg["xVtx"],cfg["yVtx"],cfg["zVtx"]]    if(cfg["doVtx"]) else []
@@ -342,7 +344,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         n_successful_tracks = 0
         n_goodchi2_tracks   = 0
         n_selected_tracks   = 0
-        for seed in seeds:
+        for iseed,seed in enumerate(seeds):
             ### get the points
             xclserr = seed.xsize if(cfg["use_large_clserr_for_algnmnt"]) else seed.dx
             yclserr = seed.ysize if(cfg["use_large_clserr_for_algnmnt"]) else seed.dy
@@ -370,7 +372,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
                 icls = seed.clsids[idet]
                 trkcls.update({det:clusters[det][icls]})
             ### set the track
-            track = Track(trkcls,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success)
+            track = Track(trkcls,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success,seed.hough_coords)
             tracks.append(track)
             n_tracks += 1
             
@@ -449,16 +451,15 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         ### fill the data and add to events --> TODO: this is deprecated
         # eventslist.append( Event(meta,trigger,pixels_save,clusters,tracks,mcparticles) )
         # eventslist.append( Event(meta,trigger,pixels_save,clusters,seeds,tracks) )
-        
     ### end
+    
     if(not cfg["skiptracking"]):
         pickle.dump(eventslist, fpickle, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
         fpickle.close()
-        
+    
     print(f"Worker {irange} is done!")
     lock.release()
     return histos
-
 
 
 def collect_errors(error):
@@ -629,7 +630,6 @@ if __name__ == "__main__":
             hdenname = hname.replace("csize","ntrks")
             allhistos.update( {hnewname:allhistos[hname].Clone(hnewname)} )
             allhistos[hnewname].Divide(allhistos[hdenname])
-
     
     # Save the histograms to a file
     tfo.Write()

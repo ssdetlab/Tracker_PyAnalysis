@@ -242,38 +242,7 @@ if __name__ == "__main__":
     
     lines = {}
     
-    # ### GOOD FOR RUNS 502 (SHORT BERYLLIUM) AND 503 (LONG BACKGROUND)
-    # thr_toro2040 = getThr("toro2040",y_toro2040,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro2040":getLine(thr_toro2040,x_trg)})
-    # thr_toro2452 = getThr("toro2452",y_toro2452,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro2452":getLine(thr_toro2452,x_trg)})
-    # thr_toro3163 = getThr("toro3163",y_toro3163,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro3163":getLine(thr_toro3163,x_trg)})
-    # thr_toro3255 = getThr("toro3255",y_toro3255,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro3255":getLine(thr_toro3255,x_trg)})
-    # thr_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=79.5,frac=0.01)
-    # lines.update({"pmt3060":getLine(thr_pmt3060,x_trg)})
-    # thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.01)
-    # lines.update({"pmt3070":getLine(thr_pmt3070,x_trg)})
-    # thr_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=18,frac=0.01)
-    # lines.update({"pmt3179":getLine(thr_pmt3179,x_trg)})
-    # thr_pmt3350 = getThr("pmt3350",y_pmt3350,direction="up",nsigma=130,frac=0.01)
-    # lines.update({"pmt3350":getLine(thr_pmt3350,x_trg)})
-    # thr_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=351.5,frac=0.01)
-    # lines.update({"pmt3360":getLine(thr_pmt3360,x_trg)})
-    # thr_rad = getThr("rad",y_rad,direction="up",nsigma=5,frac=0.05)
-    # lines.update({"rad":getLine(thr_rad,x_trg)})
-    # thr_bpm_pb_3156 = getThr("bpm pb 3156",y_bpm_pb_3156,direction="down",nsigma=10,frac=0.01)
-    # lines.update({"bpm_pb_3156":getLine(thr_bpm_pb_3156,x_trg)})
-    # thr_bpm_q0_3218 = getThr("bpm_q0_3218",y_bpm_q0_3218,direction="down",nsigma=15,frac=0.01)
-    # lines.update({"bpm_q0_3218":getLine(thr_bpm_q0_3218,x_trg)})
-    # thr_bpm_q1_3265 = getThr("bpm_q1_3265",y_bpm_q1_3265,direction="down",nsigma=15,frac=0.01)
-    # lines.update({"bpm_q1_3265":getLine(thr_bpm_q1_3265,x_trg)})
-    # thr_bpm_q2_3315 = getThr("bpm_q2_3315",y_bpm_q2_3315,direction="down",nsigma=15,frac=0.01)
-    # lines.update({"bpm_q2_3315":getLine(thr_bpm_q2_3315,x_trg)})
-    
-    
-    ### GOOD FOR RUNS 510 (LONG BERYLLIUM)
+    ### GOOD FOR RUNS 502 (SHORT BERYLLIUM) AND 503 (LONG BACKGROUND)
     thr_toro2040 = getThr("toro2040",y_toro2040,direction="down",nsigma=5,frac=0.05)
     lines.update({"toro2040":getLine(thr_toro2040,x_trg)})
     thr_toro2452 = getThr("toro2452",y_toro2452,direction="down",nsigma=5,frac=0.05)
@@ -284,7 +253,7 @@ if __name__ == "__main__":
     lines.update({"toro3255":getLine(thr_toro3255,x_trg)})
     thr_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=79.5,frac=0.01)
     lines.update({"pmt3060":getLine(thr_pmt3060,x_trg)})
-    thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.2)
+    thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.01)
     lines.update({"pmt3070":getLine(thr_pmt3070,x_trg)})
     thr_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=18,frac=0.01)
     lines.update({"pmt3179":getLine(thr_pmt3179,x_trg)})
@@ -292,7 +261,7 @@ if __name__ == "__main__":
     lines.update({"pmt3350":getLine(thr_pmt3350,x_trg)})
     thr_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=351.5,frac=0.01)
     lines.update({"pmt3360":getLine(thr_pmt3360,x_trg)})
-    thr_rad = getThr("rad",y_rad,direction="up",nsigma=2,frac=0.2)
+    thr_rad = getThr("rad",y_rad,direction="up",nsigma=5,frac=0.05)
     lines.update({"rad":getLine(thr_rad,x_trg)})
     thr_bpm_pb_3156 = getThr("bpm pb 3156",y_bpm_pb_3156,direction="down",nsigma=10,frac=0.01)
     lines.update({"bpm_pb_3156":getLine(thr_bpm_pb_3156,x_trg)})
@@ -302,6 +271,37 @@ if __name__ == "__main__":
     lines.update({"bpm_q1_3265":getLine(thr_bpm_q1_3265,x_trg)})
     thr_bpm_q2_3315 = getThr("bpm_q2_3315",y_bpm_q2_3315,direction="down",nsigma=15,frac=0.01)
     lines.update({"bpm_q2_3315":getLine(thr_bpm_q2_3315,x_trg)})
+    
+    
+    # ### GOOD FOR RUNS 510 (LONG BERYLLIUM)
+    # thr_toro2040 = getThr("toro2040",y_toro2040,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro2040":getLine(thr_toro2040,x_trg)})
+    # thr_toro2452 = getThr("toro2452",y_toro2452,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro2452":getLine(thr_toro2452,x_trg)})
+    # thr_toro3163 = getThr("toro3163",y_toro3163,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro3163":getLine(thr_toro3163,x_trg)})
+    # thr_toro3255 = getThr("toro3255",y_toro3255,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro3255":getLine(thr_toro3255,x_trg)})
+    # thr_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=79.5,frac=0.01)
+    # lines.update({"pmt3060":getLine(thr_pmt3060,x_trg)})
+    # thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.2)
+    # lines.update({"pmt3070":getLine(thr_pmt3070,x_trg)})
+    # thr_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=18,frac=0.01)
+    # lines.update({"pmt3179":getLine(thr_pmt3179,x_trg)})
+    # thr_pmt3350 = getThr("pmt3350",y_pmt3350,direction="up",nsigma=130,frac=0.01)
+    # lines.update({"pmt3350":getLine(thr_pmt3350,x_trg)})
+    # thr_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=351.5,frac=0.01)
+    # lines.update({"pmt3360":getLine(thr_pmt3360,x_trg)})
+    # thr_rad = getThr("rad",y_rad,direction="up",nsigma=2,frac=0.2)
+    # lines.update({"rad":getLine(thr_rad,x_trg)})
+    # thr_bpm_pb_3156 = getThr("bpm pb 3156",y_bpm_pb_3156,direction="down",nsigma=10,frac=0.01)
+    # lines.update({"bpm_pb_3156":getLine(thr_bpm_pb_3156,x_trg)})
+    # thr_bpm_q0_3218 = getThr("bpm_q0_3218",y_bpm_q0_3218,direction="down",nsigma=15,frac=0.01)
+    # lines.update({"bpm_q0_3218":getLine(thr_bpm_q0_3218,x_trg)})
+    # thr_bpm_q1_3265 = getThr("bpm_q1_3265",y_bpm_q1_3265,direction="down",nsigma=15,frac=0.01)
+    # lines.update({"bpm_q1_3265":getLine(thr_bpm_q1_3265,x_trg)})
+    # thr_bpm_q2_3315 = getThr("bpm_q2_3315",y_bpm_q2_3315,direction="down",nsigma=15,frac=0.01)
+    # lines.update({"bpm_q2_3315":getLine(thr_bpm_q2_3315,x_trg)})
     
     fltr_trgs = {}
     removed_triggers = []
@@ -781,4 +781,11 @@ if __name__ == "__main__":
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname})")
+    
+    for det in cfg["detectors"]:
+        for i,y in enumerate(fltr_hits_vs_trg[det]):
+            if(y>0):
+                print(f"First trigger for {det} is: {x_trg[i]}")
+                break
+        
 

@@ -472,6 +472,7 @@ class Config:
         
         self.add("Rpipe", self.getF('BEAMPIPE','Rpipe'))
         self.add("yMidWin2PipeCenter", self.getF('BEAMPIPE','yMidWin2PipeCenter'))
+        self.add("yZero2PipeTop", self.getF('BEAMPIPE','yZero2PipeTop'))
         
         self.add("fDipoleTesla", self.getF('DIPOLE','fDipoleTesla'))
         self.add("zDipoleLenghMeters", self.getF('DIPOLE','zDipoleLenghMeters'))
@@ -480,6 +481,11 @@ class Config:
         self.add("xDipoleExitMax", self.getF('DIPOLE','xDipoleExitMax'))
         self.add("yDipoleExitMin", self.getF('DIPOLE','yDipoleExitMin'))
         self.add("yDipoleExitMax", self.getF('DIPOLE','yDipoleExitMax'))
+        self.add("zFlangeExit", self.getF('DIPOLE','zFlangeExit'))
+        self.add("xFlangeMin",  self.getF('DIPOLE','xFlangeMin'))
+        self.add("xFlangeMax",  self.getF('DIPOLE','xFlangeMax'))
+        self.add("yFlangeMin",  self.getF('DIPOLE','yFlangeMin'))
+        self.add("yFlangeMax",  self.getF('DIPOLE','yFlangeMax'))
         
         thetax = self.getF('TRANSFORMATIONS','thetax')*np.pi/180.
         thetay = self.getF('TRANSFORMATIONS','thetay')*np.pi/180.
@@ -490,14 +496,15 @@ class Config:
         self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
         # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
         self.add("yPipe2WinBot", self.getF('TRANSFORMATIONS','yPipe2WinBot'))
-        self.add("yPipe2BoxBot", self.getF('TRANSFORMATIONS','yPipe2BoxBot'))
+        self.add("yPipeTop2BoxBot", self.getF('TRANSFORMATIONS','yPipeTop2BoxBot'))
         self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
         self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
         self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
         
-        yBoxBot2WinBot = self.map["yPipe2BoxBot"]-self.map["yPipe2WinBot"]
-        self.add("yBoxBot2WinBot", yBoxBot2WinBot)
-        yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
+        # yBoxBot2WinBot = self.map["yPipeTop2BoxBot"]-self.map["yPipe2WinBot"]
+        # self.add("yBoxBot2WinBot", yBoxBot2WinBot)
+        # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
+        yOffset = self.map["yZero2PipeTop"]+self.map["yPipeTop2BoxBot"]+self.map["yMidChip2BoxBot"]
         zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
         self.add("yOffset", yOffset)
         self.add("zOffset", zOffset)
@@ -510,7 +517,6 @@ class Config:
         self.add("offsets_x", offsets_x)
         self.add("offsets_y", offsets_y)
         
-        # self.add("use_large_clserr_for_algnmnt", self.getB('FIT','use_large_clserr_for_algnmnt'))
         self.add("fit_method",       self.getArrS('FIT','fit_method'))
         self.add("fit_chi2_fast",    self.getB('FIT',   'fit_chi2_fast'))
         self.add("fit_chi2_method0", self.getS('FIT',   'fit_chi2_method0'))
@@ -524,6 +530,10 @@ class Config:
         self.add("cut_ROI_ymax", self.getF('CUTS','cut_ROI_ymax'))
         self.add("cut_maxcls", self.getF('CUTS','cut_maxcls'))
         self.add("cut_allow_shared_clusters", self.getB('CUTS','cut_allow_shared_clusters'))
+        self.add("cut_spot", self.getB('CUTS','cut_spot'))
+        self.add("cut_spot_radius", self.getF('CUTS','cut_spot_radius'))
+        self.add("cut_spot_xcenter", self.getF('CUTS','cut_spot_xcenter'))
+        self.add("cut_spot_ycenter", self.getF('CUTS','cut_spot_ycenter'))
         
         self.add("plot_online_evtdisp", self.getB('PLOT','plot_online_evtdisp'))
         self.add("plot_offline_evtdisp", self.getB('PLOT','plot_offline_evtdisp'))
@@ -571,100 +581,101 @@ class Config:
         print(f"Config file integrity check passed!")
 
     def __str__(self):
-        return f"Config map: {self.map}"
-        self.add("plane2det", self.getMapI2S('DETECTOR','plane2det'))
-        self.add("rdetectors", self.getMap2ArrF('DETECTOR','rdetectors'))
-        frstdet = self.map["detectors"][0]
-        lastdet = self.map["detectors"][-1]
-        self.add("det_frst", frstdet)
-        self.add("det_last", lastdet)
-        planes = list(self.map["plane2det"].keys())
-        self.add("planes", planes)
-        det2plane = {}
-        for plane,det in self.map["plane2det"].items(): det2plane.update({det:plane})
-        self.add("det2plane", det2plane)
+        # return f"Config map: {self.map}"
         
-        self.add("use_large_clserr_for_algnmnt", self.getB('ALIGNMENT','use_large_clserr_for_algnmnt'))
-        self.add("use_large_dk_filter", self.getB('ALIGNMENT','use_large_dk_filter'))
-        self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
-        self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
-        self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
-        self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
-        self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
-        self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
-        self.add("alignmentmethod", self.getS('ALIGNMENT','alignmentmethod'))
-        self.add("alignmentwerr", self.getB('ALIGNMENT','alignmentwerr'))
-        self.add("alignmentmintrks", self.getI('ALIGNMENT','alignmentmintrks'))
-        # if(self.map["isMC"]):
-        #     print("Ignoring misalignment for MC")
-        #     for key1 in self.map["misalignment"]:
-        #         for key2 in self.map["misalignment"][key1]:
-        #             self.map["misalignment"][key1][key2] = 0
-        
-        self.add("zWindow",       self.getF('WINDOW','zWindow'))
-        self.add("xWindow",       self.getF('WINDOW','xWindow'))
-        self.add("yWindowMin",    self.getF('WINDOW','yWindowMin'))
-        self.add("xWindowWidth",  self.getF('WINDOW','xWindowWidth'))
-        self.add("yWindowHeight", self.getF('WINDOW','yWindowHeight'))
-        
-        self.add("Rpipe", self.getF('BEAMPIPE','Rpipe'))
-        self.add("yMidWin2PipeCenter", self.getF('BEAMPIPE','yMidWin2PipeCenter'))
-        
-        self.add("fDipoleTesla", self.getF('DIPOLE','fDipoleTesla'))
-        self.add("zDipoleLenghMeters", self.getF('DIPOLE','zDipoleLenghMeters'))
-        self.add("zDipoleExit", self.getF('DIPOLE','zDipoleExit'))
-        self.add("xDipoleExitMin", self.getF('DIPOLE','xDipoleExitMin'))
-        self.add("xDipoleExitMax", self.getF('DIPOLE','xDipoleExitMax'))
-        self.add("yDipoleExitMin", self.getF('DIPOLE','yDipoleExitMin'))
-        self.add("yDipoleExitMax", self.getF('DIPOLE','yDipoleExitMax'))
-        
-        thetax = self.getF('TRANSFORMATIONS','thetax')*np.pi/180.
-        thetay = self.getF('TRANSFORMATIONS','thetay')*np.pi/180.
-        thetaz = self.getF('TRANSFORMATIONS','thetaz')*np.pi/180.
-        self.add("thetax", thetax)
-        self.add("thetay", thetay)
-        self.add("thetaz", thetaz)
-        self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
-        # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
-        self.add("yPipe2WinBot", self.getF('TRANSFORMATIONS','yPipe2WinBot'))
-        self.add("yPipe2BoxBot", self.getF('TRANSFORMATIONS','yPipe2BoxBot'))
-        self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
-        self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
-        self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
-        
-        yBoxBot2WinBot = self.map["yPipe2BoxBot"]-self.map["yPipe2WinBot"]
-        self.add("yBoxBot2WinBot", yBoxBot2WinBot)
-        yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
-        # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["chipX"]/2.
-        zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
-        self.add("yOffset", yOffset)
-        self.add("zOffset", zOffset)
-        
-        offsets_x = {}
-        offsets_y = {}
-        for det in self.map["detectors"]:
-            offsets_x.update( {det:self.map["rdetectors"][det][0]} )
-            offsets_y.update( {det:self.map["rdetectors"][det][1]} )
-        self.add("offsets_x", offsets_x)
-        self.add("offsets_y", offsets_y)
+        # self.add("plane2det", self.getMapI2S('DETECTOR','plane2det'))
+        # self.add("rdetectors", self.getMap2ArrF('DETECTOR','rdetectors'))
+        # frstdet = self.map["detectors"][0]
+        # lastdet = self.map["detectors"][-1]
+        # self.add("det_frst", frstdet)
+        # self.add("det_last", lastdet)
+        # planes = list(self.map["plane2det"].keys())
+        # self.add("planes", planes)
+        # det2plane = {}
+        # for plane,det in self.map["plane2det"].items(): det2plane.update({det:plane})
+        # self.add("det2plane", det2plane)
+        #
+        # self.add("use_large_clserr_for_algnmnt", self.getB('ALIGNMENT','use_large_clserr_for_algnmnt'))
+        # self.add("use_large_dk_filter", self.getB('ALIGNMENT','use_large_dk_filter'))
+        # self.add("misalignment", self.getMap2MapF('ALIGNMENT','misalignment'))
+        # self.add("minchi2align", self.getF('ALIGNMENT','minchi2align'))
+        # self.add("maxchi2align", self.getF('ALIGNMENT','maxchi2align'))
+        # self.add("axes2align", self.getS('ALIGNMENT','axes2align'))
+        # self.add("naligniter", self.getI('ALIGNMENT','naligniter'))
+        # self.add("alignmentbounds", self.getMap2MapF('ALIGNMENT','alignmentbounds'))
+        # self.add("alignmentmethod", self.getS('ALIGNMENT','alignmentmethod'))
+        # self.add("alignmentwerr", self.getB('ALIGNMENT','alignmentwerr'))
+        # self.add("alignmentmintrks", self.getI('ALIGNMENT','alignmentmintrks'))
+        # # if(self.map["isMC"]):
+        # #     print("Ignoring misalignment for MC")
+        # #     for key1 in self.map["misalignment"]:
+        # #         for key2 in self.map["misalignment"][key1]:
+        # #             self.map["misalignment"][key1][key2] = 0
+        #
+        # self.add("zWindow",       self.getF('WINDOW','zWindow'))
+        # self.add("xWindow",       self.getF('WINDOW','xWindow'))
+        # self.add("yWindowMin",    self.getF('WINDOW','yWindowMin'))
+        # self.add("xWindowWidth",  self.getF('WINDOW','xWindowWidth'))
+        # self.add("yWindowHeight", self.getF('WINDOW','yWindowHeight'))
+        #
+        # self.add("Rpipe", self.getF('BEAMPIPE','Rpipe'))
+        # self.add("yMidWin2PipeCenter", self.getF('BEAMPIPE','yMidWin2PipeCenter'))
+        #
+        # self.add("fDipoleTesla", self.getF('DIPOLE','fDipoleTesla'))
+        # self.add("zDipoleLenghMeters", self.getF('DIPOLE','zDipoleLenghMeters'))
+        # self.add("zDipoleExit", self.getF('DIPOLE','zDipoleExit'))
+        # self.add("xDipoleExitMin", self.getF('DIPOLE','xDipoleExitMin'))
+        # self.add("xDipoleExitMax", self.getF('DIPOLE','xDipoleExitMax'))
+        # self.add("yDipoleExitMin", self.getF('DIPOLE','yDipoleExitMin'))
+        # self.add("yDipoleExitMax", self.getF('DIPOLE','yDipoleExitMax'))
+        #
+        # thetax = self.getF('TRANSFORMATIONS','thetax')*np.pi/180.
+        # thetay = self.getF('TRANSFORMATIONS','thetay')*np.pi/180.
+        # thetaz = self.getF('TRANSFORMATIONS','thetaz')*np.pi/180.
+        # self.add("thetax", thetax)
+        # self.add("thetay", thetay)
+        # self.add("thetaz", thetaz)
+        # self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
+        # # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
+        # self.add("yPipe2WinBot", self.getF('TRANSFORMATIONS','yPipe2WinBot'))
+        # self.add("yPipeTop2BoxBot", self.getF('TRANSFORMATIONS','yPipeTop2BoxBot'))
+        # self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
+        # self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
+        # self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
+        #
+        # yBoxBot2WinBot = self.map["yPipeTop2BoxBot"]-self.map["yPipe2WinBot"]
+        # self.add("yBoxBot2WinBot", yBoxBot2WinBot)
+        # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
+        # # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["chipX"]/2.
+        # zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
+        # self.add("yOffset", yOffset)
+        # self.add("zOffset", zOffset)
+        #
+        # offsets_x = {}
+        # offsets_y = {}
+        # for det in self.map["detectors"]:
+        #     offsets_x.update( {det:self.map["rdetectors"][det][0]} )
+        #     offsets_y.update( {det:self.map["rdetectors"][det][1]} )
+        # self.add("offsets_x", offsets_x)
+        # self.add("offsets_y", offsets_y)
         
         # self.add("use_large_clserr_for_algnmnt", self.getB('FIT','use_large_clserr_for_algnmnt'))
-        self.add("fit_method",       self.getArrS('FIT','fit_method'))
-        self.add("fit_chi2_fast",    self.getB('FIT',   'fit_chi2_fast'))
-        self.add("fit_chi2_method0", self.getS('FIT',   'fit_chi2_method0'))
-        self.add("fit_chi2_method1", self.getArrS('FIT','fit_chi2_method1'))
-        
-        self.add("cuts", self.getArrS('CUTS','cuts'))
-        self.add("cut_chi2dof", self.getF('CUTS','cut_chi2dof'))
-        self.add("cut_ROI_xmin", self.getF('CUTS','cut_ROI_xmin'))
-        self.add("cut_ROI_xmax", self.getF('CUTS','cut_ROI_xmax'))
-        self.add("cut_ROI_ymin", self.getF('CUTS','cut_ROI_ymin'))
-        self.add("cut_ROI_ymax", self.getF('CUTS','cut_ROI_ymax'))
-        self.add("cut_maxcls", self.getF('CUTS','cut_maxcls'))
-        self.add("cut_allow_shared_clusters", self.getB('CUTS','cut_allow_shared_clusters'))
-        
-        self.add("plot_online_evtdisp", self.getB('PLOT','plot_online_evtdisp'))
-        self.add("plot_offline_evtdisp", self.getB('PLOT','plot_offline_evtdisp'))
+        # self.add("fit_method",       self.getArrS('FIT','fit_method'))
+        # self.add("fit_chi2_fast",    self.getB('FIT',   'fit_chi2_fast'))
+        # self.add("fit_chi2_method0", self.getS('FIT',   'fit_chi2_method0'))
+        # self.add("fit_chi2_method1", self.getArrS('FIT','fit_chi2_method1'))
+        #
+        # self.add("cuts", self.getArrS('CUTS','cuts'))
+        # self.add("cut_chi2dof", self.getF('CUTS','cut_chi2dof'))
+        # self.add("cut_ROI_xmin", self.getF('CUTS','cut_ROI_xmin'))
+        # self.add("cut_ROI_xmax", self.getF('CUTS','cut_ROI_xmax'))
+        # self.add("cut_ROI_ymin", self.getF('CUTS','cut_ROI_ymin'))
+        # self.add("cut_ROI_ymax", self.getF('CUTS','cut_ROI_ymax'))
+        # self.add("cut_maxcls", self.getF('CUTS','cut_maxcls'))
+        # self.add("cut_allow_shared_clusters", self.getB('CUTS','cut_allow_shared_clusters'))
+        #
+        # self.add("plot_online_evtdisp", self.getB('PLOT','plot_online_evtdisp'))
+        # self.add("plot_offline_evtdisp", self.getB('PLOT','plot_offline_evtdisp'))
     
         if(doprint):
             print("Configuration map:")

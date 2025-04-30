@@ -6,6 +6,9 @@ pdgIdMatch     = 13
 runtype        = beam
 skiptracking   = 0
 saveprimitive  = 0
+nCPU           = 10
+nprintout      = 20
+skipmasking    = 1
 
 ### run490 foil-in allin, focused
 # first2process  = 0
@@ -16,7 +19,7 @@ saveprimitive  = 0
 ### run501 (beam-only):
 # first2process  = 0
 ### run502 (beam, bewin-in):
-first2process = 400
+first2process = 362
 ### run503 beam-only, focusing on foil, 6h-long
 # first2process = 0
 ### run510 beam-only, focusing on foil, 6h-long
@@ -36,12 +39,6 @@ nmax2process = 0
 # nmax2process = 0
 ### run510 Be window long run, parasitic
 # nmax2process = 0
-
-
-
-nCPU           = 10
-nprintout      = 20
-skipmasking    = 1
 
 ### foil-in allin, focused
 # inputfile = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
@@ -90,11 +87,12 @@ seed_rhoy_scale_low   = 1.00
 seed_rhoy_scale_mid   = 0.90
 seed_rhoy_scale_hgh   = 0.80
 seed_rhoy_scale_inf   = 0.80
-### seed_nbins_thetarho_low = 1100 nominally and 100 for the alignment
-# seed_nbins_thetarho_low = 1100
-# seed_nbins_thetarho_mid = 1100
-seed_nbins_thetarho_low = 650 
-seed_nbins_thetarho_mid = 650
+### TIGHT seed_nbins_thetarho: 1700 nominally (after alignment)
+seed_nbins_thetarho_low = 1700
+seed_nbins_thetarho_mid = 1700
+### LOOSE seed_nbins_thetarho: 650 nominally (use for alignment)
+# seed_nbins_thetarho_low = 650
+# seed_nbins_thetarho_mid = 650
 seed_nbins_thetarho_hgh = 2000
 seed_nbins_thetarho_inf = 2000
 
@@ -125,6 +123,10 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
+cut_spot = 0
+cut_spot_radius = 10
+cut_spot_xcenter = 0
+cut_spot_ycenter = 13.25
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
@@ -230,6 +232,7 @@ yWindowMin    = 53.5
 [BEAMPIPE]
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
+yZero2PipeTop = 51.65
 
 [DIPOLE]
 ### this is wrt to the window which I set at z=0
@@ -240,26 +243,34 @@ xDipoleExitMin     = -22.352
 xDipoleExitMax     = +22.352
 yDipoleExitMin     = -66.927
 yDipoleExitMax     = +34.927
+zFlangeExit        = -2772.115
+xFlangeMin         = -22.352
+xFlangeMax         = +22.352
+yFlangeMin         = -63.752
+yFlangeMax         = +31.752
+
 
 
 [TRANSFORMATIONS]
 ### thetax/y are the angles in degrees ARROUND the x/y axis in real space, such that
 ### thetax rotates the blob up/down vertically and thetay rotates the blob horizontally.
 ### these are "found" from the dipole exit and energy analysis
-### for runs 502 and 503 thetax=0.6
-thetax = 0.6
-### for run 510 thetax=0.1
-# thetax = 0.1
 thetay = 0.165
+### for runs 502 and 503 thetax=0.6
+thetax = 0.
+### for run 510 thetax=0.1
+# thetax = -0.05
 ### thetaz is just the transformation to real space.
 thetaz = +90.
 xOffset = 0.
 yPipe2WinBot = 6.1
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
-# yPipe2BoxBot = 9.525
+# yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)
-# yPipe2BoxBot = 1.525
-yPipe2BoxBot = 4
+# yPipeTop2BoxBot = 1.525
+### see slides!!!
+# yPipeTop2BoxBot = 0
+yPipeTop2BoxBot = 18.25
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
 zBox2chip = 10.5
