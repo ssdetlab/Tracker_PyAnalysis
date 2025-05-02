@@ -32,7 +32,7 @@ skipmasking    = 1
 
 ### run502 (Be window in):
 first2process = 362
-nmax2process  = 1000
+nmax2process  = 0
 inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 
 ### run503 (beam-only, focusing on foil, 6h-long)
@@ -115,8 +115,8 @@ cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}
 cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
-cut_spot = 0
-cut_spot_radius = 10
+cut_spot         = 1
+cut_spot_radius  = 10
 cut_spot_xcenter = 0
 cut_spot_ycenter = 13.25
 ### full chip ROI, i.e. no cuts
