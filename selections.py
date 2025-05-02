@@ -23,9 +23,10 @@ def diamond_cut(xL,xR,yT,x,y,tol=4):
     return True
     
 
-def spot_cut(x,y,xC,yC,R=10):
-    X = x-xC
-    Y = y-yC
+def spot_cut(x,y):
+    X = x-cfg["cut_spot_xcenter"]
+    Y = y-cfg["cut_spot_ycenter"]
+    R = cfg["cut_spot_radius"]
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
@@ -43,13 +44,10 @@ def pass_geoacc_selection(track):
     pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) )
     pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
     pass_flange_aperture = ( (rF[0]>=xFlgL and rF[0]<=xFlgR) and (rF[1]>0 and rF[1]<=yFlgT) )
-    # pass_dipole_diamond  = (diamond_cut(xDipL,xDipR,yDipT,rD[0],rD[1]))
-    pass_dipole_spot     = (spot_cut(rD[0],rD[1], cfg["cut_spot_xcenter"],cfg["cut_spot_ycenter"],cfg["cut_spot_radius"])) if(cfg["cut_spot"]) else True
+    pass_dipole_spot     = ( spot_cut(rD[0],rD[1]) ) if(cfg["cut_spot"]) else True
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
     pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
-    # print(f"   Selection: pass_inclination_yz={pass_inclination_yz}, pass_vertexatpdc={pass_vertexatpdc}, pass_dipole_aperture={pass_dipole_aperture}, pass_dipole_Eslot={pass_dipole_Eslot}, pass_dipole_Xslot={pass_dipole_Xslot}")
     return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_flange_aperture and pass_dipole_spot)
-    # return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_dipole_Eslot and pass_dipole_Xslot)
 
 
 def remove_tracks_with_shared_clusters(tracks):

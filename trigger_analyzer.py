@@ -318,7 +318,6 @@ if __name__ == "__main__":
         if(not fail and y_pmt3360[i]>thr_pmt3360):         fail = True
         if(not fail and y_rad[i]>thr_rad):                 fail = True
         if(not fail and y_bpm_pb_3156[i]<thr_bpm_pb_3156): fail = True
-        if(not fail and y_bpm_pb_3156[i]<thr_bpm_pb_3156): fail = True
         if(not fail and y_bpm_q0_3218[i]<thr_bpm_q0_3218): fail = True
         if(not fail and y_bpm_q1_3265[i]<thr_bpm_q1_3265): fail = True
         if(not fail and y_bpm_q2_3315[i]<thr_bpm_q2_3315): fail = True
@@ -617,7 +616,7 @@ if __name__ == "__main__":
         mg.Add(graphs[gname])
     mg.Draw("al")
     leg.Draw("same")
-    mg.SetTitle(";Trigger number;M_{ij} [??]")
+    mg.SetTitle(";Trigger number;M_{ij} [m]")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
@@ -669,7 +668,7 @@ if __name__ == "__main__":
     for t in ["3060","3070","3179","3350","3360"]:
         gname = f"pmt{t}"
         lines[gname].Draw("same")
-    mg.SetTitle(";Trigger number;PMT [??]")
+    mg.SetTitle(";Trigger number;PMT [counts]")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
@@ -722,7 +721,7 @@ if __name__ == "__main__":
     cnv.SetTicks(1,1)
     cnv.SetLogy()
     graphs["bpm_pb_3156"].Draw("al")
-    graphs["bpm_pb_3156"].SetTitle(";Trigger number;BPM PB [??]")
+    graphs["bpm_pb_3156"].SetTitle(";Trigger number;BPM PB [#electrons]")
     graphs["bpm_pb_3156"].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     lines["bpm_pb_3156"].Draw("same")
     cnv.RedrawAxis()
@@ -747,7 +746,7 @@ if __name__ == "__main__":
     for t in ["q0_3218","q1_3265","q2_3315"]:
         gname = f"bpm_{t}"
         lines[gname].Draw("same")
-    mg.SetTitle(";Trigger number;BPM quads [??]")
+    mg.SetTitle(";Trigger number;BPM quads [#electrons]")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()

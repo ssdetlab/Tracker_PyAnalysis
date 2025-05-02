@@ -492,12 +492,24 @@ if __name__ == "__main__":
         ROOT.gSystem.Load('libtrk_event_dict.dylib')
     print("---- finish loading libs")
     
+    
     # print config once
     show_config()
+    
     
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
     fpkltrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
+    fpklcfgname = tfilenamein.replace("tree_","config_used/tree_").replace(".root","_config.pkl")
+    
+    
+    ### save config to pickle
+    fpklconfig = open(fpklcfgname,'wb')
+    pickle.dump(cfg,fpklconfig,protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
+    fpklconfig.close()
+
+
+    ### load bad triggers from pickle
     badtriggers = []
     if(not cfg["isMC"]):
         fpkltrigger = open(fpkltrgname,'rb')
@@ -505,6 +517,8 @@ if __name__ == "__main__":
         fpkltrigger.close()
     print(f"Found {len(badtriggers)} bad triggers")
     
+    
+    ### masking business
     masked = {}
     if(cfg["skipmasking"]):
         print("\n----------------------------")
@@ -515,11 +529,13 @@ if __name__ == "__main__":
         tfnoisename = tfilenamein.replace(".root","_noise.root")
         masked = GetNoiseMask(tfnoisename)
     
+    
     ### the output histos
     tfilenameout = tfilenamein.replace(".root",f'{cfg["hfilesufx"]}.root')
     tfo = ROOT.TFile(tfilenameout,"RECREATE")
     tfo.cd()
     allhistos = book_histos(tfo)
+    
     
     ### meta data:
     tfmeta = ROOT.TFile(tfilenamein,"READ")

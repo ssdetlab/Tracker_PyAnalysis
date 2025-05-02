@@ -91,20 +91,8 @@ def fit1(h,col,xmin,xmax):
     print("g1 chi2/Ndof=",chi2dof)
     return g1
 
-def refit(track):
-    nonzeromisalignment = False
-    for key1 in cfg["misalignment"]:
-        for key2 in cfg["misalignment"][key1]:
-            if(cfg["misalignment"][key1][key2]!=0): 
-                nonzeromisalignment = True
-                break
-        if(nonzeromisalignment): break
-    
-    ############################################### 
-    ### don't bother if there's no misalignment ###
-    if(not nonzeromisalignment): return track
-    ###############################################
-    
+def refit(track):    
+    hough_coords = track.hough_coords
     clusters = track.trkcls
     seed_x = {}
     seed_y = {}
@@ -113,8 +101,7 @@ def refit(track):
     seed_dy = {}
     for det in cfg["detectors"]:
         ### first align!!
-        if(nonzeromisalignment):
-            clusters[det].xmm,clusters[det].ymm = align(det,clusters[det].xmm,clusters[det].ymm)
+        clusters[det].xmm,clusters[det].ymm = align(det,clusters[det].xmm,clusters[det].ymm)
         ### then prepare for refit
         seed_x.update({  det : clusters[det].xmm  })
         seed_y.update({  det : clusters[det].ymm  })
@@ -144,15 +131,15 @@ def refit(track):
         chisq,ndof,direction,centroid,params,success = fit_3d_chi2err(points_Chi2,errors_Chi2,par_guess)
     
     ### set the track
-    track = Track(clusters,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success)
+    track = Track(clusters,points_SVD,errors_SVD,chisq,ndof,direction,centroid,params,success,hough_coords)
     return track
 
 
-def pass_dk_at_detector(track,detector,dxMin,dxMax,dyMin,dyMax):
-    dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
-    if(dx<dxMin or dx>dxMax): return False
-    if(dy<dyMin or dy>dyMax): return False
-    return True
+# def pass_dk_at_detector(track,detector,dxMin,dxMax,dyMin,dyMax):
+#     dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
+#     if(dx<dxMin or dx>dxMax): return False
+#     if(dy<dyMin or dy>dyMax): return False
+#     return True
 
 
 def get_wave(z,k,thetamin,thetamax):
@@ -240,6 +227,30 @@ if __name__ == "__main__":
     for f in files: print(f)
     
     
+    ### read production config
+    fpklcfgname = tfilenamein.replace("tree_","config_used/tree_").replace(".root","_config.pkl")
+    fpklconfig = open(fpklcfgname,'rb')
+    prod_cfg = pickle.load(fpklconfig)
+    fpklconfig.close()
+    ### was it aligned during production?
+    isAlignedAtProd = False
+    for det in prod_cfg["detectors"]:
+        for axis,value in prod_cfg["misalignment"][det].items():
+            if(value!=0):
+                isAlignedAtProd = True
+                break
+        if(isAlignedAtProd): break
+    ### should we apply misalignemnt here?
+    isNon0Mislaignment = False
+    for det in cfg["detectors"]:
+        for axis,value in cfg["misalignment"][det].items():
+            if(value!=0):
+                isNon0Mislaignment = True
+                break
+        if(isNon0Mislaignment): break
+    
+    
+    
     ### bad triggers
     fpkltrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
     badtriggers = []
@@ -261,8 +272,11 @@ if __name__ == "__main__":
     histos.update({ "hChi2DoF_alowshrcls": ROOT.TH1D("hChi2DoF_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     histos.update({ "hChi2DoF_zeroshrcls": ROOT.TH1D("hChi2DoF_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     
-    histos.update({ "hChi2DoF_full_alowshrcls": ROOT.TH1D("hChi2DoF_full_alowshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
-    histos.update({ "hChi2DoF_full_zeroshrcls": ROOT.TH1D("hChi2DoF_full_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",400,0,200)})
+    histos.update({ "hChi2DoF_full_alowshrcls": ROOT.TH1D("hChi2DoF_full_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,cfg["cut_chi2dof"])})
+    histos.update({ "hChi2DoF_full_zeroshrcls": ROOT.TH1D("hChi2DoF_full_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,cfg["cut_chi2dof"])})
+    
+    histos.update({ "hChi2DoF_mid_alowshrcls": ROOT.TH1D("hChi2DoF_mid_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,200)})
+    histos.update({ "hChi2DoF_mid_zeroshrcls": ROOT.TH1D("hChi2DoF_mid_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,200)})
     
     histos.update({ "hChi2DoF_zoom_alowshrcls": ROOT.TH1D("hChi2DoF_zoom_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
     histos.update({ "hChi2DoF_zoom_zeroshrcls": ROOT.TH1D("hChi2DoF_zoon_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,5)})
@@ -326,21 +340,21 @@ if __name__ == "__main__":
     histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",30,1.5,4.5)})
     histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",30,1.5,4.5)})
 
-    # thetamin = -np.pi/2*0.95
-    # thetamax = +np.pi/2*0.95
-    thetaxmin = np.pi/2-cfg["seed_thetax_scale_mid"]*np.pi/2.
-    thetaxmax = np.pi/2+cfg["seed_thetax_scale_mid"]*np.pi/2.
-    thetaymin = np.pi/2-cfg["seed_thetay_scale_mid"]*np.pi/2.
-    thetaymax = np.pi/2+cfg["seed_thetay_scale_mid"]*np.pi/2.
-    histos.update({ "hWaves_zx" : ROOT.TH2D("hWaves_zx",";#theta_{zx};#rho_{zx};",cfg["seed_nbins_thetarho_mid"],thetaxmin,thetaxmax,cfg["seed_nbins_thetarho_mid"],-90,90) })
-    histos.update({ "hWaves_zy" : ROOT.TH2D("hWaves_zy",";#theta_{zy};#rho_{zy};",cfg["seed_nbins_thetarho_mid"],thetaymin,thetaymax,cfg["seed_nbins_thetarho_mid"],-90,90) })
-    histos.update({ "hWaves_zx_intersections" : ROOT.TH2D("hWaves_zx_intersections",";#theta_{zx};#rho_{zx};",cfg["seed_nbins_thetarho_mid"],thetaxmin,thetaxmax,cfg["seed_nbins_thetarho_mid"],-90,90) })
-    histos.update({ "hWaves_zy_intersections" : ROOT.TH2D("hWaves_zy_intersections",";#theta_{zy};#rho_{zy};",cfg["seed_nbins_thetarho_mid"],thetaymin,thetaymax,cfg["seed_nbins_thetarho_mid"],-90,90) })
+    thetaxmin = 0     #np.pi/2-cfg["seed_thetax_scale_mid"]*np.pi/2.
+    thetaxmax = np.pi #np.pi/2+cfg["seed_thetax_scale_mid"]*np.pi/2.
+    thetaymin = 0     #np.pi/2-cfg["seed_thetay_scale_mid"]*np.pi/2.
+    thetaymax = np.pi #np.pi/2+cfg["seed_thetay_scale_mid"]*np.pi/2.
+    minthetarhobins = 2000
+    nthetarhobins = minthetarhobins if(cfg["seed_nbins_thetarho_mid"]<minthetarhobins) else cfg["seed_nbins_thetarho_mid"]
+    histos.update({ "hWaves_zx" : ROOT.TH2D("hWaves_zx",";#theta_{zx};#rho_{zx};",nthetarhobins,thetaxmin,thetaxmax,nthetarhobins,-90,90) })
+    histos.update({ "hWaves_zy" : ROOT.TH2D("hWaves_zy",";#theta_{zy};#rho_{zy};",nthetarhobins,thetaymin,thetaymax,nthetarhobins,-90,90) })
+    histos.update({ "hWaves_zx_intersections" : ROOT.TH2D("hWaves_zx_intersections",";#theta_{zx};#rho_{zx};",nthetarhobins,thetaxmin,thetaxmax,nthetarhobins,-90,90) })
+    histos.update({ "hWaves_zy_intersections" : ROOT.TH2D("hWaves_zy_intersections",";#theta_{zy};#rho_{zy};",nthetarhobins,thetaymin,thetaymax,nthetarhobins,-90,90) })
     
     absRes   = 0.05
     nResBins = 50
-    nResBins
-    limtnl = {"ALPIDE_0":[0.06,0.22], "ALPIDE_1":[0.06,0.22], "ALPIDE_2":[0.06,0.22], "ALPIDE_3":[0.06,0.22], "ALPIDE_4":[0.06,0.22]}
+    limtnl = {"ALPIDE_0":[0.0,0.35], "ALPIDE_1":[0.0,0.50], "ALPIDE_2":[0.0,0.65], "ALPIDE_3":[0.0,0.8], "ALPIDE_4":[0.0,0.95]}
+    bintnl = 60
     for det in cfg["detectors"]:
         name = f"h_residual_alowshrcls_x_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";x_{trk}-x_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
         name = f"h_residual_alowshrcls_y_sml_{det}"; histos.update( { name:ROOT.TH1D(name,det+";y_{trk}-y_{cls} [mm];Tracks",int(nResBins*0.6),-absRes*0.6,+absRes*0.6) } )
@@ -369,8 +383,8 @@ if __name__ == "__main__":
         name = f"h_residual_zeroshrcls_xy_{det}";    histos.update( { name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*3,+absRes*3, nResBins,-absRes*3,+absRes*3) } )
         name = f"h_residual_zeroshrcls_xy_mid_{det}";histos.update( { name:ROOT.TH2D(name,det+";x_{trk}-x_{cls} [mm];y_{trk}-y_{cls} [mm];Tracks",nResBins,-absRes*5,+absRes*5, nResBins,-absRes*5,+absRes*5) } )
     
-        name = f"h_tunnel_width_x_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width in x [mm];Tracks",100,limtnl[det][0],limtnl[det][1]) } )
-        name = f"h_tunnel_width_y_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width in y [mm];Tracks",100,limtnl[det][0],limtnl[det][1]) } )
+        name = f"h_tunnel_width_x_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width [mm];Tracks",bintnl,limtnl[det][0],limtnl[det][1]) } )
+        name = f"h_tunnel_width_y_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width [mm];Tracks",bintnl,limtnl[det][0],limtnl[det][1]) } )
     
     dipole = ROOT.TPolyLine()
     xMinD = cfg["xDipoleExitMin"]
@@ -412,7 +426,6 @@ if __name__ == "__main__":
     window.SetLineWidth(1)
     
     
-    done = False
     
     ### save all events
     nevents = 0
@@ -424,15 +437,6 @@ if __name__ == "__main__":
             for ievt,event in enumerate(data):
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
-                
-                ### check if the tracks are already aligned from the multiproc_analysis.py step
-                isAligned = False
-                for det in cfg["detectors"]:
-                    for axis,value in event.misalignment[det].items():
-                        if(value!=0):
-                            isAligned = True
-                            break
-                    if(isAligned): break
                 
                 
                 ### counters
@@ -466,6 +470,7 @@ if __name__ == "__main__":
                 set_global_counter("Pixels/chip",icounter,n_pixels/Ndet)
                 if(not pass_pixels): continue
 
+
                 ### check clusters
                 # if(len(event.clusters)!=len(cfg["detectors"])): continue
                 if(len(event.nclusters)!=len(cfg["detectors"])): continue
@@ -479,18 +484,20 @@ if __name__ == "__main__":
                 set_global_counter("Clusters/chip",icounter,n_clusters/Ndet)
                 if(not pass_clusters): continue
 
+
                 ### check seeds
                 n_seeds = len(event.seeds)
                 set_global_counter("Track Seeds",icounter,n_seeds)
                 if(n_seeds==0): continue
 
+
                 ### check tracks
                 n_tracks = len(event.tracks)
                 if(n_tracks==0): continue
 
+
                 good_tracks = []
                 acceptance_tracks = []
-                # print(f"I see {len(event.tracks)} tracks in event {nevents-1}")
                 for track in event.tracks:
                     
                     ##################################
@@ -502,6 +509,7 @@ if __name__ == "__main__":
                     if(track.chi2ndof<=cfg["cut_chi2dof"] and pass_geoacc_selection(track)): ##TODO: missing the shared hits cut here...
                         histos["hChi2DoF_alowshrcls"].Fill(track.chi2ndof)
                         histos["hChi2DoF_full_alowshrcls"].Fill(track.chi2ndof)
+                        histos["hChi2DoF_mid_alowshrcls"].Fill(track.chi2ndof)
                         histos["hChi2DoF_zoom_alowshrcls"].Fill(track.chi2ndof)
                         histos["hChi2DoF_0to1_alowshrcls"].Fill(track.chi2ndof)
                         for det in cfg["detectors"]:
@@ -518,10 +526,11 @@ if __name__ == "__main__":
                             histos[f"h_response_alowshrcls_y_ful_{det}"].Fill(dy/track.trkcls[det].dymm)
                     
                     
-                    ###########################################
-                    if(not isAligned): track = refit(track) ###
+                    #################################################
+                    if(not isAlignedAtProd and isNon0Mislaignment):
+                        track = refit(track)
                     ### will be the same if misalignment is 0
-                    ###########################################
+                    #################################################
 
 
                     if(cfg["isMC"] and cfg["isFakeMC"]):
@@ -658,6 +667,7 @@ if __name__ == "__main__":
                     
                     histos["hChi2DoF_zeroshrcls"].Fill(track.chi2ndof)
                     histos["hChi2DoF_full_zeroshrcls"].Fill(track.chi2ndof)
+                    histos["hChi2DoF_mid_zeroshrcls"].Fill(track.chi2ndof)
                     histos["hChi2DoF_zoom_zeroshrcls"].Fill(track.chi2ndof)
                     histos["hChi2DoF_0to1_zeroshrcls"].Fill(track.chi2ndof)
                     for det in cfg["detectors"]:
@@ -701,26 +711,6 @@ if __name__ == "__main__":
                     fill_pair(2,3,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
                     fill_pair(2,4,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
                     fill_pair(3,4,track,histos["hWaves_zx_intersections"],histos["hWaves_zy_intersections"])
-                    
-                    # ### assume the bin can be determined by the first pair:
-                    # pair = ["ALPIDE_0","ALPIDE_1"]
-                    # rA = [track.trkcls[pair[0]].xmm,track.trkcls[pair[0]].ymm,track.trkcls[pair[0]].zmm]
-                    # rB = [track.trkcls[pair[1]].xmm,track.trkcls[pair[1]].ymm,track.trkcls[pair[1]].zmm]
-                    # thetax,rhox = find_waves_intersect(rA[0],rA[2],rB[0],rB[2])
-                    # thetay,rhoy = find_waves_intersect(rA[1],rA[2],rB[1],rB[2])
-                    # bthetax = histos["hWaves_zx_intersections"].GetXaxis().FindBin(thetax)
-                    # brhox   = histos["hWaves_zx_intersections"].GetYaxis().FindBin(rhox)
-                    # bthetay = histos["hWaves_zy_intersections"].GetXaxis().FindBin(thetay)
-                    # brhoy   = histos["hWaves_zy_intersections"].GetYaxis().FindBin(rhoy)
-                    # arr_thetax = [ histos["hWaves_zx_intersections"].GetXaxis().GetBinLowEdge(bthetax), histos["hWaves_zx_intersections"].GetXaxis().GetBinUpEdge(bthetax) ]
-                    # arr_rhox   = [ histos["hWaves_zx_intersections"].GetYaxis().GetBinLowEdge(brhox),   histos["hWaves_zx_intersections"].GetYaxis().GetBinUpEdge(brhox)   ]
-                    # arr_thetay = [ histos["hWaves_zy_intersections"].GetXaxis().GetBinLowEdge(bthetay), histos["hWaves_zy_intersections"].GetXaxis().GetBinUpEdge(bthetay) ]
-                    # arr_rhoy   = [ histos["hWaves_zy_intersections"].GetYaxis().GetBinLowEdge(brhoy),   histos["hWaves_zy_intersections"].GetYaxis().GetBinUpEdge(brhoy)   ]
-                    # ### tunnel widths
-                    # for det in cfg["detectors"]:
-                    #     xmin,xmax,ymin,ymax = get_edges_from_theta_rho_corners(det,arr_thetax,arr_rhox,arr_thetay,arr_rhoy)
-                    #     histos[f"h_tunnel_width_x_{det}"].Fill(xmax-xmin)
-                    #     histos[f"h_tunnel_width_y_{det}"].Fill(ymax-ymin)
                     
                     ### find the tunnel widths
                     thetax = track.hough_coords[0]
@@ -1102,6 +1092,19 @@ if __name__ == "__main__":
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
     cnv.SetTicks(1,1)
+    hmax = h1h2max(histos["hChi2DoF_mid_alowshrcls"],histos["hChi2DoF_mid_zeroshrcls"])
+    histos["hChi2DoF_mid_alowshrcls"].SetMaximum(1.1*hmax)
+    histos["hChi2DoF_mid_zeroshrcls"].SetMaximum(1.1*hmax)  
+    histos["hChi2DoF_mid_alowshrcls"].SetLineColor(ROOT.kBlack)
+    histos["hChi2DoF_mid_zeroshrcls"].SetLineColor(ROOT.kRed)
+    histos["hChi2DoF_mid_alowshrcls"].Draw("hist")
+    histos["hChi2DoF_mid_zeroshrcls"].Draw("hist same")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",500,500)
+    cnv.SetTicks(1,1)
     hmax = h1h2max(histos["hChi2DoF_alowshrcls"],histos["hChi2DoF_zeroshrcls"])
     histos["hChi2DoF_alowshrcls"].SetMaximum(1.1*hmax)
     histos["hChi2DoF_zeroshrcls"].SetMaximum(1.1*hmax)
@@ -1459,24 +1462,36 @@ if __name__ == "__main__":
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,1000)
     cnv.Divide(2,2)
     cnv.cd(1)
+    ROOT.gPad.SetLogz()
     ROOT.gPad.SetTicks(1,1)
     histos["hWaves_zx"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.cd(2)
+    ROOT.gPad.SetLogz()
     ROOT.gPad.SetTicks(1,1)
     histos["hWaves_zy"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.cd(3)
+    ROOT.gPad.SetLogz()
     ROOT.gPad.SetTicks(1,1)
     histos["hWaves_zx_intersections"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.cd(4)
+    ROOT.gPad.SetLogz()
     ROOT.gPad.SetTicks(1,1)
     histos["hWaves_zy_intersections"].Draw("colz")
     ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
+
+
+    leg = ROOT.TLegend(0.2,0.7,0.55,0.8)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetTextSize(0.037)
+    leg.SetBorderSize(0)
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
     cnv.Divide(3,2)
     for idet,det in enumerate(cfg["detectors"]):
@@ -1494,14 +1509,14 @@ if __name__ == "__main__":
         histos[f"h_tunnel_width_x_{det}"].Draw("hist")
         histos[f"h_tunnel_width_y_{det}"].SetLineColor(ROOT.kRed)
         histos[f"h_tunnel_width_y_{det}"].Draw("hist same")
+        if(idet==0):
+            leg.AddEntry(histos[f"h_tunnel_width_x_{det}"],"k=x","l")
+            leg.AddEntry(histos[f"h_tunnel_width_y_{det}"],"k=y","l")
+        leg.Draw("same")
+        
         ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname})")
-    
-    
-    
-    
-    
     
     
     ### save as root file
@@ -1512,9 +1527,9 @@ if __name__ == "__main__":
     fout.Write()
     fout.Close()
     
+    ### summary of tracking
+    print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
     
-    
-    print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
     
     # get the end time
     et = time.time()

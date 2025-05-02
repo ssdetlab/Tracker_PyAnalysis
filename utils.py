@@ -56,6 +56,7 @@ def make_run_dirs(name):
     rundir += srun
     evtdir = rundir+"/event_displays"
     trgdir = rundir+"/beam_quality"
+    cfgdir = rundir+"/config_used"
     filecopy = f"{rundir}/{infile}"
     if(not os.path.isdir(rundir)):
         print(f"Making dir {rundir}")
@@ -66,6 +67,9 @@ def make_run_dirs(name):
     if(not os.path.isdir(trgdir)):
         print(f"Making dir {trgdir}")
         ROOT.gSystem.Exec(f"/bin/mkdir -p {trgdir}")
+    if(not os.path.isdir(cfgdir)):
+        print(f"Making dir {cfgdir}")
+        ROOT.gSystem.Exec(f"/bin/mkdir -p {cfgdir}")
     # if(not os.path.isfile(filecopy)):
     #     print(f"Copying input file {name} to run dir {rundir}")
     #     ROOT.gSystem.Exec(f"/bin/cp -f {name} {rundir}/")
