@@ -527,6 +527,7 @@ if __name__ == "__main__":
                     
                     
                     #################################################
+                    ### refit the track if necessary
                     if(not isAlignedAtProd and isNon0Mislaignment):
                         track = refit(track)
                     ### will be the same if misalignment is 0
