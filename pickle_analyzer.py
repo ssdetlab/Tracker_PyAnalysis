@@ -1169,8 +1169,28 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
+    cnv = ROOT.TCanvas("cnv_dipole_window","",2500,500)
+    cnv.Divide(5,1)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        histos[f"h_residual_zeroshrcls_xy_{det}"].Draw("colz")
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
     cnv.Divide(3,2)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        histos[f"h_residual_zeroshrcls_xy_mid_{det}"].Draw("colz")
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",2500,500)
+    cnv.Divide(5,1)
     for idet,det in enumerate(cfg["detectors"]):
         cnv.cd(idet+1)
         ROOT.gPad.SetTicks(1,1)

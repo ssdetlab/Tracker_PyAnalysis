@@ -112,7 +112,7 @@ lut_widthy_inf = 0.0
 [CUTS]
 cuts = All BeamQC 0Err Non-empty N_{hits/det}>0 N_{hits/det}^{ROI}>0 N_{cls/det}>0 N_{seeds}>0 Fitted #chi^{2}/N_{DoF}#leqX
 # cut_chi2dof = 3
-cut_chi2dof = 1000
+cut_chi2dof = 19
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
 cut_spot         = 1
@@ -147,7 +147,7 @@ misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:d
 
 minchi2align  = 0.01
 # maxchi2align  = 3
-maxchi2align  = 1000
+maxchi2align  = 19
 axes2align    = xytheta
 naligniter    = 200
 alignmentbounds = dx:min=-0.5,max=+0.5 dy:min=-0.5,max=0.5 theta:min=-0.05,max=+0.05

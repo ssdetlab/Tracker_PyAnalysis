@@ -9,18 +9,6 @@ import config
 from config import *
 import utils
 from utils import *
-
-
-def diamond_cut(xL,xR,yT,x,y,tol=4):
-    YBL = yofx([0,0],[xL,yT],x)
-    YTL = yofx([xL,0],[0,yT],x)
-    YTR = yofx([0,yT],[xR,0],x)
-    YBR = yofx([xR,yT],[0,0],x)
-    if(y<YBL-tol): return False
-    if(y>YTL+tol): return False
-    if(y>YTR+tol): return False
-    if(y<YBR-tol): return False
-    return True
     
 
 def spot_cut(x,y):
@@ -31,6 +19,14 @@ def spot_cut(x,y):
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
+    return True
+    
+
+def pass_dk_at_detector(track,detector,dxMin=-999,dxMax=+999,dyMin=-999,dyMax=+999):
+    if(not cfg["use_large_dk_filter"]): return True
+    dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
+    if(dx<dxMin or dx>dxMax): return False
+    if(dy<dyMin or dy>dyMax): return False
     return True
     
 
@@ -45,9 +41,10 @@ def pass_geoacc_selection(track):
     pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
     pass_flange_aperture = ( (rF[0]>=xFlgL and rF[0]<=xFlgR) and (rF[1]>0 and rF[1]<=yFlgT) )
     pass_dipole_spot     = ( spot_cut(rD[0],rD[1]) ) if(cfg["cut_spot"]) else True
+    pass_dk_at_det       = ( pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02) ) ### RELEVANT ONLY FOR PRE-ALIGNMENT!!!
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
     pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
-    return (pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot)
+    return (pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot and pass_dk_at_det)
 
 
 def remove_tracks_with_shared_clusters(tracks):

@@ -74,18 +74,6 @@ ROOT.gStyle.SetOptFit(0)
 allhistos = {}
 
 
-# def pass_0dev_first_layer(track,tolerance=1):
-#     dx,dy = res_track2cluster(firstdet,track.points,track.direction,track.centroid)
-#     if(dx>tolerance*cfg["pix_x"]): return False
-#     if(dy>tolerance*cfg["pix_y"]): return False
-#     return True
-
-def pass_dk_at_detector(track,detector,dxMin=-999,dxMax=+999,dyMin=-999,dyMax=+999):
-    dx,dy = res_track2cluster(detector,track.points,track.direction,track.centroid)
-    if(dx<dxMin or dx>dxMax): return False
-    if(dy<dyMin or dy>dyMax): return False
-    return True
-
 def pass_alignment_selections(track):
     ### require good chi2 range and other cuts
     if(track.chi2ndof<cfg["minchi2align"]): return False
@@ -94,8 +82,7 @@ def pass_alignment_selections(track):
     if(isbeamrun):
         if(track.maxcls>cfg["cut_maxcls"]):   return False
         if(not pass_geoacc_selection(track)): return False
-        if(cfg["use_large_dk_filter"]):
-            if(not pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02)): return False
+        if(not pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02)): return False
     return True
 
 
