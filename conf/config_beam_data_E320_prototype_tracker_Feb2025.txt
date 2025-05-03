@@ -137,13 +137,21 @@ use_large_clserr_for_algnmnt = 1
 use_large_dk_filter = 1
 
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
+# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
 
-### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<17 USING ALPIDE_0 AS REF
+#####################################
+### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<17 USING ALPIDE_0 AS REF (Apr)
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=9.47E-03,dy=-1.88E-03,theta=-1.37E-03 ALPIDE_2:dx=-5.80E-02,dy=-3.71E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.33E-02,dy=1.63E-02,theta=5.65E-04
 
-### FIRST MANUALLY ADJUSTED SHIFTS BASED ON THE RESIDUALS' MEANS AFTER THE PREVIOUS STEP
+### FIRST MANUALLY ADJUSTED SHIFTS BASED ON THE RESIDUALS' MEANS AFTER THE PREVIOUS STEP (Apr)
 # misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.31E-02,dy=5.10E-04,theta=-1.37E-03 ALPIDE_2:dx=-6.56E-02,dy=-4.26E-02,theta=1.18E-03 ALPIDE_3:dx=-7.08E-02,dy=-7.41E-02,theta=-1.49E-03 ALPIDE_4:dx=2.64E-02,dy=1.88E-02,theta=5.65E-04
+#####################################
+
+#####################################
+### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<19 USING ALPIDE_0 AS REF (May 3)
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.52E-02,dy=1.70E-03,theta=-1.53E-03 ALPIDE_2:dx=-6.09E-02,dy=-3.95E-02,theta=1.46E-03 ALPIDE_3:dx=-6.91E-02,dy=-7.37E-02,theta=-1.49E-03 ALPIDE_4:dx=2.56E-02,dy=1.70E-02,theta=5.13E-04
+
+#####################################
 
 minchi2align  = 0.01
 # maxchi2align  = 3

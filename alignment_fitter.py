@@ -82,7 +82,7 @@ def pass_alignment_selections(track):
     if(isbeamrun):
         if(track.maxcls>cfg["cut_maxcls"]):   return False
         if(not pass_geoacc_selection(track)): return False
-        if(not pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02)): return False
+        # if(not pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02)): return False
     return True
 
 
