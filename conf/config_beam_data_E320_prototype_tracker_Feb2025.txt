@@ -137,7 +137,7 @@ use_large_clserr_for_algnmnt = 1
 use_large_dk_filter = 1
 
 ### DEFAULT MISALIGNMENT (before doing the alignment procedure):
-# misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=0,dy=0,theta=0 ALPIDE_2:dx=0,dy=0,theta=0 ALPIDE_3:dx=0,dy=0,theta=0 ALPIDE_4:dx=0,dy=0,theta=0
 
 #####################################
 ### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<17 USING ALPIDE_0 AS REF (Apr)
@@ -149,11 +149,11 @@ use_large_dk_filter = 1
 
 #####################################
 ### FITTED MISALIGNMENT WITH THE DX,DY CUT AT ALPIDE_3 AND 9<CHI2<19 USING ALPIDE_0 AS REF (May 3)
-misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.52E-02,dy=1.70E-03,theta=-1.53E-03 ALPIDE_2:dx=-6.09E-02,dy=-3.95E-02,theta=1.46E-03 ALPIDE_3:dx=-6.91E-02,dy=-7.37E-02,theta=-1.49E-03 ALPIDE_4:dx=2.56E-02,dy=1.70E-02,theta=5.13E-04
+misalignment  = ALPIDE_0:dx=0,dy=0,theta=0 ALPIDE_1:dx=1.75E-02,dy=2.86E-03,theta=-1.69E-03 ALPIDE_2:dx=-6.32E-02,dy=-4.16E-02,theta=1.49E-03 ALPIDE_3:dx=-6.92E-02,dy=-7.44E-02,theta=-1.49E-03 ALPIDE_4:dx=2.77E-02,dy=1.77E-02,theta=5.16E-04
 
 #####################################
 
-minchi2align  = 0.01
+minchi2align  = 9
 # maxchi2align  = 3
 maxchi2align  = 19
 axes2align    = xytheta

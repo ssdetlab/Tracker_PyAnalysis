@@ -312,7 +312,7 @@ if __name__ == "__main__":
     
     ### some histos
     histos = {}
-    NscanBins = 200
+    NscanBins = 100
     absRes    = 0.05
     nResBins  = 50
     nResBins2D = 80
