@@ -47,7 +47,7 @@ def pass_geoacc_selection(track):
     pass_dipole_spot     = ( spot_cut(rD[0],rD[1]) ) if(cfg["cut_spot"]) else True
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
     pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
-    return (pass_inclination_yz and pass_vertexatpdc and pass_dipole_aperture and pass_flange_aperture and pass_dipole_spot)
+    return (pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot)
 
 
 def remove_tracks_with_shared_clusters(tracks):
