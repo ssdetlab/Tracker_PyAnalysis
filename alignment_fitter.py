@@ -312,7 +312,7 @@ if __name__ == "__main__":
     
     ### some histos
     histos = {}
-    NscanBins = 100
+    NscanBins = 50
     absRes    = 0.05
     nResBins  = 50
     nResBins2D = 80
@@ -429,89 +429,90 @@ if __name__ == "__main__":
                     histos[f"dxhist_{det}"].Fill(xFinal-xOrig)
                     histos[f"dyhist_{det}"].Fill(yFinal-yOrig)
 
-    ### scan X
-    for idet,det in enumerate(cfg["detectors"]):
-        params = [0]*(nparperdet*len(cfg["detectors"]))
-        for BX in range(1,histos[f"dx_{det}"].GetNbinsX()+1):
-            params = [0]*(nparperdet*len(cfg["detectors"]))
-            params[idet+0] = histos[f"dx_{det}"].GetBinCenter(BX)
-            if(BX==1): print(f"In {det}, params in first iteration of dx-scan: {params}")
-            dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
-            sum_dx = 0
-            nvalidtracks = 0
-            for event in events:
-                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
-                for track in tracks:
-                # for track in event.tracks:
-                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                # for track in unique_tracks:
-                    ### require some relevant cuts
-                    if(not pass_alignment_selections(track)): continue
-                    chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
-                    nvalidtracks += 1
-                    sum_dx += dX[det]
-            histos[f"dx_{det}"].SetBinContent(BX,sum_dx/nvalidtracks)
-
-    ### scan Y
-    for idet,det in enumerate(cfg["detectors"]):
-        for BY in range(1,histos[f"dy_{det}"].GetNbinsX()+1):
-            params = [0]*(nparperdet*len(cfg["detectors"]))
-            params[idet+len(cfg["detectors"])] = histos[f"dy_{det}"].GetBinCenter(BY)
-            if(BY==1): print(f"In {det}, params in first iteration of dy-scan: {params}")
-            dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
-            sum_dy = 0
-            nvalidtracks = 0
-            for event in events:
-                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
-                for track in tracks:
-                # for track in event.tracks:
-                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                # for track in unique_tracks:
-                    ### require some relevant cuts
-                    if(not pass_alignment_selections(track)): continue
-                    chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
-                    nvalidtracks += 1
-                    sum_dy += dY[det]
-            histos[f"dy_{det}"].SetBinContent(BY,sum_dy/nvalidtracks)
-
-    ### scan Theta
-    for idet,det in enumerate(cfg["detectors"]):
-        for BT in range(1,histos[f"dt_{det}"].GetNbinsX()+1):
-            params = [0]*(nparperdet*len(cfg["detectors"]))
-            params[idet+2*len(cfg["detectors"])] = histos[f"dt_{det}"].GetBinCenter(BT)
-            if(BT==1): print(f"In {det}, params in first iteration of dt-scan: {params}")
-            dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
-            sum_dr = 0
-            nvalidtracks = 0
-            for event in events:
-                tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
-                for track in tracks:
-                # for track in event.tracks:
-                # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
-                # for track in unique_tracks:
-                    ### require some relevant cuts
-                    if(not pass_alignment_selections(track)): continue
-                    chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
-                    nvalidtracks += 1
-                    sum_dr += math.sqrt(dX[det]*dX[det] + dY[det]*dY[det])
-            histos[f"dt_{det}"].SetBinContent(BT,sum_dr/nvalidtracks)
     
-    ### pring summary
-    salignment = "misalignment  = "
-    print("------------------------------")
-    for det in cfg["detectors"]:
-        dxhmin = histos[f"dx_{det}"].GetBinCenter( histos[f"dx_{det}"].GetMinimumBin() )
-        dyhmin = histos[f"dy_{det}"].GetBinCenter( histos[f"dy_{det}"].GetMinimumBin() )
-        dthmin = histos[f"dt_{det}"].GetBinCenter( histos[f"dt_{det}"].GetMinimumBin() )
-        print(f"{det}:")
-        print(f"   - dx at minimum: {dxhmin:.4}")
-        print(f"   - dy at minimum: {dyhmin:.4}")
-        print(f"   - dt at minimum: {dthmin:.5}")
-        salignment += f"{det}:dx={dxhmin:.2E},dy={dyhmin:.2E},theta={dthmin:.2E} "
-    print("Alignment from scan:")
-    print(salignment)
-    print("------------------------------")
-        
+    # ### scan X
+    # for idet,det in enumerate(cfg["detectors"]):
+    #     params = [0]*(nparperdet*len(cfg["detectors"]))
+    #     for BX in range(1,histos[f"dx_{det}"].GetNbinsX()+1):
+    #         params = [0]*(nparperdet*len(cfg["detectors"]))
+    #         params[idet+0] = histos[f"dx_{det}"].GetBinCenter(BX)
+    #         if(BX==1): print(f"In {det}, params in first iteration of dx-scan: {params}")
+    #         dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
+    #         sum_dx = 0
+    #         nvalidtracks = 0
+    #         for event in events:
+    #             tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+    #             for track in tracks:
+    #             # for track in event.tracks:
+    #             # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+    #             # for track in unique_tracks:
+    #                 ### require some relevant cuts
+    #                 if(not pass_alignment_selections(track)): continue
+    #                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
+    #                 nvalidtracks += 1
+    #                 sum_dx += dX[det]
+    #         histos[f"dx_{det}"].SetBinContent(BX,sum_dx/nvalidtracks)
+    #
+    # ### scan Y
+    # for idet,det in enumerate(cfg["detectors"]):
+    #     for BY in range(1,histos[f"dy_{det}"].GetNbinsX()+1):
+    #         params = [0]*(nparperdet*len(cfg["detectors"]))
+    #         params[idet+len(cfg["detectors"])] = histos[f"dy_{det}"].GetBinCenter(BY)
+    #         if(BY==1): print(f"In {det}, params in first iteration of dy-scan: {params}")
+    #         dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
+    #         sum_dy = 0
+    #         nvalidtracks = 0
+    #         for event in events:
+    #             tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+    #             for track in tracks:
+    #             # for track in event.tracks:
+    #             # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+    #             # for track in unique_tracks:
+    #                 ### require some relevant cuts
+    #                 if(not pass_alignment_selections(track)): continue
+    #                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
+    #                 nvalidtracks += 1
+    #                 sum_dy += dY[det]
+    #         histos[f"dy_{det}"].SetBinContent(BY,sum_dy/nvalidtracks)
+    #
+    # ### scan Theta
+    # for idet,det in enumerate(cfg["detectors"]):
+    #     for BT in range(1,histos[f"dt_{det}"].GetNbinsX()+1):
+    #         params = [0]*(nparperdet*len(cfg["detectors"]))
+    #         params[idet+2*len(cfg["detectors"])] = histos[f"dt_{det}"].GetBinCenter(BT)
+    #         if(BT==1): print(f"In {det}, params in first iteration of dt-scan: {params}")
+    #         dx,dy,dt,nparperdet = init_params(axes,len(cfg["detectors"]),params)
+    #         sum_dr = 0
+    #         nvalidtracks = 0
+    #         for event in events:
+    #             tracks = event.tracks if(cfg["cut_allow_shared_clusters"]) else remove_tracks_with_shared_clusters(event.tracks)
+    #             for track in tracks:
+    #             # for track in event.tracks:
+    #             # unique_tracks = remove_tracks_with_shared_clusters(event.tracks)
+    #             # for track in unique_tracks:
+    #                 ### require some relevant cuts
+    #                 if(not pass_alignment_selections(track)): continue
+    #                 chisq,ndof,dabs,dX,dY = fitSVD(track,dx,dy,dt,refdet=[])
+    #                 nvalidtracks += 1
+    #                 sum_dr += math.sqrt(dX[det]*dX[det] + dY[det]*dY[det])
+    #         histos[f"dt_{det}"].SetBinContent(BT,sum_dr/nvalidtracks)
+    #
+    # ### pring summary
+    # salignment = "misalignment  = "
+    # print("------------------------------")
+    # for det in cfg["detectors"]:
+    #     dxhmin = histos[f"dx_{det}"].GetBinCenter( histos[f"dx_{det}"].GetMinimumBin() )
+    #     dyhmin = histos[f"dy_{det}"].GetBinCenter( histos[f"dy_{det}"].GetMinimumBin() )
+    #     dthmin = histos[f"dt_{det}"].GetBinCenter( histos[f"dt_{det}"].GetMinimumBin() )
+    #     print(f"{det}:")
+    #     print(f"   - dx at minimum: {dxhmin:.4}")
+    #     print(f"   - dy at minimum: {dyhmin:.4}")
+    #     print(f"   - dt at minimum: {dthmin:.5}")
+    #     salignment += f"{det}:dx={dxhmin:.2E},dy={dyhmin:.2E},theta={dthmin:.2E} "
+    # print("Alignment from scan:")
+    # print(salignment)
+    # print("------------------------------")
+
 
     ### save histos
     fOut = ROOT.TFile("scan.root","RECREATE")

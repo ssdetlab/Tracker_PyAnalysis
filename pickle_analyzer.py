@@ -1229,6 +1229,36 @@ if __name__ == "__main__":
         ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",2500,500)
+    cnv.Divide(5,1)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_x_sml_{det}"].Draw("e1p")
+        xmin = histos[f"h_residual_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_residual_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmax()
+        mm2um = 1e3
+        func = fit1(histos[f"h_residual_zeroshrcls_x_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
 
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
     cnv.Divide(3,2)
@@ -1319,6 +1349,36 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
+    cnv = ROOT.TCanvas("cnv_dipole_window","",2500,500)
+    cnv.Divide(5,1)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetMinimum(0)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_residual_zeroshrcls_y_sml_{det}"].Draw("e1p")
+        xmin = histos[f"h_residual_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_residual_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmax()
+        mm2um = 1e3
+        func = fit1(histos[f"h_residual_zeroshrcls_y_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f #mum" % (mm2um*func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f #mum" % (mm2um*func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
     cnv.Divide(3,2)
     for idet,det in enumerate(cfg["detectors"]):
@@ -1407,6 +1467,36 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
     
+    cnv = ROOT.TCanvas("cnv_dipole_window","",2500,500)
+    cnv.Divide(5,1)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetMinimum(0)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_x_sml_{det}"].Draw("e1p")
+        
+        xmin = histos[f"h_response_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_response_zeroshrcls_x_sml_{det}"].GetXaxis().GetXmax()
+        func = fit1(histos[f"h_response_zeroshrcls_x_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f" % (func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f" % (func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
     cnv.Divide(3,2)
     for idet,det in enumerate(cfg["detectors"]):
@@ -1464,6 +1554,36 @@ if __name__ == "__main__":
         ROOT.gPad.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",2500,500)
+    cnv.Divide(5,1)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetMinimum(0)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetMarkerStyle(24)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetMarkerColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].SetLineColor(ROOT.kRed)
+        histos[f"h_response_zeroshrcls_y_sml_{det}"].Draw("e1p")
+        
+        xmin = histos[f"h_response_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmin()
+        xmax = histos[f"h_response_zeroshrcls_y_sml_{det}"].GetXaxis().GetXmax()
+        func = fit1(histos[f"h_response_zeroshrcls_y_sml_{det}"],ROOT.kRed,xmin,xmax)
+        s = ROOT.TLatex()
+        s.SetNDC(1)
+        s.SetTextAlign(13)
+        s.SetTextColor(ROOT.kBlack)
+        s.SetTextFont(22)
+        s.SetTextSize(0.045)
+        s.DrawLatex(0.17,0.85,ROOT.Form("Mean: %.2f" % (func.GetParameter(1))))
+        s.DrawLatex(0.17,0.78,ROOT.Form("Sigma: %.2f" % (func.GetParameter(2))))
+        if(func.GetNDF()>0): s.DrawLatex(0.2,0.71,ROOT.Form("#chi^{2}/N_{DOF}: %.2f" % (func.GetChisquare()/func.GetNDF())))
+        
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1500,1000)
     cnv.Divide(3,2)
