@@ -11,36 +11,37 @@ nprintout      = 20
 skipmasking    = 1
 
 ### run490 (Al foil allin, focused)
-# first2process = 0
-# nmax2process  = 10
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
 
-### run494 (Al foil allin, defocused):
+# ### run494 (Al foil allin, defocused):
 # first2process = 2000
 # nmax2process  = 2000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run494.root
 
-### run496 (Al foil in slightly, defocused):
+# ### run496 (Al foil in slightly, defocused):
 # first2process = 0
 # nmax2process  = 2000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run496.root
 
-### run501 (beam-only):
+# ### run501 (beam-only):
 # first2process = 0
 # nmax2process  = 100000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 
-### run502 (Be window in):
-first2process = 362
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+# ### run502 (Be window in):
+# # first2process = 362
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 
-### run503 (beam-only, focusing on foil, 6h-long)
+# ### run503 (beam-only, focusing on foil, 6h-long)
 # first2process = 0
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
-### run510 (Be window in long run, parasitic)
+# ### run510 (Be window in long run, parasitic)
 # first2process = 0
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
@@ -261,7 +262,7 @@ yPipe2WinBot = 6.1
 # yPipeTop2BoxBot = 1.525
 ### see slides!!!
 # yPipeTop2BoxBot = 0
-yPipeTop2BoxBot = 18.25
+yPipeTop2BoxBot = 17.34
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
 zBox2chip = 10.5

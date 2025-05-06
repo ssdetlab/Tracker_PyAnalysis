@@ -269,6 +269,11 @@ if __name__ == "__main__":
     
     ### some histos
     histos = {}
+    
+    histos.update({ "hTriggers": ROOT.TH1D("hTriggers",";;Triggers",2,0,2)})
+    histos["hTriggers"].GetXaxis().SetBinLabel(1,"All")
+    histos["hTriggers"].GetXaxis().SetBinLabel(2,"Good")
+    
     histos.update({ "hChi2DoF_alowshrcls": ROOT.TH1D("hChi2DoF_alowshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     histos.update({ "hChi2DoF_zeroshrcls": ROOT.TH1D("hChi2DoF_zeroshrcls",";#chi^{2}/N_{DoF};Tracks",200,0,50)})
     
@@ -314,10 +319,10 @@ if __name__ == "__main__":
     histos.update({ "hThetad_yz": ROOT.TH1D("hThetad_yz",";#theta_{yz}(d_{exit}) [rad];Tracks",100,0,0.1)})
     histos.update({ "hThetar_yz": ROOT.TH1D("hThetar_yz",";#theta_{yz}(r) [rad];Tracks",100,0,0.1)})
     
-    histos.update({ "hTheta_xz_before_cuts": ROOT.TH1D("hTheta_xz_before_cuts",";#theta_{xz} [rad];Tracks",100,-0.015,0.015)})
-    histos.update({ "hTheta_xz_after_cuts":  ROOT.TH1D("hTheta_xz_after_cuts",";#theta_{xz} [rad];Tracks",100,-0.015,0.015)})
-    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz} [rad];Tracks",100,0,0.045)})
-    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz} [rad];Tracks",100,0,0.045)})
+    histos.update({ "hTheta_xz_before_cuts": ROOT.TH1D("hTheta_xz_before_cuts",";#theta_{xz} [rad];Tracks",50,-0.015,0.015)})
+    histos.update({ "hTheta_xz_after_cuts":  ROOT.TH1D("hTheta_xz_after_cuts",";#theta_{xz} [rad];Tracks",50,-0.015,0.015)})
+    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz} [rad];Tracks",50,0,0.045)})
+    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz} [rad];Tracks",50,0,0.045)})
     
     histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
     histos.update({ "hTheta_yz_tru": ROOT.TH1D("hTheta_yz_tru",";#theta_{yz} [rad];Tracks",100,0,0.035)})
@@ -336,9 +341,13 @@ if __name__ == "__main__":
     histos.update({ "hPd": ROOT.TH1D("hPd",";p(d_{exit}) [GeV];Tracks",100,0,10)})
     histos.update({ "hPr": ROOT.TH1D("hPr",";p(r) [GeV];Tracks",100,0,10)})
     
-    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",30,1.5,4.5)})
-    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",30,1.5,4.5)})
-    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",30,1.5,4.5)})
+    histos.update({ "hPf_small": ROOT.TH1D("hPf_small",";p(fit) [GeV];Tracks",50,1.5,4.5)})
+    histos.update({ "hPd_small": ROOT.TH1D("hPd_small",";p(d_{exit}) [GeV];Tracks",50,1.5,4.5)})
+    histos.update({ "hPr_small": ROOT.TH1D("hPr_small",";p(r) [GeV];Tracks",50,1.5,4.5)})
+    
+    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",40,1.5,3.0)})
+    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",40,1.5,3.0)})
+    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",40,1.5,3.0)})
 
     thetaxmin = 0     #np.pi/2-cfg["seed_thetax_scale_mid"]*np.pi/2.
     thetaxmax = np.pi #np.pi/2+cfg["seed_thetax_scale_mid"]*np.pi/2.
@@ -438,6 +447,7 @@ if __name__ == "__main__":
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 nevents += 1
                 
+                histos["hTriggers"].Fill(0.5)
                 
                 ### counters
                 counters_x_trg.append( event.trigger )
@@ -447,6 +457,7 @@ if __name__ == "__main__":
                 
                 ### skip bad triggers...
                 if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(event.trigger) in badtriggers)): continue
+                histos["hTriggers"].Fill(1.5)
                 
 
                 ### check errors
@@ -630,12 +641,15 @@ if __name__ == "__main__":
                     
                     if(pf>0):
                         histos["hPf"].Fill(pf)
+                        histos["hPf_small"].Fill(pf)
                         histos["hPf_zoom"].Fill(pf)
                     if(pd>0):
                         histos["hPd"].Fill(pd)
+                        histos["hPd_small"].Fill(pd)
                         histos["hPd_zoom"].Fill(pd)
                     if(pr>0):
                         histos["hPr"].Fill(pr)
+                        histos["hPr_small"].Fill(pr)
                         histos["hPr_zoom"].Fill(pr)
                     
                     acceptance_tracks.append(track)
@@ -945,6 +959,25 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
 
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
+    cnv.Divide(2,1)
+    # cnv.Divide(3,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hPf_small"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # histos["hPd_small"].Draw("hist")
+    # cnv.RedrawAxis()
+    cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hPr_small"].Draw("hist")
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     # cnv = ROOT.TCanvas("cnv_dipole_window","",1500,500)
     cnv.Divide(2,1)

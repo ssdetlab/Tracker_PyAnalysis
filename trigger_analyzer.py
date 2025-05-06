@@ -3,6 +3,7 @@ import math
 import array
 import numpy as np
 import pickle
+import ctypes
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
@@ -21,8 +22,10 @@ parser = argparse.ArgumentParser(description='analyze_triggers.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
 parser.add_argument('-imin', metavar='first entry', required=False,  help='first entry')
 parser.add_argument('-imax', metavar='last entry', required=False,  help='last entry')
+parser.add_argument('-hits', metavar='plot hits?', required=False,  help='plot hits?')
 argus = parser.parse_args()
 configfile = argus.conf
+fillhits = (int(argus.hits)==1) if(argus.hits is not None) else False
 
 import config
 from config import *
@@ -31,9 +34,22 @@ init_config(configfile,False)
 
 import utils
 from utils import *
+import pixels
+from pixels import *
+import hists
+from hists import *
 
 
+### global
+graphs = {}
+histos = {}
 
+
+####
+# quads_scan = [0-7005, 7007-9178, 9190-12320, 12330-13150, 13160-18240, 18250-28880]
+# quads_scan = [0-1000, 7100-8100, 9200-10200, 12400-13400, 13200-14200, 18300-19300] <<< actual runs
+#                0          1          2            3            4            5
+# quads_scan = [46.421, 44.98254,  40.425,     30.05477,    26.718,      29.86015]
 
 
 
@@ -71,6 +87,17 @@ def getThr(name,arr,direction,nsigma=3,frac=0.):
     return thr
 
 
+def add_graph(gname,x,y,col=ROOT.kBlack):
+    graphs.update( {gname:ROOT.TGraph(len(x),x,y)} )
+    graphs[gname].SetName(gname)
+    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
+    graphs[gname].SetLineColor(col)
+    print(f"{gname}: avg={np.mean(y)}, std={np.std(y)}")
+    
+
+
+
+    
 
 
 
@@ -110,8 +137,16 @@ if __name__ == "__main__":
     detectorids = [8,6,4,2,0]
     detcol = [ROOT.kBlack, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+1]
     
-    hT = ROOT.TH1D("hT",";Processing time [ms];Triggers",500,0,50)
-    hR = ROOT.TH1D("hR",";RadMon [mRem/h];Triggers",500,0,10)
+    hPixMatix = GetPixMatrix()
+    for det in cfg["detectors"]:
+        histos.update( { "h_pix_occ_2D_"+det : ROOT.TH2D("h_pix_occ_2D_"+det,";x;y;Hits",pix_x_nbins,pix_x_min,pix_x_max, pix_y_nbins,pix_y_min,pix_y_max) } )
+
+    histos.update( { "h_ntrgs"  : ROOT.TH1D("h_ntrgs",";;Triggers",1,0,1) } )
+    histos.update( { "h_q0act"  : ROOT.TH1D("h_q0act",";;Quad0 gradient [kG/m]",1,0,1) } )
+    histos.update( { "h_q1act"  : ROOT.TH1D("h_q1act",";;Quad1 gradient [kG/m]",1,0,1) } )
+    histos.update( { "h_q2act"  : ROOT.TH1D("h_q2act",";;Quad2 gradient [kG/m]",1,0,1) } )
+    histos.update( { "h_time"   : ROOT.TH1D("h_time",";Processing time [ms];Triggers",500,0,50) } )
+    histos.update( { "h_radmon" : ROOT.TH1D("h_radmon",";RadMon [mRem/h];Triggers",500,0,10) } )
     
     fltr_trgs = {}
     
@@ -208,8 +243,8 @@ if __name__ == "__main__":
         bpm_q1_3265 = entry.event.epics_frame.bpm_quad1_3265_tmit
         bpm_q2_3315 = entry.event.epics_frame.bpm_quad2_3315_tmit
         
-        hT.Fill(dt)
-        hR.Fill(radmon)
+        histos["h_time"].Fill(dt)
+        histos["h_radmon"].Fill(radmon)
         
         allhits = 0
         for ichip in range(entry.event.st_ev_buffer[0].ch_ev_buffer.size()):
@@ -221,17 +256,18 @@ if __name__ == "__main__":
             hits_vs_ent[det][counter] = nhits
             
             fltr_hits_vs_trg[det][counter] = nhits
-            fltr_hits_vs_ent[det][counter] = nhits        
-            # if( (toro3163>850 and toro3255>980)
-            #     and radmon<1.4
-            #     and (pmt3060<800 and pmt3070<800 and pmt3179<800 and pmt3350<800 and pmt3360<800)
-            #     and (bpm_q0_3218>2.9e9 and bpm_q1_3265>9e9 and bpm_q2_3315>9e9) ):
-            #     fltr_hits_vs_trg[det][counter] = nhits
-            #     fltr_hits_vs_ent[det][counter] = nhits
-            # else:
-            #     fltr_trgs.update({trgn:counter})
+            fltr_hits_vs_ent[det][counter] = nhits
             
             allhits += nhits
+            
+        ###############
+        ### 2D occupancy:
+        if(fillhits):
+            n_active_staves, n_active_chips, pixels = get_all_pixles(entry,hPixMatix)
+            for det in cfg["detectors"]:
+                print(f"Filling hits for {det} in entry {ientry} (trigger #{trgn}, with {hits_vs_trg[det][counter]} pixels)")
+                for pix in pixels[det]:
+                    histos["h_pix_occ_2D_"+det].Fill(pix.x,pix.y)
     
         ### important!!
         counter += 1
@@ -352,133 +388,47 @@ if __name__ == "__main__":
     pickle.dump(final_fltr_trgs, fpkl, protocol=pickle.HIGHEST_PROTOCOL)
     fpkl.close()
     
-    graphs = {}
+    
+    histos["h_ntrgs"].SetBinContent(1,len(x_trg))
+    histos["h_q0act"].SetBinContent(1, np.average(y_q0act))
+    histos["h_q1act"].SetBinContent(1, np.average(y_q1act))
+    histos["h_q2act"].SetBinContent(1, np.average(y_q2act))
+    
+    
     maxhits = -1
     for det in detectors:
         maxhitsdet = max(hits_vs_trg[det])
         if(maxhitsdet>maxhits): maxhits = maxhitsdet
-    
-        gname = f"hits_vs_trg_{det}"
-        graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,hits_vs_trg[det])} )
-        graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-        print(f"{gname}: avg={np.mean(hits_vs_trg[det])}, std={np.std(hits_vs_trg[det])}")
-    
-        gname = f"hits_vs_ent_{det}"
-        graphs.update( {gname:ROOT.TGraph(len(x_ent),x_ent,hits_vs_ent[det])} )
-        graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-        print(f"{gname}: avg={np.mean(hits_vs_trg[det])}, std={np.std(hits_vs_trg[det])}")
-        
-        gname = f"fltr_hits_vs_trg_{det}"
-        graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,fltr_hits_vs_trg[det])} )
-        graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-        print(f"{gname}: avg={np.mean(hits_vs_trg[det])}, std={np.std(hits_vs_trg[det])}")
-    
-        gname = f"fltr_hits_vs_ent_{det}"
-        graphs.update( {gname:ROOT.TGraph(len(x_ent),x_ent,fltr_hits_vs_ent[det])} )
-        graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-        print(f"{gname}: avg={np.mean(hits_vs_trg[det])}, std={np.std(hits_vs_trg[det])}")
+        add_graph(f"hits_vs_trg_{det}",x_trg,hits_vs_trg[det])
+        add_graph(f"hits_vs_ent_{det}",x_trg,hits_vs_ent[det])
+        add_graph(f"fltr_hits_vs_trg_{det}",x_trg,fltr_hits_vs_trg[det])
+        add_graph(f"fltr_hits_vs_ent_{det}",x_trg,fltr_hits_vs_ent[det])
     
     
-    gname = "dt"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_dt)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "dipole"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_dipole)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "q0act"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_q0act)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "q1act"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_q1act)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kRed)
-    gname = "q2act"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_q2act)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kGreen+1)
-    gname = "m12"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_m12)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "m34"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_m34)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kRed)
-    gname = "rad"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_rad)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "foilm1"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_foilm1)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "foilm2"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_foilm2)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kRed)
-    gname = "foilm2"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_foilm2)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "toro2040"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_toro2040)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "toro2452"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_toro2452)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kRed)
-    gname = "toro3163"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_toro3163)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlue)
-    gname = "toro3255"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_toro3255)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kGreen+2)
-    gname = "yag"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_yag)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "pmt3060"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_pmt3060)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "pmt3070"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_pmt3070)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kRed)
-    gname = "pmt3179"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_pmt3179)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlue)
-    gname = "pmt3350"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_pmt3350)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kGreen+2)
-    gname = "pmt3360"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_pmt3360)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kOrange+1)
-    gname = "bpm_pb_3156"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_bpm_pb_3156)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "bpm_q0_3218"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_bpm_q0_3218)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlack)
-    gname = "bpm_q1_3265"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_bpm_q1_3265)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kRed)
-    gname = "bpm_q2_3315"
-    graphs.update( {gname:ROOT.TGraph(len(x_trg),x_trg,y_bpm_q2_3315)} )
-    graphs[gname].SetBit(ROOT.TGraph.kIsSortedX)
-    graphs[gname].SetLineColor(ROOT.kBlue)
+    add_graph("dt",x_trg,y_dt,ROOT.kBlack)
+    add_graph("dipole",x_trg,y_dipole,ROOT.kBlack)
+    add_graph("q0act",x_trg,y_q0act,ROOT.kBlack)
+    add_graph("q1act",x_trg,y_q1act,ROOT.kRed)
+    add_graph("q2act",x_trg,y_q2act,ROOT.kGreen+1)
+    add_graph("m12",x_trg,y_m12,ROOT.kBlack)
+    add_graph("m34",x_trg,y_m12,ROOT.kRed)
+    add_graph("rad",x_trg,y_rad,ROOT.kBlack)
+    add_graph("foilm1",x_trg,y_foilm1,ROOT.kBlack)
+    add_graph("foilm2",x_trg,y_foilm2,ROOT.kRed)
+    add_graph("toro2040",x_trg,y_toro2040,ROOT.kBlack)
+    add_graph("toro2452",x_trg,y_toro2452,ROOT.kRed)
+    add_graph("toro3163",x_trg,y_toro3163,ROOT.kBlue)
+    add_graph("toro3255",x_trg,y_toro3255,ROOT.kGreen+2)
+    add_graph("yag",x_trg,y_yag,ROOT.kBlack)
+    add_graph("pmt3060",x_trg,y_pmt3060,ROOT.kBlack)
+    add_graph("pmt3070",x_trg,y_pmt3070,ROOT.kRed)
+    add_graph("pmt3179",x_trg,y_pmt3179,ROOT.kBlue)
+    add_graph("pmt3350",x_trg,y_pmt3350,ROOT.kGreen+2)
+    add_graph("pmt3360",x_trg,y_pmt3360,ROOT.kOrange+1)
+    add_graph("bpm_pb_3156",x_trg,y_bpm_pb_3156,ROOT.kBlack)
+    add_graph("bpm_q0_3218",x_trg,y_bpm_q0_3218,ROOT.kBlack)
+    add_graph("bpm_q1_3265",x_trg,y_bpm_q1_3265,ROOT.kRed)
+    add_graph("bpm_q2_3315",x_trg,y_bpm_q2_3315,ROOT.kBlue)
     
     
     for i,det in enumerate(detectors):
@@ -518,6 +468,16 @@ if __name__ == "__main__":
     ################################################################
     
     ftrgname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_trigger_analysis.pdf")
+    fhitname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_trigger_analysis_hits.pdf")
+    tfo = ROOT.TFile(ftrgname.replace(".pdf",".root"),"RECREATE")
+    if not tfo or tfo.IsZombie():
+        print("Error: Could not open output file")
+        exit()
+    tfo.cd()
+    for gname,graph in graphs.items(): graph.Write()
+    for hname,histo in histos.items(): histo.Write()
+    tfo.Write()
+    tfo.Close()
     
     
     cnv = ROOT.TCanvas("c1","",1200,500)
@@ -711,7 +671,7 @@ if __name__ == "__main__":
     cnv = ROOT.TCanvas("c10","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
-    hR.Draw("hist")
+    histos["h_radmon"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
@@ -776,10 +736,23 @@ if __name__ == "__main__":
     cnv = ROOT.TCanvas("c15","",1200,500)
     cnv.SetTicks(1,1)
     cnv.SetLogy()
-    hT.Draw("hist")
+    histos["h_time"].Draw("hist")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname})")
+    
+    
+    cnv = ROOT.TCanvas("cnv","",800,2200)
+    cnv.Divide(1,5)
+    for idet,det in enumerate(cfg["detectors"]):
+        cnv.cd(idet+1)
+        ROOT.gPad.SetTicks(1,1)
+        for i in range(3): histos[f"h_pix_occ_2D_{det}"].Smooth()
+        histos[f"h_pix_occ_2D_{det}"].Scale(1./len(x_trg))
+        histos[f"h_pix_occ_2D_{det}"].Draw("colz")
+        ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{fhitname}")
     
     for det in cfg["detectors"]:
         for i,y in enumerate(fltr_hits_vs_trg[det]):
@@ -787,4 +760,7 @@ if __name__ == "__main__":
                 print(f"First trigger for {det} is: {x_trg[i]}")
                 break
         
+    
+    
+
 
