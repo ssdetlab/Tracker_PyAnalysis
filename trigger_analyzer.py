@@ -47,9 +47,12 @@ histos = {}
 
 ####
 # quads_scan = [0-7005, 7007-9178, 9190-12320, 12330-13150, 13160-18240, 18250-28880]
-# quads_scan = [0-1000, 7100-8100, 9200-10200, 12400-13400, 13200-14200, 18300-19300] <<< actual runs
-#                0          1          2            3            4            5
-# quads_scan = [46.421, 44.98254,  40.425,     30.05477,    26.718,      29.86015]
+# quads_scan = [0-1000, 7100-8100, 9200-10200, 12325-13150, 15000-16000, 18300-19300] <<< actual runs
+#                 0          1          2            3            4            5
+# quad1_scan = [46.421,  44.98254, 40.425,     30.05477,    26.718,      29.86015]
+# quad0_scan = [-30.677, -27.9938, -20.38,     -11.56,      -11.56,      -6.659]
+# quad2_scan = [-30.6775,-27.994,  -20.3813,   -11.56075,   -3.371,      -6.659]
+# m34_scan   = [1,       3,        10,         28,          30,          26]
 
 
 
@@ -142,6 +145,7 @@ if __name__ == "__main__":
         histos.update( { "h_pix_occ_2D_"+det : ROOT.TH2D("h_pix_occ_2D_"+det,";x;y;Hits",pix_x_nbins,pix_x_min,pix_x_max, pix_y_nbins,pix_y_min,pix_y_max) } )
 
     histos.update( { "h_ntrgs"  : ROOT.TH1D("h_ntrgs",";;Triggers",1,0,1) } )
+    histos.update( { "h_m34"    : ROOT.TH1D("h_m34",  ";;M_{34} [m]",1,0,1) } )
     histos.update( { "h_q0act"  : ROOT.TH1D("h_q0act",";;Quad0 gradient [kG/m]",1,0,1) } )
     histos.update( { "h_q1act"  : ROOT.TH1D("h_q1act",";;Quad1 gradient [kG/m]",1,0,1) } )
     histos.update( { "h_q2act"  : ROOT.TH1D("h_q2act",";;Quad2 gradient [kG/m]",1,0,1) } )
@@ -390,6 +394,7 @@ if __name__ == "__main__":
     
     
     histos["h_ntrgs"].SetBinContent(1,len(x_trg))
+    histos["h_m34"].SetBinContent(1, np.average(y_m34))
     histos["h_q0act"].SetBinContent(1, np.average(y_q0act))
     histos["h_q1act"].SetBinContent(1, np.average(y_q1act))
     histos["h_q2act"].SetBinContent(1, np.average(y_q2act))
@@ -411,7 +416,7 @@ if __name__ == "__main__":
     add_graph("q1act",x_trg,y_q1act,ROOT.kRed)
     add_graph("q2act",x_trg,y_q2act,ROOT.kGreen+1)
     add_graph("m12",x_trg,y_m12,ROOT.kBlack)
-    add_graph("m34",x_trg,y_m12,ROOT.kRed)
+    add_graph("m34",x_trg,y_m34,ROOT.kRed)
     add_graph("rad",x_trg,y_rad,ROOT.kBlack)
     add_graph("foilm1",x_trg,y_foilm1,ROOT.kBlack)
     add_graph("foilm2",x_trg,y_foilm2,ROOT.kRed)

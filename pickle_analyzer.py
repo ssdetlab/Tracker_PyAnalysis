@@ -315,14 +315,14 @@ if __name__ == "__main__":
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     histos.update({ "hW_after_cuts":  ROOT.TH2D("hW_after_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     
-    histos.update({ "hThetaf_yz": ROOT.TH1D("hThetaf_yz",";#theta_{yz}(fit) [rad];Tracks",100,0,0.1)})
+    histos.update({ "hThetaf_yz": ROOT.TH1D("hThetaf_yz",";#theta_{yz}^{trk}(fit) [rad];Tracks",100,0,0.1)})
     histos.update({ "hThetad_yz": ROOT.TH1D("hThetad_yz",";#theta_{yz}(d_{exit}) [rad];Tracks",100,0,0.1)})
     histos.update({ "hThetar_yz": ROOT.TH1D("hThetar_yz",";#theta_{yz}(r) [rad];Tracks",100,0,0.1)})
     
-    histos.update({ "hTheta_xz_before_cuts": ROOT.TH1D("hTheta_xz_before_cuts",";#theta_{xz} [rad];Tracks",50,-0.015,0.015)})
-    histos.update({ "hTheta_xz_after_cuts":  ROOT.TH1D("hTheta_xz_after_cuts",";#theta_{xz} [rad];Tracks",50,-0.015,0.015)})
-    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz} [rad];Tracks",50,0,0.045)})
-    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz} [rad];Tracks",50,0,0.045)})
+    histos.update({ "hTheta_xz_before_cuts": ROOT.TH1D("hTheta_xz_before_cuts",";#theta_{xz}^{trk} [rad];Tracks",50,-0.015,0.015)})
+    histos.update({ "hTheta_xz_after_cuts":  ROOT.TH1D("hTheta_xz_after_cuts",";#theta_{xz}^{trk} [rad];Tracks",50,-0.015,0.015)})
+    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.045)})
+    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.045)})
     
     histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
     histos.update({ "hTheta_yz_tru": ROOT.TH1D("hTheta_yz_tru",";#theta_{yz} [rad];Tracks",100,0,0.035)})
@@ -567,8 +567,8 @@ if __name__ == "__main__":
                     ### calculate the fit angles
                     tan_theta_yz = +track.params[1] ### the slope p1x transformed to real space (stays as is)
                     tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
-                    thetaf_yz = math.atan(tan_theta_yz) - cfg["thetax"] ###TODO: check if - or +
-                    thetaf_xz = math.atan(tan_theta_xz) - cfg["thetay"] ###TODO: check if - or +
+                    thetaf_yz = math.atan(tan_theta_yz) #- cfg["thetax"] ###TODO: check if - or +
+                    thetaf_xz = math.atan(tan_theta_xz) #- cfg["thetay"] ###TODO: check if - or +
 
                     ### fill histos before cuts
                     histos["hF_before_cuts"].Fill(rF[0],rF[1])
@@ -606,7 +606,7 @@ if __name__ == "__main__":
                     thetar_yz = math.atan( (rN[1]-r0[1])/(rN[2]-r0[2]) )
                     
                     ### the momentum magnitudes
-                    pf = (0.3 * B * LB)/math.sin( thetaf_yz )
+                    pf = (0.3 * B * LB)/math.sin( thetaf_yz - cfg["thetax"] )
                     pd = (0.3 * B * LB)/math.sin( thetad_yz )
                     pr = (0.3 * B * LB)/math.sin( thetar_yz )
                     

@@ -10,10 +10,10 @@ nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
 
-### run490 (Al foil allin, focused)
-first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
+# ### run490 (Al foil allin, focused)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
 
 # ### run494 (Al foil allin, defocused):
 # first2process = 2000
@@ -36,10 +36,10 @@ inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 
-# ### run503 (beam-only, focusing on foil, 6h-long)
-# first2process = 0
-# nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+### run503 (beam-only, focusing on foil, 6h-long)
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
 # ### run510 (Be window in long run, parasitic)
 # first2process = 0
@@ -249,10 +249,11 @@ yFlangeMax         = +31.752
 [TRANSFORMATIONS]
 ### thetax/y are the angles in degrees ARROUND the x/y axis in real space, such that
 ### thetax rotates the blob up/down vertically and thetay rotates the blob horizontally.
-### these are "found" from the dipole exit and energy analysis
+### thetay in !!!degrees!!! is "found" from the dipole exit plane
 thetay = 0.165
-thetax = 0.
-### thetaz is just the transformation to real space.
+### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
+thetax = 0.29
+### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
 xOffset = 0.
 yPipe2WinBot = 6.1
@@ -261,8 +262,7 @@ yPipe2WinBot = 6.1
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)
 # yPipeTop2BoxBot = 1.525
 ### see slides!!!
-# yPipeTop2BoxBot = 0
-yPipeTop2BoxBot = 17.34
+yPipeTop2BoxBot = 1.525
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
 zBox2chip = 10.5
