@@ -12,13 +12,24 @@ from utils import *
     
 
 def spot_cut(x,y):
-    X = x-cfg["cut_spot_xcenter"]
-    Y = y-cfg["cut_spot_ycenter"]
+    CX = cfg["cut_spot_xcenter"]
+    CY = cfg["cut_spot_ycenter"]
+    X = x-CX
+    Y = y-CY
     R = cfg["cut_spot_radius"]
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
     if( math.sqrt(X*X+Y*Y)>R ): return False
+    return True
+
+def strip_cut(x,y):
+    CX = cfg["cut_spot_xcenter"]
+    CY = cfg["cut_spot_ycenter"]
+    SX = cfg["cut_strip_x"]
+    SY = cfg["cut_strip_y"]
+    if( x<CX-SX or x>CX+SX ): return False
+    if( y<CY-SY or y>CY+SY ): return False
     return True
     
 
@@ -41,10 +52,11 @@ def pass_geoacc_selection(track):
     pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
     pass_flange_aperture = ( (rF[0]>=xFlgL and rF[0]<=xFlgR) and (rF[1]>0 and rF[1]<=yFlgT) )
     pass_dipole_spot     = ( spot_cut(rD[0],rD[1]) ) if(cfg["cut_spot"]) else True
+    pass_dipole_strip    = ( strip_cut(rD[0],rD[1]) ) if(cfg["cut_strip"]) else True
     pass_dk_at_det       = ( pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02) ) ### RELEVANT ONLY FOR PRE-ALIGNMENT!!!
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
     pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
-    return (pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot and pass_dk_at_det)
+    return (pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot and pass_dipole_strip and pass_dk_at_det)
 
 
 def remove_tracks_with_shared_clusters(tracks):

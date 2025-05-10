@@ -495,15 +495,11 @@ class Config:
         self.add("thetaz", thetaz)
         self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
         # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
-        self.add("yPipe2WinBot", self.getF('TRANSFORMATIONS','yPipe2WinBot'))
         self.add("yPipeTop2BoxBot", self.getF('TRANSFORMATIONS','yPipeTop2BoxBot'))
         self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
         self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
         self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
         
-        # yBoxBot2WinBot = self.map["yPipeTop2BoxBot"]-self.map["yPipe2WinBot"]
-        # self.add("yBoxBot2WinBot", yBoxBot2WinBot)
-        # yOffset = self.map["yWindowMin"]+self.map["yBoxBot2WinBot"]+self.map["yMidChip2BoxBot"]
         yOffset = self.map["yZero2PipeTop"]+self.map["yPipeTop2BoxBot"]+self.map["yMidChip2BoxBot"]
         zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
         self.add("yOffset", yOffset)
@@ -534,6 +530,9 @@ class Config:
         self.add("cut_spot_radius", self.getF('CUTS','cut_spot_radius'))
         self.add("cut_spot_xcenter", self.getF('CUTS','cut_spot_xcenter'))
         self.add("cut_spot_ycenter", self.getF('CUTS','cut_spot_ycenter'))
+        self.add("cut_strip", self.getB('CUTS','cut_strip'))
+        self.add("cut_strip_x", self.getF('CUTS','cut_strip_x'))
+        self.add("cut_strip_y", self.getF('CUTS','cut_strip_y'))
         
         self.add("plot_online_evtdisp", self.getB('PLOT','plot_online_evtdisp'))
         self.add("plot_offline_evtdisp", self.getB('PLOT','plot_offline_evtdisp'))

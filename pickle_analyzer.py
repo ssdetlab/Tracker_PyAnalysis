@@ -345,9 +345,9 @@ if __name__ == "__main__":
     histos.update({ "hPd_small": ROOT.TH1D("hPd_small",";p(d_{exit}) [GeV];Tracks",50,1.5,4.5)})
     histos.update({ "hPr_small": ROOT.TH1D("hPr_small",";p(r) [GeV];Tracks",50,1.5,4.5)})
     
-    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",40,1.5,3.0)})
-    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",40,1.5,3.0)})
-    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",40,1.5,3.0)})
+    histos.update({ "hPf_zoom": ROOT.TH1D("hPf_zoom",";p(fit) [GeV];Tracks",40,1.5,3.5)})
+    histos.update({ "hPd_zoom": ROOT.TH1D("hPd_zoom",";p(d_{exit}) [GeV];Tracks",40,1.5,3.5)})
+    histos.update({ "hPr_zoom": ROOT.TH1D("hPr_zoom",";p(r) [GeV];Tracks",40,1.5,3.5)})
 
     thetaxmin = 0     #np.pi/2-cfg["seed_thetax_scale_mid"]*np.pi/2.
     thetaxmax = np.pi #np.pi/2+cfg["seed_thetax_scale_mid"]*np.pi/2.
