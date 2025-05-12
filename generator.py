@@ -1,10 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import solve_ivp
 import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 import pickle
+
+
+plt.rcParams['image.cmap'] = 'afmhot'
+# plt.rcParams['image.cmap'] = 'copper'
 
 
 # Physical constants
@@ -581,6 +587,9 @@ def truncated_exp_NK(a,b,how_many):
 
 # Example usage
 if __name__ == "__main__":
+    
+    fullacc = False
+    
     # Define example initial conditions for particles
     # Format: [x0, y0, z0, px0, py0, pz0]
     # We'll use momentum in units of GeV/c and convert to kg*m/s
@@ -604,8 +613,8 @@ if __name__ == "__main__":
     sigmax = 0.0001 ## m (100 um)
     sigmay = 0.0001 ## m (100 um)
     sigmaz = 0.0001 ## m (100 um)
-    sigmaPx = 0.0007 ## GeV
-    sigmaPy = 0.0007 ## GeV
+    sigmaPx = 0.0010 ## GeV
+    sigmaPy = 0.0008 ## GeV
     Nparticles = 2000
     initial_states = []
     PZ0 = []
@@ -616,8 +625,6 @@ if __name__ == "__main__":
         PZ = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
         PX = np.random.normal(0.0,sigmaPx*GeV_c_to_kgms)
         PY = np.random.normal(0.0,sigmaPy*GeV_c_to_kgms)
-        # PX = np.random.normal(XX*GeV_c_to_kgms,sigmaPx*GeV_c_to_kgms)
-        # PY = np.random.normal(YY*GeV_c_to_kgms,sigmaPy*GeV_c_to_kgms)
         PZ0.append(PZ/GeV_c_to_kgms)
         state = [XX,YY,ZZ, PX,PY,PZ]
         initial_states.append(state)
@@ -639,43 +646,22 @@ if __name__ == "__main__":
         solution, collision = propagate_particle_with_collision(i, state, t_span)
         particle_trajectories.append(solution)
         particle_collisions.append(collision)
-        # if collision:
-        #     print(f"\nParticle {i} collided with {collision['element']} at position:")
-        #     print(f"  x = {collision['position'][0]:.6f} m")
-        #     print(f"  y = {collision['position'][1]:.6f} m")
-        #     print(f"  z = {collision['position'][2]:.6f} m")
-        #     print(f"  Time of collision: {collision['time']:.9f} s")
-        print(f"done propagating particle {i}")
+        if(i%100==0): print(f"done propagating particle {i}")
     
     # Plot the system with particle trajectories
     main_fig, detector_fig = plot_system(particle_trajectories, initial_states, nmaxtrks=100)
 
-    # Print some diagnostics about final positions
-    print("\nFinal particle positions:")
-    for i, traj in enumerate(particle_trajectories):
-        final_x = traj.y[0][-1]
-        final_y = traj.y[1][-1]
-        final_z = traj.y[2][-1]
-        
-        px = traj.y[3][-1]
-        py = traj.y[4][-1]
-        pz = traj.y[5][-1]
-        
-        p_tot = np.sqrt(px**2 + py**2 + pz**2)
-        angle_x = np.arctan2(px, pz) * 180 / np.pi
-        angle_y = np.arctan2(py, pz) * 180 / np.pi
-                
-        # print(f"Particle {i+1}:")
-        # print(f"  Vertex:       x={initial_states[i][0]:.6f} m, y={initial_states[i][1]:.6f} m, z={initial_states[i][2]:.6f} m")
-        # print(f"  Momentum:     px={initial_states[i][3]/GeV_c_to_kgms:.4f} GeV, py={initial_states[i][4]/GeV_c_to_kgms:.4f} GeV, pz={initial_states[i][5]/GeV_c_to_kgms:.2f} GeV")
-        # print(f"  Hit position: x={final_x:.6f} m, y={final_y:.6f} m, z={final_z:.2f} m")
-        # print(f"  Exit angles:  θx={angle_x:.3f}°, θy={angle_y:.3f}°")
-    
-    # # Print detector hits
-    # print("\nDetector Hits:")
-    # for i, detector in enumerate(detectors):
-    #     detector.print_hits(initial_states)
-    
+    # # Some diagnostics about final positions
+    # for i, traj in enumerate(particle_trajectories):
+    #     final_x = traj.y[0][-1]
+    #     final_y = traj.y[1][-1]
+    #     final_z = traj.y[2][-1]
+    #     px = traj.y[3][-1]
+    #     py = traj.y[4][-1]
+    #     pz = traj.y[5][-1]
+    #     p_tot = np.sqrt(px**2 + py**2 + pz**2)
+    #     angle_x = np.arctan2(px, pz) * 180 / np.pi
+    #     angle_y = np.arctan2(py, pz) * 180 / np.pi
     
     
     npivots = 0
@@ -718,13 +704,18 @@ if __name__ == "__main__":
             X.append(xx*m_to_mm)
             Y.append((yy-detector_y_center_m)*m_to_mm)
             Z.append((zz-detector_z_base_m)*m_to_mm)
-            if(pid in list_good_tracks): P.append(pz/GeV_c_to_kgms)
+            if(fullacc and pid not in list_good_tracks): continue
+            P.append(pz/GeV_c_to_kgms)
         axs[i].hist2d(X, Y, bins=(100,200),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]])
         if(i==0):
             P0 = P
         axs[i].set_xlabel('X [m]')
         axs[i].set_ylabel('Y [m]')
         axs[i].set_title(f'ALPIDE_{i}')
+        plt.locator_params(axis='x', nbins=10)
+        plt.locator_params(axis='y', nbins=10)
+        axs[i].xaxis.set_minor_locator(AutoMinorLocator(5))
+        axs[i].yaxis.set_minor_locator(AutoMinorLocator(5))
     plt.tight_layout()
     plt.savefig("generator_occupancy.pdf")
     plt.show()
@@ -736,7 +727,7 @@ if __name__ == "__main__":
     Y = []
     for point in dipole.hits:
         pid = point['particle_id']
-        if(pid not in list_good_tracks): continue
+        if(fullacc and pid not in list_good_tracks): continue
         X.append(point['x'])
         Y.append(point['y'])
     ax.hist2d(X, Y, bins=(200,200),range=[[dipole.x_min,dipole.x_max],[dipole.y_min,dipole.y_max]])
@@ -745,7 +736,11 @@ if __name__ == "__main__":
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Y [m]')
     ax.set_title(f'Dipole exit')
-    ax.grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.grid(True,linewidth=0.25,alpha=0.25)
     plt.tight_layout()
     plt.savefig("generator_dipole_exit_zoom.pdf")
     plt.show()
@@ -757,7 +752,7 @@ if __name__ == "__main__":
     Y = []
     for point in dipole.hits:
         pid = point['particle_id']
-        if(pid not in list_good_tracks): continue
+        if(fullacc and pid not in list_good_tracks): continue
         X.append(point['x'])
         Y.append(point['y'])
     ax.hist2d(X, Y, bins=(120,120),range=[[-80*mm_to_m,+80*mm_to_m],[-70*mm_to_m,+90*mm_to_m]])
@@ -771,7 +766,11 @@ if __name__ == "__main__":
         fill=False, edgecolor='blue'
     )
     ax.add_patch(rectD)
-    ax.grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.grid(True,linewidth=0.25,alpha=0.25)
     plt.tight_layout()
     plt.savefig("generator_dipole_exit.pdf")
     plt.show()
@@ -782,45 +781,57 @@ if __name__ == "__main__":
     X0 = []
     Y0 = []
     for point in quad0.hits:
-        # pid = point['particle_id']
-        # if(pid not in list_good_tracks): continue
+        pid = point['particle_id']
+        if(fullacc and pid not in list_good_tracks): continue
         X0.append(point['x'])
         Y0.append(point['y'])
-    axs[0].hist2d(X0, Y0, bins=(200,200),range=[[quad0.x_min,quad0.x_max],[quad0.y_min,quad0.y_max]])
+    axs[0].hist2d(X0, Y0, bins=(150,150),range=[[quad0.x_min,quad0.x_max],[quad0.y_min,quad0.y_max]])
     axs[0].set_xlim(quad0.x_min * 1.2, quad0.x_max * 1.2)
     axs[0].set_ylim(quad0.y_min * 0.9 if(quad0.y_min>0) else quad0.y_min*1.1, quad0.y_max * 1.1)
     axs[0].set_xlabel('X [m]')
     axs[0].set_ylabel('Y [m]')
     axs[0].set_title(f'Quad0 exit')
-    # axs[0].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[0].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[0].yaxis.set_minor_locator(AutoMinorLocator(5))
+    # axs[0].grid(True,linewidth=0.25,alpha=0.25)
     X1 = []
     Y1 = []
     for point in quad1.hits:
-        # pid = point['particle_id']
-        # if(pid not in list_good_tracks): continue
+        pid = point['particle_id']
+        if(fullacc and pid not in list_good_tracks): continue
         X1.append(point['x'])
         Y1.append(point['y'])
-    axs[1].hist2d(X1, Y1, bins=(200,200),range=[[quad1.x_min,quad1.x_max],[quad1.y_min,quad1.y_max]])
+    axs[1].hist2d(X1, Y1, bins=(150,150),range=[[quad1.x_min,quad1.x_max],[quad1.y_min,quad1.y_max]])
     axs[1].set_xlim(quad1.x_min * 1.2, quad1.x_max * 1.2)
     axs[1].set_ylim(quad1.y_min * 0.9 if(quad1.y_min>0) else quad1.y_min*1.1, quad1.y_max * 1.1)
     axs[1].set_xlabel('X [m]')
     axs[1].set_ylabel('Y [m]')
     axs[1].set_title(f'Quad1 exit')
-    # axs[1].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[1].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[1].yaxis.set_minor_locator(AutoMinorLocator(5))
+    # axs[1].grid(True,linewidth=0.25,alpha=0.25)
     X2 = []
     Y2 = []
     for point in quad2.hits:
-        # pid = point['particle_id']
-        # if(pid not in list_good_tracks): continue
+        pid = point['particle_id']
+        if(fullacc and pid not in list_good_tracks): continue
         X2.append(point['x'])
         Y2.append(point['y'])
-    axs[2].hist2d(X2, Y2, bins=(200,200),range=[[quad2.x_min,quad2.x_max],[quad2.y_min,quad2.y_max]])
+    axs[2].hist2d(X2, Y2, bins=(150,150),range=[[quad2.x_min,quad2.x_max],[quad2.y_min,quad2.y_max]])
     axs[2].set_xlim(quad2.x_min * 1.2, quad2.x_max * 1.2)
     axs[2].set_ylim(quad2.y_min * 0.9 if(quad2.y_min>0) else quad2.y_min*1.1, quad2.y_max * 1.1)
     axs[2].set_xlabel('X [m]')
     axs[2].set_ylabel('Y [m]')
     axs[2].set_title(f'Quad2 exit')
-    # axs[2].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[2].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[2].yaxis.set_minor_locator(AutoMinorLocator(5))
+    # axs[2].grid(True,linewidth=0.25,alpha=0.25)
     plt.tight_layout()
     plt.savefig("generator_quads_exit.pdf")
     plt.show()
@@ -832,26 +843,34 @@ if __name__ == "__main__":
     PX = []
     for point in quad0.hits:
         pid = point['particle_id']
-        if(pid not in list_good_tracks): continue
+        if(fullacc and pid not in list_good_tracks): continue
         XX.append(point['x'])
         px = initial_states[pid][3]/GeV_c_to_kgms
         PX.append( px )   
     axs[0].hist2d(XX, PX, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]])
     axs[0].set_xlabel('X [m]')
     axs[0].set_ylabel('PX [GeV]')
-    axs[0].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[0].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[0].yaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[0].grid(True,linewidth=0.25,alpha=0.25)
     YY = []
     PY = []
     for point in quad0.hits:
         pid = point['particle_id']
-        if(pid not in list_good_tracks): continue
+        if(fullacc and pid not in list_good_tracks): continue
         YY.append(point['y'])
         py = initial_states[pid][4]/GeV_c_to_kgms
         PY.append( py )
     axs[1].hist2d(YY, PY, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]])
     axs[1].set_xlabel('Y [m]')
     axs[1].set_ylabel('PY [GeV]')
-    axs[1].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[1].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[1].yaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[1].grid(True,linewidth=0.25,alpha=0.25)
     plt.tight_layout()
     plt.savefig("generator_divergence.pdf")
     plt.show()
@@ -872,12 +891,20 @@ if __name__ == "__main__":
     axs[0].set_xlabel('E [GeV]')
     axs[0].set_ylabel('Particles')
     axs[0].set_title(f'Generated')
-    axs[0].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[0].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[0].yaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[0].grid(True,linewidth=0.25,alpha=0.25)
     
     axs[1].set_xlabel('E [GeV]')
     axs[1].set_ylabel('Particles')
     axs[1].set_title(f'In Acceptance')
-    axs[1].grid(True)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    axs[1].xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[1].yaxis.set_minor_locator(AutoMinorLocator(5))
+    axs[1].grid(True,linewidth=0.25,alpha=0.25)
     
     plt.tight_layout()
     plt.savefig("generator_energy.pdf")
