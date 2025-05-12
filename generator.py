@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import solve_ivp
 import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
+import pickle
 
 
 # Physical constants
@@ -94,17 +95,26 @@ class Dipole(Element):
     def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, B_x):
         super().__init__(x_min, x_max, y_min, y_max, z_min, z_max)
         self.B_x = B_x  # Tesla
+        self.hits = []
         
     def field(self, x, y, z):
         if self.is_inside(x, y, z):
             return np.array([self.B_x, 0, 0])
         else:
             return np.array([0, 0, 0])
+    
+    def record_hit(self, particle_id, x, y, z, px, py, pz):
+        self.hits.append({
+            'particle_id': particle_id,
+            'x': x, 'y': y, 'z': z,
+            'px': px, 'py': py, 'pz': pz
+        })
 
 class Quadrupole(Element):
     def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, gradient):
         super().__init__(x_min, x_max, y_min, y_max, z_min, z_max)
         self.gradient = gradient * kG_to_T  # Tesla/m
+        self.hits = []
         
     def field(self, x, y, z):
         if self.is_inside(x, y, z):
@@ -113,6 +123,14 @@ class Quadrupole(Element):
             return np.array([B_x, B_y, 0])
         else:
             return np.array([0, 0, 0])
+    
+    def record_hit(self, particle_id, x, y, z, px, py, pz):
+        self.hits.append({
+            'particle_id': particle_id,
+            'x': x, 'y': y, 'z': z,
+            'px': px, 'py': py, 'pz': pz
+        })
+    
 
 # Create magnetic elements
 dipole = Dipole(
@@ -224,6 +242,8 @@ quad2 = Quadrupole(
 
 elements = [quad0, quad1, quad2, dipole] + detectors
 
+
+
 # Function to calculate total magnetic field at a point
 def total_field(position):
     x, y, z = position
@@ -233,6 +253,11 @@ def total_field(position):
         field += element.field(x, y, z)
     
     return field
+
+
+
+
+
 
 # Define the equations of motion for a charged particle in a magnetic field
 def particle_motion(t, state):
@@ -268,48 +293,185 @@ def particle_motion(t, state):
     
     return [dx_dt, dy_dt, dz_dt, dpx_dt, dpy_dt, dpz_dt]
 
-# Function to propagate a particle through the beamline
-def propagate_particle(particle_id, initial_state, t_span, max_step=1e-10):
-    # Use solve_ivp with RK45 method for numerical integration
+
+
+# Define an event function to detect collisions with magnet walls
+def collision_event(t, state, elements_to_check=None):
+    """
+    Event function to detect when a particle hits the wall of any magnet element.
+    Returns zero when a collision occurs (negative when inside, positive when outside).
+    
+    Parameters:
+    -----------
+    t : float
+        Current time value
+    state : array 
+        Current state [x, y, z, px, py, pz]
+    elements_to_check : list, optional
+        List of elements to check for collisions. If None, checks all magnetic elements
+        
+    Returns:
+    --------
+    float
+        Distance from nearest wall (negative inside element boundaries, zero at boundary, positive outside)
+    """
+    if elements_to_check is None:
+        elements_to_check = [quad0, quad1, quad2, dipole] 
+    
+    x, y, z = state[0], state[1], state[2]
+    
+    # Initialize distance to a large value
+    min_distance = float('inf')
+    
+    for element in elements_to_check:
+        # Skip if not in z-range of element (with small margin)
+        if not (element.z_min - 0.0001 <= z <= element.z_max + 0.0001):
+            continue
+            
+        # Calculate distances to each wall
+        dx_min = x - element.x_min
+        dx_max = element.x_max - x
+        dy_min = y - element.y_min
+        dy_max = element.y_max - y
+        
+        # Find minimum distance to wall
+        distances = [dx_min, dx_max, dy_min, dy_max]
+        element_min_distance = min(distances)
+        
+        # Update minimum distance if this element's wall is closer
+        min_distance = min(min_distance, element_min_distance)
+    
+    # If not near any element, return a large positive value
+    if min_distance == float('inf'):
+        return 1.0
+        
+    return min_distance
+
+
+# Set terminal attribute when collision occurs
+collision_event.terminal = True
+
+
+
+def record_hits(element,z_element,trajectory,particle_id):
+    for i in range(len(trajectory.t) - 1):
+        z1, z2 = trajectory.y[2][i], trajectory.y[2][i+1]
+        
+        # If particle trajectory crosses the detector plane
+        if (z1 <= z_element <= z2) or (z2 <= z_element <= z1):
+            # Linear interpolation to find position at detector plane
+            t1, t2 = trajectory.t[i], trajectory.t[i+1]
+            fraction = (z_element - z1) / (z2 - z1) if z2 != z1 else 0
+            
+            t_hit = t1 + fraction * (t2 - t1)
+            x_hit = trajectory.y[0][i] + fraction * (trajectory.y[0][i+1] - trajectory.y[0][i])
+            y_hit = trajectory.y[1][i] + fraction * (trajectory.y[1][i+1] - trajectory.y[1][i])
+            
+            px_hit = trajectory.y[3][i] + fraction * (trajectory.y[3][i+1] - trajectory.y[3][i])
+            py_hit = trajectory.y[4][i] + fraction * (trajectory.y[4][i+1] - trajectory.y[4][i])
+            pz_hit = trajectory.y[5][i] + fraction * (trajectory.y[5][i+1] - trajectory.y[5][i])
+            
+            # Check if hit is within detector surface
+            if (element.x_min <= x_hit <= element.x_max and element.y_min <= y_hit <= element.y_max):
+                element.record_hit(particle_id, x_hit, y_hit, z_element, px_hit, py_hit, pz_hit)
+
+
+
+
+
+# Modified function to propagate particle with collision detection
+def propagate_particle_with_collision(particle_id, initial_state, t_span, max_step=1e-9):
+    """
+    Propagate particle through beamline with collision detection.
+
+    Parameters:
+    -----------
+    particle_id : int
+        Unique identifier for the particle
+    initial_state : array
+        Initial state [x0, y0, z0, px0, py0, pz0]
+    t_span : tuple
+        (t_start, t_end) for integration
+    max_step : float, optional
+        Maximum step size for integrator
+
+    Returns:
+    --------
+    solution : OdeSolution
+        Solution object from solve_ivp
+    collision_info : dict or None
+        Information about collision if it occurred, None otherwise
+    """
+    # Use solve_ivp with event detection
     solution = solve_ivp(
         particle_motion,
         t_span,
         initial_state,
-        method='RK45',
+        method='RK45', #'RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA'
+        events=collision_event,
         max_step=max_step,
-        rtol=1e-12,
-        atol=1e-12
+        rtol=1e-8,
+        atol=1e-10
     )
-    
-    # Check if the particle crosses any detector planes
-    for det in detectors:
-        z_detector = det.z_pos
-        for i in range(len(solution.t) - 1):
-            z1, z2 = solution.y[2][i], solution.y[2][i+1]
-            
-            # If particle trajectory crosses the detector plane
-            if (z1 <= z_detector <= z2) or (z2 <= z_detector <= z1):
-                # Linear interpolation to find position at detector plane
-                t1, t2 = solution.t[i], solution.t[i+1]
-                fraction = (z_detector - z1) / (z2 - z1) if z2 != z1 else 0
-                
-                t_hit = t1 + fraction * (t2 - t1)
-                x_hit = solution.y[0][i] + fraction * (solution.y[0][i+1] - solution.y[0][i])
-                y_hit = solution.y[1][i] + fraction * (solution.y[1][i+1] - solution.y[1][i])
-                
-                px_hit = solution.y[3][i] + fraction * (solution.y[3][i+1] - solution.y[3][i])
-                py_hit = solution.y[4][i] + fraction * (solution.y[4][i+1] - solution.y[4][i])
-                pz_hit = solution.y[5][i] + fraction * (solution.y[5][i+1] - solution.y[5][i])
-                
-                # Check if hit is within detector surface
-                if (det.x_min <= x_hit <= det.x_max and det.y_min <= y_hit <= det.y_max):
-                    det.record_hit(particle_id, x_hit, y_hit, z_detector, px_hit, py_hit, pz_hit)
+
+    # Check for detector crossings as before
+    for det in detectors: record_hits(det,det.z_pos,solution,particle_id)
+    ### dipole
+    record_hits(dipole,dipole.z_max,solution,particle_id)
+    ### quads
+    record_hits(quad0,quad0.z_max,solution,particle_id)
+    record_hits(quad1,quad1.z_max,solution,particle_id)
+    record_hits(quad2,quad2.z_max,solution,particle_id)
+
+
+    # Check if collision occurred
+    collision_info = None
+    if solution.t_events[0].size > 0:
+        # Collision occurred
+        collision_time = solution.t_events[0][0]
+        collision_state = np.array([
+            np.interp(collision_time, solution.t, solution.y[0]),
+            np.interp(collision_time, solution.t, solution.y[1]),
+            np.interp(collision_time, solution.t, solution.y[2]),
+            np.interp(collision_time, solution.t, solution.y[3]),
+            np.interp(collision_time, solution.t, solution.y[4]),
+            np.interp(collision_time, solution.t, solution.y[5])
+        ])
+
+        # Determine which element was hit
+        collision_element = None
+        for element in [quad0, quad1, quad2, dipole]:
+            if (element.z_min <= collision_state[2] <= element.z_max):
+                if abs(collision_state[0] - element.x_min) < 1e-6 or abs(collision_state[0] - element.x_max) < 1e-6 or \
+                   abs(collision_state[1] - element.y_min) < 1e-6 or abs(collision_state[1] - element.y_max) < 1e-6:
+                    collision_element = element
                     break
-    
-    return solution
+
+        element_name = "unknown"
+        if collision_element == quad0:
+            element_name = "Quadrupole 0"
+        elif collision_element == quad1:
+            element_name = "Quadrupole 1"
+        elif collision_element == quad2:
+            element_name = "Quadrupole 2"
+        elif collision_element == dipole:
+            element_name = "Dipole"
+
+        collision_info = {
+            "time": collision_time,
+            "position": collision_state[:3],
+            "momentum": collision_state[3:],
+            "element": element_name
+        }
+
+    return solution, collision_info
+
+
+
+
 
 # Plot the beamline and particle trajectory
-def plot_system(particle_trajectories, initial_states, nmaxtrks=10):
+def plot_system(particle_trajectories, initial_states, nmaxtrks=100):
     fig = plt.figure(figsize=(16, 10))
     ax = fig.add_subplot(111, projection='3d')
     
@@ -357,16 +519,13 @@ def plot_system(particle_trajectories, initial_states, nmaxtrks=10):
     
     
     # Create a separate figure for the detector hit patterns
-    fig_det = plt.figure(figsize=(12, 10))
-    det_grid = plt.GridSpec(3, 2, figure=fig_det)
+    # fig_det = plt.figure(figsize=(10, 3))
+    # det_grid = plt.GridSpec(1, 5, figure=fig_det)
+    fig_det, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
     
     # Plot detector hit patterns
     for i, detector in enumerate(detectors):
-        if i >= 5:  # Only plot first 5 detectors
-            break
-            
-        ax_det = fig_det.add_subplot(det_grid[i//2, i%2])
-        
+        # ax_det = fig_det.add_subplot(det_grid[i//2, i%2])
         # Draw detector boundary
         rect = plt.Rectangle(
             (detector.x_min, detector.y_min),
@@ -374,7 +533,8 @@ def plot_system(particle_trajectories, initial_states, nmaxtrks=10):
             detector.y_max - detector.y_min,
             fill=False, edgecolor='gray'
         )
-        ax_det.add_patch(rect)
+        # ax_det.add_patch(rect)
+        axs[i].add_patch(rect)
         
         # Plot hits
         hit_x = [hit['x'] for hit in detector.hits]
@@ -383,18 +543,27 @@ def plot_system(particle_trajectories, initial_states, nmaxtrks=10):
         
         for j, (x, y, pid) in enumerate(zip(hit_x, hit_y, particle_ids)):
             # ax_det.plot(x, y, 'o', markersize=3, label=f"Particle {pid+1}" if j == 0 else "")
-            ax_det.plot(x, y, 'o', markersize=3)
+            # ax_det.plot(x, y, 'o', markersize=2)
+            axs[i].plot(x, y, 'o', markersize=1)
         
-        ax_det.set_xlim(detector.x_min * 1.2, detector.x_max * 1.2)
-        ax_det.set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
-        ax_det.set_xlabel('X [m]')
-        ax_det.set_ylabel('Y [m]')
-        ax_det.set_title(f'Detector {i+1} at z={detector.z_pos:.2f} m')
-        ax_det.grid(True)
+        # ax_det.set_xlim(detector.x_min * 1.2, detector.x_max * 1.2)
+        # ax_det.set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
+        # ax_det.set_xlabel('X [m]')
+        # ax_det.set_ylabel('Y [m]')
+        # ax_det.set_title(f'Detector {i+1} at z={detector.z_pos:.2f} m')
+        # ax_det.grid(True)
         
-        if i == 0:  # Only add legend to first plot
-            ax_det.legend()
-    
+        axs[i].set_xlim(detector.x_min * 1.2, detector.x_max * 1.2)
+        axs[i].set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
+        axs[i].set_xlabel('X [m]')
+        axs[i].set_ylabel('Y [m]')
+        # axs[i].set_title(f'Detector {i+1} at z={detector.z_pos:.2f} m')
+        axs[i].set_title(f'ALPIDE_{i}')
+        axs[i].grid(True)
+        
+        # if i == 0:  # Only add legend to first plot
+        #     ax_det.legend()
+        
     plt.tight_layout()
     plt.savefig("generator_scatter.pdf")
     plt.show()
@@ -430,29 +599,26 @@ if __name__ == "__main__":
     
     p_kgms = p_GeV * GeV_c_to_kgms  # Convert to kg*m/s
     
-    # # Define a few different initial conditions
-    # initial_states = [
-    #     # Particle 1: On-axis with momentum in z-direction
-    #     [0.0, 0.0, 0.0, 0.0, 0.0, p_kgms],
-    #     # Particle 2: Small x-offset
-    #     [0.001, 0.0, 0.0, 0.0, 0.0, p_kgms],
-    #     # Particle 3: Small y-offset
-    #     [0.0, 0.001, 0.0, 0.0, 0.0, p_kgms],
-    #     # Particle 4: Small angular divergence in x
-    #     [0.0, 0.0, 0.0, 0.01 * p_kgms/10, 0, p_kgms],
-    #     # Particle 5: Small angular divergence in y
-    #     [0.0, 0.0, 0.0, 0, 0.01 * p_kgms/10, p_kgms]
-    # ]
-    
-    
+    Emin = 0.5 ## GeV 
+    Emax = 5.0 ## GeV
+    sigmax = 0.0001 ## m (100 um)
+    sigmay = 0.0001 ## m (100 um)
+    sigmaz = 0.0001 ## m (100 um)
+    sigmaPx = 0.0007 ## GeV
+    sigmaPy = 0.0007 ## GeV
+    Nparticles = 2000
     initial_states = []
-    for i in range(500):
-        XX = np.random.normal(0.0,0.00001)
-        YY = np.random.normal(0.0,0.00001)
-        ZZ = np.random.normal(0.0,0.00001)
-        PX = np.random.normal(0.0,0.0001)*GeV_c_to_kgms
-        PY = np.random.normal(0.0,0.0001)*GeV_c_to_kgms
-        PZ = truncated_exp_NK(0.5,10.0,1)*GeV_c_to_kgms
+    PZ0 = []
+    for i in range(Nparticles):
+        XX = np.random.normal(0.0,sigmax)
+        YY = np.random.normal(0.0,sigmay)
+        ZZ = np.random.normal(0.0,sigmaz)
+        PZ = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
+        PX = np.random.normal(0.0,sigmaPx*GeV_c_to_kgms)
+        PY = np.random.normal(0.0,sigmaPy*GeV_c_to_kgms)
+        # PX = np.random.normal(XX*GeV_c_to_kgms,sigmaPx*GeV_c_to_kgms)
+        # PY = np.random.normal(YY*GeV_c_to_kgms,sigmaPy*GeV_c_to_kgms)
+        PZ0.append(PZ/GeV_c_to_kgms)
         state = [XX,YY,ZZ, PX,PY,PZ]
         initial_states.append(state)
     
@@ -464,15 +630,25 @@ if __name__ == "__main__":
     tmax = 18 / (0.99 * c)  # Approximate time to travel 18 meters
     t_span = (0, tmax)
     
-    # Propagate particles
+    
+    
+    # Propagate particles and check for collisions
     particle_trajectories = []
-    for i, state in enumerate(initial_states):
-        trajectory = propagate_particle(i, state, t_span)
-        particle_trajectories.append(trajectory)
+    particle_collisions   = []
+    for i,state in enumerate(initial_states):
+        solution, collision = propagate_particle_with_collision(i, state, t_span)
+        particle_trajectories.append(solution)
+        particle_collisions.append(collision)
+        # if collision:
+        #     print(f"\nParticle {i} collided with {collision['element']} at position:")
+        #     print(f"  x = {collision['position'][0]:.6f} m")
+        #     print(f"  y = {collision['position'][1]:.6f} m")
+        #     print(f"  z = {collision['position'][2]:.6f} m")
+        #     print(f"  Time of collision: {collision['time']:.9f} s")
         print(f"done propagating particle {i}")
     
     # Plot the system with particle trajectories
-    main_fig, detector_fig = plot_system(particle_trajectories, initial_states)
+    main_fig, detector_fig = plot_system(particle_trajectories, initial_states, nmaxtrks=100)
 
     # Print some diagnostics about final positions
     print("\nFinal particle positions:")
@@ -488,20 +664,45 @@ if __name__ == "__main__":
         p_tot = np.sqrt(px**2 + py**2 + pz**2)
         angle_x = np.arctan2(px, pz) * 180 / np.pi
         angle_y = np.arctan2(py, pz) * 180 / np.pi
-        
-        print(f"Particle {i+1}:")
-        print(f"  Vertex:       x={initial_states[i][0]:.6f} m, y={initial_states[i][1]:.6f} m, z={initial_states[i][2]:.6f} m")
-        print(f"  Momentum:     px={initial_states[i][3]/GeV_c_to_kgms:.4f} GeV, py={initial_states[i][4]/GeV_c_to_kgms:.4f} GeV, pz={initial_states[i][5]/GeV_c_to_kgms:.2f} GeV")
-        print(f"  Hit position: x={final_x:.6f} m, y={final_y:.6f} m, z={final_z:.2f} m")
-        print(f"  Exit angles:  θx={angle_x:.3f}°, θy={angle_y:.3f}°")
+                
+        # print(f"Particle {i+1}:")
+        # print(f"  Vertex:       x={initial_states[i][0]:.6f} m, y={initial_states[i][1]:.6f} m, z={initial_states[i][2]:.6f} m")
+        # print(f"  Momentum:     px={initial_states[i][3]/GeV_c_to_kgms:.4f} GeV, py={initial_states[i][4]/GeV_c_to_kgms:.4f} GeV, pz={initial_states[i][5]/GeV_c_to_kgms:.2f} GeV")
+        # print(f"  Hit position: x={final_x:.6f} m, y={final_y:.6f} m, z={final_z:.2f} m")
+        # print(f"  Exit angles:  θx={angle_x:.3f}°, θy={angle_y:.3f}°")
     
-    # Print detector hits
-    print("\nDetector Hits:")
-    for i, detector in enumerate(detectors):
-        detector.print_hits(initial_states)
+    # # Print detector hits
+    # print("\nDetector Hits:")
+    # for i, detector in enumerate(detectors):
+    #     detector.print_hits(initial_states)
+    
+    
+    
+    npivots = 0
+    list_good_tracks = []
+    for pivot in detectors[0].hits:
+        pivot_pid = pivot['particle_id']
+        npivots +=1
+        nhits = 0
+        for i,detector in enumerate(detectors):
+            if(i==0): continue
+            for hit in detector.hits:
+                if(pivot_pid==hit['particle_id']):
+                    nhits += 1
+                    break
+        if(nhits==len(detectors)-1):
+            list_good_tracks.append( pivot_pid )
+    print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")
+    
+                
+
+            
+    
+    
+    
 
     ### plot the hits:
-    fig, axs = plt.subplots(1, 5, figsize=(10, 3), sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
     P0 = []
     for i,detector in enumerate(detectors):
         X = []
@@ -517,16 +718,177 @@ if __name__ == "__main__":
             X.append(xx*m_to_mm)
             Y.append((yy-detector_y_center_m)*m_to_mm)
             Z.append((zz-detector_z_base_m)*m_to_mm)
-            P.append(pz/GeV_c_to_kgms)
+            if(pid in list_good_tracks): P.append(pz/GeV_c_to_kgms)
         axs[i].hist2d(X, Y, bins=(100,200),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]])
-        if(i==0): P0 = P
+        if(i==0):
+            P0 = P
+        axs[i].set_xlabel('X [m]')
+        axs[i].set_ylabel('Y [m]')
+        axs[i].set_title(f'ALPIDE_{i}')
     plt.tight_layout()
     plt.savefig("generator_occupancy.pdf")
     plt.show()
     
-    ### plot the energy
-    fig, ax = plt.subplots(tight_layout=True)
-    ax.hist(P0, bins=50,range=(1.5,3.5))
+    
+    ### plot the exit plane at the dipole:
+    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
+    X = []
+    Y = []
+    for point in dipole.hits:
+        pid = point['particle_id']
+        if(pid not in list_good_tracks): continue
+        X.append(point['x'])
+        Y.append(point['y'])
+    ax.hist2d(X, Y, bins=(200,200),range=[[dipole.x_min,dipole.x_max],[dipole.y_min,dipole.y_max]])
+    ax.set_xlim(dipole.x_min * 1.2, dipole.x_max * 1.2)
+    ax.set_ylim(dipole.y_min * 0.9 if(dipole.y_min>0) else dipole.y_min*1.1, dipole.y_max * 1.1)
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
+    ax.set_title(f'Dipole exit')
+    ax.grid(True)
+    plt.tight_layout()
+    plt.savefig("generator_dipole_exit_zoom.pdf")
+    plt.show()
+    
+    
+    ### plot the exit plane at the dipole:
+    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
+    X = []
+    Y = []
+    for point in dipole.hits:
+        pid = point['particle_id']
+        if(pid not in list_good_tracks): continue
+        X.append(point['x'])
+        Y.append(point['y'])
+    ax.hist2d(X, Y, bins=(120,120),range=[[-80*mm_to_m,+80*mm_to_m],[-70*mm_to_m,+90*mm_to_m]])
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
+    ax.set_title(f'Dipole exit')
+    rectD = plt.Rectangle(
+        (dipole.x_min, dipole.y_min),
+        dipole.x_max - dipole.x_min,
+        dipole.y_max - dipole.y_min,
+        fill=False, edgecolor='blue'
+    )
+    ax.add_patch(rectD)
+    ax.grid(True)
+    plt.tight_layout()
+    plt.savefig("generator_dipole_exit.pdf")
+    plt.show()
+    
+    
+    ### plot the quads exits
+    fig, axs = plt.subplots(1, 3, figsize=(9, 4), sharex=True, sharey=True, tight_layout=True)
+    X0 = []
+    Y0 = []
+    for point in quad0.hits:
+        # pid = point['particle_id']
+        # if(pid not in list_good_tracks): continue
+        X0.append(point['x'])
+        Y0.append(point['y'])
+    axs[0].hist2d(X0, Y0, bins=(200,200),range=[[quad0.x_min,quad0.x_max],[quad0.y_min,quad0.y_max]])
+    axs[0].set_xlim(quad0.x_min * 1.2, quad0.x_max * 1.2)
+    axs[0].set_ylim(quad0.y_min * 0.9 if(quad0.y_min>0) else quad0.y_min*1.1, quad0.y_max * 1.1)
+    axs[0].set_xlabel('X [m]')
+    axs[0].set_ylabel('Y [m]')
+    axs[0].set_title(f'Quad0 exit')
+    # axs[0].grid(True)
+    X1 = []
+    Y1 = []
+    for point in quad1.hits:
+        # pid = point['particle_id']
+        # if(pid not in list_good_tracks): continue
+        X1.append(point['x'])
+        Y1.append(point['y'])
+    axs[1].hist2d(X1, Y1, bins=(200,200),range=[[quad1.x_min,quad1.x_max],[quad1.y_min,quad1.y_max]])
+    axs[1].set_xlim(quad1.x_min * 1.2, quad1.x_max * 1.2)
+    axs[1].set_ylim(quad1.y_min * 0.9 if(quad1.y_min>0) else quad1.y_min*1.1, quad1.y_max * 1.1)
+    axs[1].set_xlabel('X [m]')
+    axs[1].set_ylabel('Y [m]')
+    axs[1].set_title(f'Quad1 exit')
+    # axs[1].grid(True)
+    X2 = []
+    Y2 = []
+    for point in quad2.hits:
+        # pid = point['particle_id']
+        # if(pid not in list_good_tracks): continue
+        X2.append(point['x'])
+        Y2.append(point['y'])
+    axs[2].hist2d(X2, Y2, bins=(200,200),range=[[quad2.x_min,quad2.x_max],[quad2.y_min,quad2.y_max]])
+    axs[2].set_xlim(quad2.x_min * 1.2, quad2.x_max * 1.2)
+    axs[2].set_ylim(quad2.y_min * 0.9 if(quad2.y_min>0) else quad2.y_min*1.1, quad2.y_max * 1.1)
+    axs[2].set_xlabel('X [m]')
+    axs[2].set_ylabel('Y [m]')
+    axs[2].set_title(f'Quad2 exit')
+    # axs[2].grid(True)
+    plt.tight_layout()
+    plt.savefig("generator_quads_exit.pdf")
+    plt.show()
+    
+    
+    ### plot the divergence
+    fig, axs = plt.subplots(1, 2, figsize=(9, 5), tight_layout=True)
+    XX = []
+    PX = []
+    for point in quad0.hits:
+        pid = point['particle_id']
+        if(pid not in list_good_tracks): continue
+        XX.append(point['x'])
+        px = initial_states[pid][3]/GeV_c_to_kgms
+        PX.append( px )   
+    axs[0].hist2d(XX, PX, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]])
+    axs[0].set_xlabel('X [m]')
+    axs[0].set_ylabel('PX [GeV]')
+    axs[0].grid(True)
+    YY = []
+    PY = []
+    for point in quad0.hits:
+        pid = point['particle_id']
+        if(pid not in list_good_tracks): continue
+        YY.append(point['y'])
+        py = initial_states[pid][4]/GeV_c_to_kgms
+        PY.append( py )
+    axs[1].hist2d(YY, PY, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]])
+    axs[1].set_xlabel('Y [m]')
+    axs[1].set_ylabel('PY [GeV]')
+    axs[1].grid(True)
+    plt.tight_layout()
+    plt.savefig("generator_divergence.pdf")
+    plt.show()
+    
+    
+        
+    # ### plot the energy
+    # fig, ax = plt.subplots(tight_layout=True)
+    # ax.hist(P0, bins=50,range=(1.5,3.5))
+    # plt.tight_layout()
+    # plt.savefig("generator_energy.pdf")
+    # plt.show()
+    
+    fig, axs = plt.subplots(1, 2, figsize=(6, 3), sharex=True, sharey=True, tight_layout=True)
+    axs[0].hist(PZ0, bins=50,range=(Emin,Emax))
+    axs[1].hist(P0,  bins=50,range=(Emin,Emax))
+
+    axs[0].set_xlabel('E [GeV]')
+    axs[0].set_ylabel('Particles')
+    axs[0].set_title(f'Generated')
+    axs[0].grid(True)
+    
+    axs[1].set_xlabel('E [GeV]')
+    axs[1].set_ylabel('Particles')
+    axs[1].set_title(f'In Acceptance')
+    axs[1].grid(True)
+    
     plt.tight_layout()
     plt.savefig("generator_energy.pdf")
     plt.show()
+    
+    
+    ### save config to pickle
+    data = {"initial_states":initial_states, "particle_trajectories":particle_trajectories, "particle_collisions":particle_collisions, "dipole":dipole, "quad0":quad0, "quad1":quad1, "quad2":quad2}
+    for i,detector in enumerate(detectors): data.update( {f"ALPIDE_{i}":detector} )
+    fpklname = "generator.pkl"
+    fpkl = open(fpklname,'wb')
+    pickle.dump(data,fpkl,protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
+    fpkl.close()
+    

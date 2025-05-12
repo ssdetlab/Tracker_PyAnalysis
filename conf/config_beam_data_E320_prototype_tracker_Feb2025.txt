@@ -30,16 +30,16 @@ skipmasking    = 1
 # nmax2process  = 100000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 
-# ### run502 (Be window in):
-# # first2process = 362
-# first2process = 0
-# nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
-
-### run503 (beam-only, focusing on foil, 6h-long)
+### run502 (Be window in):
+# first2process = 362
 first2process = 0
 nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+
+# ### run503 (beam-only, focusing on foil, 6h-long)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
 # ### run510 (Be window in long run, parasitic)
 # first2process = 0

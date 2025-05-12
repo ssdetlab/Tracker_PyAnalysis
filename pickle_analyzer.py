@@ -311,6 +311,9 @@ if __name__ == "__main__":
     histos.update({ "hD_after_cuts":  ROOT.TH2D("hD_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-80,+80, 120,-70,+90) })
     histos.update({ "hD_zoomout_before_cuts": ROOT.TH2D("hD_zoomout_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
     histos.update({ "hD_zoomout_after_cuts":  ROOT.TH2D("hD_zoomout_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
+    histos.update({ "hD_zoomin_before_cuts":  ROOT.TH2D("hD_zoomin_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",200,1.2*cfg["xDipoleExitMin"],1.2*cfg["xDipoleExitMax"], 200,1.1*cfg["yDipoleExitMin"],1.1*cfg["yDipoleExitMax"]) })
+    histos.update({ "hD_zoomin_after_cuts":   ROOT.TH2D("hD_zoomin_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
+    
     
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
     histos.update({ "hW_after_cuts":  ROOT.TH2D("hW_after_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
@@ -573,6 +576,7 @@ if __name__ == "__main__":
                     ### fill histos before cuts
                     histos["hF_before_cuts"].Fill(rF[0],rF[1])
                     histos["hD_before_cuts"].Fill(rD[0],rD[1])
+                    histos["hD_zoomin_before_cuts"].Fill(rD[0],rD[1])
                     histos["hD_zoomout_before_cuts"].Fill(rD[0],rD[1])
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
                     histos["hTheta_xz_before_cuts"].Fill(thetaf_xz)
@@ -627,6 +631,7 @@ if __name__ == "__main__":
                     
                     histos["hF_after_cuts"].Fill(rF[0],rF[1])
                     histos["hD_after_cuts"].Fill(rD[0],rD[1])
+                    histos["hD_zoomin_after_cuts"].Fill(rD[0],rD[1])
                     histos["hD_zoomout_after_cuts"].Fill(rD[0],rD[1])
                     histos["hW_after_cuts"].Fill(rW[0],rW[1])
                     
@@ -793,6 +798,21 @@ if __name__ == "__main__":
     ROOT.gPad.SetGridx()
     ROOT.gPad.SetGridy()
     histos["hD_after_cuts"].Draw("colz")
+    dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{foupdfname}")
+    
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hD_zoomin_before_cuts"].Draw("colz")
+    dipole.Draw()
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    histos["hD_zoomin_after_cuts"].Draw("colz")
     dipole.Draw()
     ROOT.gPad.RedrawAxis()
     cnv.Update()
