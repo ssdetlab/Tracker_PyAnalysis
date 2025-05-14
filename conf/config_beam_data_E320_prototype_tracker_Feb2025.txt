@@ -235,7 +235,7 @@ yMidWin2PipeCenter = 244.094
 ### from adjusting with the energy
 # yZero2PipeTop = 56.65
 ### from adjusting with toy MC
-yZero2PipeTop = 53.15
+yZero2PipeTop = 52.65
 
 
 [DIPOLE]

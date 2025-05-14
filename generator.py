@@ -8,16 +8,27 @@ import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 import pickle
 
+import argparse
+parser = argparse.ArgumentParser(description='serial_analyzer.py...')
+parser.add_argument('-mag', metavar='magnets settings (run 502 or run 490)', required=True,  help='magnets settings (run 502 or run 490)')
+parser.add_argument('-gen', metavar='particles to generate', required=True,  help='particles to generate')
+parser.add_argument('-acc', metavar='require full acceptance?', required=False,  help='require full acceptance?')
+argus = parser.parse_args()
+MagnetsSettings = int(argus.mag)
+if(MagnetsSettings!=502 and MagnetsSettings!=490):
+    print(f"Unsupported magnets settings run: {MagnetsSettings}")
+    quit()
+Nparticles = int(argus.gen)
+if(Nparticles<=0):
+    print(f"Unsupported Nparticles: {Nparticles}")
+    quit()
+fullacc = True if(argus.acc is not None and argus.acc=="1") else False
+
+
+
 
 plt.rcParams['image.cmap'] = 'afmhot'
 # plt.rcParams['image.cmap'] = 'copper'
-
-
-# Physical constants
-e = 1.602176634e-19  # elementary charge in C
-c = 299792458  # speed of light in m/s
-m_positron = 9.1093837015e-31  # positron mass in kg
-q_positron = e  # positron charge in C
 
 # Convert units
 m_to_cm = 100
@@ -27,6 +38,16 @@ cm_to_m = 0.01
 mm_to_m = 0.001
 mm_to_cm = 0.1
 kG_to_T = 0.1
+GeV_c_to_kgms = 5.344286e-19  # 1000x more than MeV/c
+
+
+# Physical constants
+e = 1.602176634e-19  # elementary charge in C
+c = 299792458  # speed of light in m/s
+m_positron = 9.1093837015e-31  # positron mass in kg
+q_positron = e  # positron charge in C
+mc2_GeV = 0.000511  # Rest energy of positron in GeV
+mc2_kgms = mc2_GeV*GeV_c_to_kgms
 
 ### chip
 npix_x = 1024
@@ -40,9 +61,20 @@ chipYcm = chipYmm*mm_to_cm
 chipXm  = chipXmm*mm_to_m
 chipYm  = chipYmm*mm_to_m
 
-print(f"chipXmm={chipXmm}, chipYmm={chipYmm}")
-print(f"chipXcm={chipXcm}, chipYcm={chipYcm}")
-print(f"chipXm={chipXm},   chipYm={chipYm}")
+zIP = 0
+zBe = -84 # cm
+
+# Define detector y range
+detector_y_center_cm = (5.665 + 0.1525 + 3.685) # cm
+detector_y_center_m = detector_y_center_cm*cm_to_m
+
+# Calculate detector z position
+detector_z_base_cm = (1363 + 303.2155 + 11.43 + 1.05)  # cm
+detector_z_base_m = detector_z_base_cm*cm_to_m
+detector_z_base_mm = detector_z_base_cm*cm_to_mm
+
+# Set terminal attribute when collision occurs
+collision_event.terminal = True
 
 
 # Define magnet elements
@@ -54,7 +86,6 @@ class Element:
         self.y_max = y_max * cm_to_m
         self.z_min = z_min * cm_to_m
         self.z_max = z_max * cm_to_m
-        # print(f"x_min={self.x_min}, x_max={self.x_max}, y_min={self.y_min}, y_max={self.y_max}, z_min={self.z_min}, z_max={self.z_max}")
         
     def is_inside(self, x, y, z):
         return (self.x_min <= x <= self.x_max and 
@@ -136,20 +167,9 @@ class Quadrupole(Element):
             'x': x, 'y': y, 'z': z,
             'px': px, 'py': py, 'pz': pz
         })
-    
 
-# Create magnetic elements
-dipole = Dipole(
-    x_min=-2.2352, x_max=2.2352,
-    y_min=-6.1976, y_max=3.3528,
-    z_min=1265, z_max=1363,
-    B_x=0.219  # Tesla
-)
 
-# Calculate detector z position
-detector_z_base_cm = (1363 + 303.2155 + 11.43 + 1.05)  # cm
-detector_z_base_m = detector_z_base_cm*cm_to_m
-detector_z_base_mm = detector_z_base_cm*cm_to_mm
+
 
 # Create detector planes
 class Detector(Element):
@@ -179,16 +199,6 @@ class Detector(Element):
         y = [vertices[0][1], vertices[1][1], vertices[2][1], vertices[3][1], vertices[4][1]]
         z = [vertices[0][2], vertices[1][2], vertices[2][2], vertices[3][2], vertices[4][2]]
         
-        # Create z values with a small offset for thickness
-        # z_with_thickness = [z_val + 0.007 for z_val in z[:-1]]
-        # Plot the detector plane
-        # ax.plot_surface(
-        #     np.array([x[:-1], x[:-1]]).T,
-        #     np.array([y[:-1], y[:-1]]).T,
-        #     np.array([z[:-1], z_with_thickness]).T,  # Fixed thickness calculation
-        #     color=color, alpha=alpha
-        # )
-        
         L1verts = []
         L1verts.append( np.array([ [x[0],y[0],z[0]],
                                    [x[1],y[1],z[1]],
@@ -204,16 +214,13 @@ class Detector(Element):
         GeV_c_to_kgms = 5.344286e-19  # 1000x more than MeV/c
         print(f"Detector at z={self.z_pos:.2f} m hits:")
         for hit in self.hits:
-            # print(f"  Particle {hit['particle_id']}: x={hit['x']:.6f} m, y={hit['y']:.6f} m")
             pid = hit['particle_id']
             xx  = hit['x']
             yy  = hit['y']
             pz  = initial_states[pid][5]/GeV_c_to_kgms
             print(f"  Particle {pid}: x={xx:.6f} m, y={yy:.6f} m (pz={pz:.2f} GeV)")
 
-# Define detector y range
-detector_y_center_cm = (5.665 + 0.1525 + 3.685) # cm
-detector_y_center_m = detector_y_center_cm*cm_to_m
+
 
 # Create the detector objects
 detectors = []
@@ -225,43 +232,71 @@ for i in range(5):
     )
     detectors.append(detector)
 
+
+
+
+# Create magnetic elements
+dipole = Dipole(
+    x_min=-2.2352, x_max=2.2352,
+    y_min=-6.1976, y_max=3.3528,
+    z_min=1260.34, z_max=1351.78,
+    B_x=0.219  # Tesla
+)
+
 quad0 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
-    z_min=368, z_max=468, # cm
-    gradient=7.637  # kG/cm
+    z_min=367.33336, z_max=464.6664, # cm
+    gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/cm
 )
-
 quad1 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
-    z_min=591, z_max=691, # cm
-    gradient=-28.55  # kG/cm
+    z_min=590.3336, z_max=687.6664, # cm
+    gradient=+28.55 if(MagnetsSettings==502) else +46.42 # kG/cm
 )
-
 quad2 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
-    z_min=813, z_max=913, # cm
-    gradient=7.637  # kG/cm
+    z_min=812.3336, z_max=909.6664, # cm
+    gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/cm
 )
 
+### collect all elements
 elements = [quad0, quad1, quad2, dipole] + detectors
 
 
 
-# Function to calculate total magnetic field at a point
+# To calculate total magnetic field at a point
 def total_field(position):
     x, y, z = position
     field = np.zeros(3)
-    
-    for element in elements:
-        field += element.field(x, y, z)
-    
+    for element in elements: field += element.field(x, y, z)
     return field
 
 
 
+def record_hits(element,z_element,trajectory,particle_id):
+    for i in range(len(trajectory.t) - 1):
+        z1, z2 = trajectory.y[2][i], trajectory.y[2][i+1]
+        
+        # If particle trajectory crosses the detector plane
+        if (z1 <= z_element <= z2) or (z2 <= z_element <= z1):
+            # Linear interpolation to find position at detector plane
+            t1, t2 = trajectory.t[i], trajectory.t[i+1]
+            fraction = (z_element - z1) / (z2 - z1) if z2 != z1 else 0
+            
+            t_hit = t1 + fraction * (t2 - t1)
+            x_hit = trajectory.y[0][i] + fraction * (trajectory.y[0][i+1] - trajectory.y[0][i])
+            y_hit = trajectory.y[1][i] + fraction * (trajectory.y[1][i+1] - trajectory.y[1][i])
+            
+            px_hit = trajectory.y[3][i] + fraction * (trajectory.y[3][i+1] - trajectory.y[3][i])
+            py_hit = trajectory.y[4][i] + fraction * (trajectory.y[4][i+1] - trajectory.y[4][i])
+            pz_hit = trajectory.y[5][i] + fraction * (trajectory.y[5][i+1] - trajectory.y[5][i])
+            
+            # Check if hit is within detector surface
+            if (element.x_min <= x_hit <= element.x_max and element.y_min <= y_hit <= element.y_max):
+                element.record_hit(particle_id, x_hit, y_hit, z_element, px_hit, py_hit, pz_hit)
 
 
 
@@ -354,38 +389,11 @@ def collision_event(t, state, elements_to_check=None):
     return min_distance
 
 
-# Set terminal attribute when collision occurs
-collision_event.terminal = True
-
-
-
-def record_hits(element,z_element,trajectory,particle_id):
-    for i in range(len(trajectory.t) - 1):
-        z1, z2 = trajectory.y[2][i], trajectory.y[2][i+1]
-        
-        # If particle trajectory crosses the detector plane
-        if (z1 <= z_element <= z2) or (z2 <= z_element <= z1):
-            # Linear interpolation to find position at detector plane
-            t1, t2 = trajectory.t[i], trajectory.t[i+1]
-            fraction = (z_element - z1) / (z2 - z1) if z2 != z1 else 0
-            
-            t_hit = t1 + fraction * (t2 - t1)
-            x_hit = trajectory.y[0][i] + fraction * (trajectory.y[0][i+1] - trajectory.y[0][i])
-            y_hit = trajectory.y[1][i] + fraction * (trajectory.y[1][i+1] - trajectory.y[1][i])
-            
-            px_hit = trajectory.y[3][i] + fraction * (trajectory.y[3][i+1] - trajectory.y[3][i])
-            py_hit = trajectory.y[4][i] + fraction * (trajectory.y[4][i+1] - trajectory.y[4][i])
-            pz_hit = trajectory.y[5][i] + fraction * (trajectory.y[5][i+1] - trajectory.y[5][i])
-            
-            # Check if hit is within detector surface
-            if (element.x_min <= x_hit <= element.x_max and element.y_min <= y_hit <= element.y_max):
-                element.record_hit(particle_id, x_hit, y_hit, z_element, px_hit, py_hit, pz_hit)
 
 
 
 
-
-# Modified function to propagate particle with collision detection
+# Propagate particle with collision detection
 def propagate_particle_with_collision(particle_id, initial_state, t_span, max_step=1e-9):
     """
     Propagate particle through beamline with collision detection.
@@ -477,7 +485,7 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
 
 
 # Plot the beamline and particle trajectory
-def plot_system(particle_trajectories, initial_states, nmaxtrks=100):
+def plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100):
     fig = plt.figure(figsize=(16, 10))
     ax = fig.add_subplot(111, projection='3d')
     
@@ -518,28 +526,21 @@ def plot_system(particle_trajectories, initial_states, nmaxtrks=100):
     ax.set_title('Charged Particle Propagation Through Magnetic Elements')
     
     plt.tight_layout()
-    plt.savefig("generator_tracks.pdf")
+    plt.savefig(f"{pdfname}_tracks.pdf")
     plt.show()
     
     
     
     
-    # Create a separate figure for the detector hit patterns
-    # fig_det = plt.figure(figsize=(10, 3))
-    # det_grid = plt.GridSpec(1, 5, figure=fig_det)
-    fig_det, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
-    
     # Plot detector hit patterns
+    fig_det, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
     for i, detector in enumerate(detectors):
-        # ax_det = fig_det.add_subplot(det_grid[i//2, i%2])
-        # Draw detector boundary
         rect = plt.Rectangle(
             (detector.x_min, detector.y_min),
             detector.x_max - detector.x_min,
             detector.y_max - detector.y_min,
             fill=False, edgecolor='gray'
         )
-        # ax_det.add_patch(rect)
         axs[i].add_patch(rect)
         
         # Plot hits
@@ -547,10 +548,7 @@ def plot_system(particle_trajectories, initial_states, nmaxtrks=100):
         hit_y = [hit['y'] for hit in detector.hits]
         particle_ids = [hit['particle_id'] for hit in detector.hits]
         
-        for j, (x, y, pid) in enumerate(zip(hit_x, hit_y, particle_ids)):
-            # ax_det.plot(x, y, 'o', markersize=3, label=f"Particle {pid+1}" if j == 0 else "")
-            # ax_det.plot(x, y, 'o', markersize=2)
-            axs[i].plot(x, y, 'o', markersize=1)
+        for j, (x, y, pid) in enumerate(zip(hit_x, hit_y, particle_ids)): axs[i].plot(x, y, 'o', markersize=1)
         
         # ax_det.set_xlim(detector.x_min * 1.2, detector.x_max * 1.2)
         # ax_det.set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
@@ -563,18 +561,13 @@ def plot_system(particle_trajectories, initial_states, nmaxtrks=100):
         axs[i].set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
         axs[i].set_xlabel('X [m]')
         axs[i].set_ylabel('Y [m]')
-        # axs[i].set_title(f'Detector {i+1} at z={detector.z_pos:.2f} m')
         axs[i].set_title(f'ALPIDE_{i}')
         axs[i].grid(True)
         
-        # if i == 0:  # Only add legend to first plot
-        #     ax_det.legend()
-        
     plt.tight_layout()
-    plt.savefig("generator_scatter.pdf")
+    plt.savefig(f"{pdfname}_scatter.pdf")
     plt.show()
     
-    # Return both figures for saving if needed
     return fig, fig_det
 
 
@@ -588,43 +581,38 @@ def truncated_exp_NK(a,b,how_many):
 # Example usage
 if __name__ == "__main__":
     
-    fullacc = False
+    pdfname = f"generator_{MagnetsSettings}"
     
     # Define example initial conditions for particles
     # Format: [x0, y0, z0, px0, py0, pz0]
-    # We'll use momentum in units of GeV/c and convert to kg*m/s
-    GeV_c_to_kgms = 5.344286e-19  # 1000x more than MeV/c
-    
-    # Energy in GeV
-    energy_GeV = 2.5
-    
-    # Calculate momentum for the given energy (assuming relativistic particles)
-    # For a positron: E^2 = (pc)^2 + (mc^2)^2
-    # => pc = sqrt(E^2 - (mc^2)^2)
-    # => p = sqrt(E^2 - (mc^2)^2)/c
-    
-    mc2_GeV = 0.000511  # Rest energy of positron in GeV
-    p_GeV = np.sqrt(energy_GeV**2 - mc2_GeV**2)  # Momentum in GeV/c
-    
-    p_kgms = p_GeV * GeV_c_to_kgms  # Convert to kg*m/s
-    
+    # Momentum in units of GeV/c and convert to kg*m/s
     Emin = 0.5 ## GeV 
     Emax = 5.0 ## GeV
     sigmax = 0.0001 ## m (100 um)
     sigmay = 0.0001 ## m (100 um)
-    sigmaz = 0.0001 ## m (100 um)
-    sigmaPx = 0.0010 ## GeV
-    sigmaPy = 0.0008 ## GeV
-    Nparticles = 2000
+    sigmaz = 0.0005 ## m (500 um)
+    sigmaPx = 0.0030 ## GeV
+    sigmaPy = 0.0005 ## GeV
+    '''
+    NBW from Arka (PTARMIGAN)
+    sigma_x: 0.004166 mm
+    sigma_y: 0.0006886 mm
+    sigma_z: 7.205e-3 mm
+    sigma_px: 0.001037 GeV
+    sigma_py: 0.000193 GeV
+    sigma_pz: 0.7707 GeV
+    '''
+    
     initial_states = []
     PZ0 = []
     for i in range(Nparticles):
         XX = np.random.normal(0.0,sigmax)
         YY = np.random.normal(0.0,sigmay)
-        ZZ = np.random.normal(0.0,sigmaz)
-        PZ = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
+        ZZ = np.random.normal(zBe*cm_to_m,sigmaz)
         PX = np.random.normal(0.0,sigmaPx*GeV_c_to_kgms)
         PY = np.random.normal(0.0,sigmaPy*GeV_c_to_kgms)
+        EE = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
+        PZ = np.sqrt( EE**2 - mc2_kgms**2 - PX**2 - PY**2 )
         PZ0.append(PZ/GeV_c_to_kgms)
         state = [XX,YY,ZZ, PX,PY,PZ]
         initial_states.append(state)
@@ -649,7 +637,7 @@ if __name__ == "__main__":
         if(i%100==0): print(f"done propagating particle {i}")
     
     # Plot the system with particle trajectories
-    main_fig, detector_fig = plot_system(particle_trajectories, initial_states, nmaxtrks=100)
+    main_fig, detector_fig = plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100)
 
     # # Some diagnostics about final positions
     # for i, traj in enumerate(particle_trajectories):
@@ -690,6 +678,7 @@ if __name__ == "__main__":
     ### plot the hits:
     fig, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
     P0 = []
+    hOcc = []
     for i,detector in enumerate(detectors):
         X = []
         Y = []
@@ -706,7 +695,7 @@ if __name__ == "__main__":
             Z.append((zz-detector_z_base_m)*m_to_mm)
             if(fullacc and pid not in list_good_tracks): continue
             P.append(pz/GeV_c_to_kgms)
-        axs[i].hist2d(X, Y, bins=(100,200),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]])
+        hOcc.append( axs[i].hist2d(X, Y, bins=(100,200),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
         if(i==0):
             P0 = P
         axs[i].set_xlabel('X [m]')
@@ -717,62 +706,69 @@ if __name__ == "__main__":
         axs[i].xaxis.set_minor_locator(AutoMinorLocator(10))
         axs[i].yaxis.set_minor_locator(AutoMinorLocator(10))
     plt.tight_layout()
-    plt.savefig("generator_occupancy.pdf")
+    plt.savefig(f"{pdfname}_occupancy.pdf")
     plt.show()
     
     
-    ### plot the exit plane at the dipole:
-    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
-    X = []
-    Y = []
-    for point in dipole.hits:
-        pid = point['particle_id']
-        if(fullacc and pid not in list_good_tracks): continue
-        X.append(point['x'])
-        Y.append(point['y'])
-    ax.hist2d(X, Y, bins=(200,200),range=[[dipole.x_min,dipole.x_max],[dipole.y_min,dipole.y_max]])
-    ax.set_xlim(dipole.x_min * 1.2, dipole.x_max * 1.2)
-    ax.set_ylim(dipole.y_min * 0.9 if(dipole.y_min>0) else dipole.y_min*1.1, dipole.y_max * 1.1)
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
-    ax.set_title(f'Dipole exit')
-    plt.locator_params(axis='x', nbins=10)
-    plt.locator_params(axis='y', nbins=10)
-    ax.xaxis.set_minor_locator(AutoMinorLocator(10))
-    ax.yaxis.set_minor_locator(AutoMinorLocator(10))
-    ax.grid(True,linewidth=0.25,alpha=0.25)
-    plt.tight_layout()
-    plt.savefig("generator_dipole_exit_zoom.pdf")
-    plt.show()
-    
-    
-    ### plot the exit plane at the dipole:
-    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
-    X = []
-    Y = []
-    for point in dipole.hits:
-        pid = point['particle_id']
-        if(fullacc and pid not in list_good_tracks): continue
-        X.append(point['x'])
-        Y.append(point['y'])
-    ax.hist2d(X, Y, bins=(120,120),range=[[-80*mm_to_m,+80*mm_to_m],[-70*mm_to_m,+90*mm_to_m]])
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
-    ax.set_title(f'Dipole exit')
-    rectD = plt.Rectangle(
+    rectD1 = plt.Rectangle(
         (dipole.x_min, dipole.y_min),
         dipole.x_max - dipole.x_min,
         dipole.y_max - dipole.y_min,
         fill=False, edgecolor='blue'
     )
-    ax.add_patch(rectD)
+    rectD2 = plt.Rectangle(
+        (dipole.x_min, dipole.y_min),
+        dipole.x_max - dipole.x_min,
+        dipole.y_max - dipole.y_min,
+        fill=False, edgecolor='blue'
+    )
+    
+    
+    ### plot the exit plane at the dipole:
+    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
+    X = []
+    Y = []
+    for point in dipole.hits:
+        pid = point['particle_id']
+        if(fullacc and pid not in list_good_tracks): continue
+        X.append(point['x'])
+        Y.append(point['y'])
+    hDzoom = ax.hist2d(X, Y, bins=(200,200),range=[[dipole.x_min*1.2,dipole.x_max*1.2],[dipole.y_min*1.1,dipole.y_max*1.1]], rasterized=True)
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
+    ax.set_title(f'Dipole exit')
+    ax.add_patch(rectD1)
     plt.locator_params(axis='x', nbins=10)
     plt.locator_params(axis='y', nbins=10)
     ax.xaxis.set_minor_locator(AutoMinorLocator(10))
     ax.yaxis.set_minor_locator(AutoMinorLocator(10))
-    ax.grid(True,linewidth=0.25,alpha=0.25)
+    ax.grid(True,linewidth=0.25,alpha=0.25,which='major')
     plt.tight_layout()
-    plt.savefig("generator_dipole_exit.pdf")
+    plt.savefig(f"{pdfname}_dipole_exit_zoom.pdf")
+    plt.show()
+    
+    
+    ### plot the exit plane at the dipole:
+    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
+    X = []
+    Y = []
+    for point in dipole.hits:
+        pid = point['particle_id']
+        if(fullacc and pid not in list_good_tracks): continue
+        X.append(point['x'])
+        Y.append(point['y'])
+    hD = ax.hist2d(X, Y, bins=(120,120),range=[[-80*mm_to_m,+80*mm_to_m],[-70*mm_to_m,+90*mm_to_m]], rasterized=True)
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
+    ax.set_title(f'Dipole exit')
+    ax.add_patch(rectD2)
+    plt.locator_params(axis='x', nbins=10)
+    plt.locator_params(axis='y', nbins=10)
+    ax.xaxis.set_minor_locator(AutoMinorLocator(10))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(10))
+    ax.grid(True,linewidth=0.25,alpha=0.25,which='major')
+    plt.tight_layout()
+    plt.savefig(f"{pdfname}_dipole_exit.pdf")
     plt.show()
     
     
@@ -785,9 +781,9 @@ if __name__ == "__main__":
         if(fullacc and pid not in list_good_tracks): continue
         X0.append(point['x'])
         Y0.append(point['y'])
-    axs[0].hist2d(X0, Y0, bins=(150,150),range=[[quad0.x_min,quad0.x_max],[quad0.y_min,quad0.y_max]])
-    axs[0].set_xlim(quad0.x_min * 1.2, quad0.x_max * 1.2)
-    axs[0].set_ylim(quad0.y_min * 0.9 if(quad0.y_min>0) else quad0.y_min*1.1, quad0.y_max * 1.1)
+    hq0 = axs[0].hist2d(X0, Y0, bins=(150,150),range=[[quad0.x_min*1.5,quad0.x_max*1.5],[quad0.y_min*1.5,quad0.y_max*1.5]], rasterized=True)
+    axs[0].set_xlim(quad0.x_min * 1.5, quad0.x_max * 1.5)
+    axs[0].set_ylim(quad0.y_min * 1.5, quad0.y_max * 1.5)
     axs[0].set_xlabel('X [m]')
     axs[0].set_ylabel('Y [m]')
     axs[0].set_title(f'Quad0 exit')
@@ -803,9 +799,9 @@ if __name__ == "__main__":
         if(fullacc and pid not in list_good_tracks): continue
         X1.append(point['x'])
         Y1.append(point['y'])
-    axs[1].hist2d(X1, Y1, bins=(150,150),range=[[quad1.x_min,quad1.x_max],[quad1.y_min,quad1.y_max]])
-    axs[1].set_xlim(quad1.x_min * 1.2, quad1.x_max * 1.2)
-    axs[1].set_ylim(quad1.y_min * 0.9 if(quad1.y_min>0) else quad1.y_min*1.1, quad1.y_max * 1.1)
+    hq1 = axs[1].hist2d(X1, Y1, bins=(150,150),range=[[quad1.x_min*1.5,quad1.x_max*1.5],[quad1.y_min*1.5,quad1.y_max*1.5]], rasterized=True)
+    axs[1].set_xlim(quad1.x_min * 1.5, quad1.x_max * 1.5)
+    axs[1].set_ylim(quad1.y_min * 1.5, quad1.y_max * 1.5)
     axs[1].set_xlabel('X [m]')
     axs[1].set_ylabel('Y [m]')
     axs[1].set_title(f'Quad1 exit')
@@ -821,9 +817,9 @@ if __name__ == "__main__":
         if(fullacc and pid not in list_good_tracks): continue
         X2.append(point['x'])
         Y2.append(point['y'])
-    axs[2].hist2d(X2, Y2, bins=(150,150),range=[[quad2.x_min,quad2.x_max],[quad2.y_min,quad2.y_max]])
-    axs[2].set_xlim(quad2.x_min * 1.2, quad2.x_max * 1.2)
-    axs[2].set_ylim(quad2.y_min * 0.9 if(quad2.y_min>0) else quad2.y_min*1.1, quad2.y_max * 1.1)
+    hq2 = axs[2].hist2d(X2, Y2, bins=(150,150),range=[[quad2.x_min*1.5,quad2.x_max*1.5],[quad2.y_min*1.5,quad2.y_max*1.5]], rasterized=True)
+    axs[2].set_xlim(quad2.x_min * 1.5, quad2.x_max * 1.5)
+    axs[2].set_ylim(quad2.y_min * 1.5, quad2.y_max * 1.5)
     axs[2].set_xlabel('X [m]')
     axs[2].set_ylabel('Y [m]')
     axs[2].set_title(f'Quad2 exit')
@@ -833,7 +829,7 @@ if __name__ == "__main__":
     axs[2].yaxis.set_minor_locator(AutoMinorLocator(10))
     # axs[2].grid(True,linewidth=0.25,alpha=0.25)
     plt.tight_layout()
-    plt.savefig("generator_quads_exit.pdf")
+    plt.savefig(f"{pdfname}_quads_exit.pdf")
     plt.show()
     
     
@@ -847,7 +843,7 @@ if __name__ == "__main__":
         XX.append(point['x'])
         px = initial_states[pid][3]/GeV_c_to_kgms
         PX.append( px )   
-    axs[0].hist2d(XX, PX, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]])
+    hdivx = axs[0].hist2d(XX, PX, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]], rasterized=True)
     axs[0].set_xlabel('X [m]')
     axs[0].set_ylabel('PX [GeV]')
     plt.locator_params(axis='x', nbins=10)
@@ -863,7 +859,7 @@ if __name__ == "__main__":
         YY.append(point['y'])
         py = initial_states[pid][4]/GeV_c_to_kgms
         PY.append( py )
-    axs[1].hist2d(YY, PY, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]])
+    hdivy = axs[1].hist2d(YY, PY, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]], rasterized=True)
     axs[1].set_xlabel('Y [m]')
     axs[1].set_ylabel('PY [GeV]')
     plt.locator_params(axis='x', nbins=10)
@@ -872,7 +868,7 @@ if __name__ == "__main__":
     axs[1].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[1].grid(True,linewidth=0.25,alpha=0.25)
     plt.tight_layout()
-    plt.savefig("generator_divergence.pdf")
+    plt.savefig(f"{pdfname}_divergence.pdf")
     plt.show()
     
     
@@ -884,30 +880,31 @@ if __name__ == "__main__":
     # plt.savefig("generator_energy.pdf")
     # plt.show()
     
-    fig, axs = plt.subplots(1, 2, figsize=(6, 3), sharex=True, sharey=True, tight_layout=True)
-    axs[0].hist(PZ0, bins=50,range=(Emin,Emax))
-    axs[1].hist(P0,  bins=50,range=(Emin,Emax))
+    fig, axs = plt.subplots(1, 2, figsize=(6, 3), tight_layout=True)
+    hpz0 = axs[0].hist(PZ0, bins=50,range=(Emin,Emax), rasterized=True)
+    hp0  = axs[1].hist(P0,  bins=50,range=(1.5,4.5), rasterized=True)
 
+    axs[0].set_xlim(Emin,Emax)
     axs[0].set_xlabel('E [GeV]')
     axs[0].set_ylabel('Particles')
     axs[0].set_title(f'Generated')
     plt.locator_params(axis='x', nbins=10)
-    plt.locator_params(axis='y', nbins=10)
     axs[0].xaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].grid(True,linewidth=0.25,alpha=0.25)
     
+    axs[1].set_xlim(1.5,4.5)
+    axs[1].set_yscale("log")
     axs[1].set_xlabel('E [GeV]')
     axs[1].set_ylabel('Particles')
     axs[1].set_title(f'In Acceptance')
     plt.locator_params(axis='x', nbins=10)
-    plt.locator_params(axis='y', nbins=10)
     axs[1].xaxis.set_minor_locator(AutoMinorLocator(10))
-    axs[1].yaxis.set_minor_locator(AutoMinorLocator(10))
+    # axs[1].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[1].grid(True,linewidth=0.25,alpha=0.25)
     
     plt.tight_layout()
-    plt.savefig("generator_energy.pdf")
+    plt.savefig(f"{pdfname}_energy.pdf")
     plt.show()
     
     

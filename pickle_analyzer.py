@@ -312,7 +312,7 @@ if __name__ == "__main__":
     histos.update({ "hD_zoomout_before_cuts": ROOT.TH2D("hD_zoomout_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
     histos.update({ "hD_zoomout_after_cuts":  ROOT.TH2D("hD_zoomout_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
     histos.update({ "hD_zoomin_before_cuts":  ROOT.TH2D("hD_zoomin_before_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",200,1.2*cfg["xDipoleExitMin"],1.2*cfg["xDipoleExitMax"], 200,1.1*cfg["yDipoleExitMin"],1.1*cfg["yDipoleExitMax"]) })
-    histos.update({ "hD_zoomin_after_cuts":   ROOT.TH2D("hD_zoomin_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks",120,-1000,+1000, 120,-1000,+1000) })
+    histos.update({ "hD_zoomin_after_cuts":   ROOT.TH2D("hD_zoomin_after_cuts","Dipole exit plane;x [mm];y [mm];Extrapolated Tracks", 200,1.2*cfg["xDipoleExitMin"],1.2*cfg["xDipoleExitMax"], 200,1.1*cfg["yDipoleExitMin"],1.1*cfg["yDipoleExitMax"]) })
     
     
     histos.update({ "hW_before_cuts": ROOT.TH2D("hW_before_cuts","Vacuum window plane;x [mm];y [mm];Extrapolated Tracks",120,-70,+70, 120,50,+190) })
