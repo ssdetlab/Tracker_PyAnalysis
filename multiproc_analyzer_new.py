@@ -183,16 +183,28 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         timestamp_end   = ttree.event.ts_end
         
         
-        ### get the magnets' state
-        magnets = Magnets(ttree.event.epics_frame.espec_dipole_bact,
-                          ttree.event.epics_frame.espec_quad0_bact,
-                          ttree.event.epics_frame.espec_quad1_bact,
-                          ttree.event.epics_frame.espec_quad2_bact,
-                          ttree.event.epics_frame.mcalc_m12,
-                          ttree.event.epics_frame.mcalc_m34,
-                          ttree.event.epics_frame.mcalc_z_obj,
-                          ttree.event.epics_frame.mcalc_z_im,
-                          ttree.event.epics_frame.espec_xcor_bact)
+        ################ TODO
+        # ### get the magnets' state
+        # magnets = Magnets(float(str(ttree.event.ev_epics_frame.pv_map['LI20:LGPS:3330:BACT'].value)), ## dipole
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['LI20:LGPS:3141:BACT'].value)), ## quad0
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['LI20:LGPS:3261:BACT'].value)), ## quad1
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['LI20:LGPS:3091:BACT'].value)), ## quad2
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT054'].value)), ## m12
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT055'].value)), ## m34
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT052'].value)), ## z object
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT053'].value)), ## z image
+        #                   float(str(ttree.event.ev_epics_frame.pv_map['LI20:XCOR:3276:BACT'].value))) ## x-correctore
+
+        magnets = Magnets(10, ## dipole
+                          -30.68, ## quad0
+                          46.42, ## quad1
+                          -30.68, ## quad2
+                          0, ## m12
+                          1, ## m34
+                          1192.83, ## z object
+                          2009.5, ## z image
+                          0.0616) ## x-correctore
+        ################ TODO
 
 
         ### append the envent no-matter-what:
@@ -235,11 +247,21 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
 
         ### get the pixels
         n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix)
+        # ################ TODO
+        # toomanyhits = False
+        # for det in cfg["detectors"]:
+        #     if(len(pixels[det])>700):
+        #         toomanyhits = True
+        #         break
+        # if(toomanyhits): continue
+        # ################ TODO
         sprnt = f"ievt={ievt}: active_chips={n_active_chips} -->"
         for det in cfg["detectors"]:
             sprnt += f" Npixels[{det}]={len(pixels[det])},"
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
         # print(sprnt)
+        ################ TODO
+        # if(toomanyhits): print(sprnt)
         
         ### the fake particles are attached to the pixels (it is enough to take the 1st pixel of the 1st detector) #TODO: this is assuming that there's only one mc particle per event
         fakemcparticles = []
@@ -260,14 +282,14 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}>0") )
         
         
-        ### spatial ROI cut
-        ROI = { "ix":{"min":cfg["cut_ROI_xmin"],"max":cfg["cut_ROI_xmax"]}, "iy":{"min":cfg["cut_ROI_ymin"],"max":cfg["cut_ROI_ymax"]} }
-        n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,ROI)
-        sprnt = f"ievt={ievt} in_ROI_chips={n_active_chips} -->"
-        for det in cfg["detectors"]:
-            sprnt += f" Npixels[{det}]={len(pixels[det])},"
-        # print(sprnt)
-        if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
+        # ### spatial ROI cut
+        # ROI = { "ix":{"min":cfg["cut_ROI_xmin"],"max":cfg["cut_ROI_xmax"]}, "iy":{"min":cfg["cut_ROI_ymin"],"max":cfg["cut_ROI_ymax"]} }
+        # n_active_staves, n_active_chips, pixels = get_all_pixles(ttree,hPixMatix,ROI)
+        # sprnt = f"ievt={ievt} in_ROI_chips={n_active_chips} -->"
+        # for det in cfg["detectors"]:
+        #     sprnt += f" Npixels[{det}]={len(pixels[det])},"
+        # # print(sprnt)
+        # if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}^{ROI}>0") )
         # dump_pixels(f"pixels_evt_{ievt}.pkl",pixels)
         
@@ -514,12 +536,13 @@ if __name__ == "__main__":
 
     ### load bad triggers from pickle
     badtriggers = []
+    ################ TODO
     if(not cfg["isMC"]):
         fpkltrigger = open(fpkltrgname,'rb')
         badtriggers = pickle.load(fpkltrigger)
         fpkltrigger.close()
     print(f"Found {len(badtriggers)} bad triggers")
-    
+    ################ TODO
     
     ### masking business
     masked = {}

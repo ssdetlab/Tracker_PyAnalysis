@@ -64,17 +64,18 @@ chipYm  = chipYmm*mm_to_m
 zIP = 0
 zBe = -84 # cm
 
+# Define detector x range
+detector_x_center_cm = (6.0) # cm
+detector_x_center_m = detector_x_center_cm*cm_to_m
+
 # Define detector y range
-detector_y_center_cm = (5.665 + 0.1525 + 3.685) # cm
+detector_y_center_cm = (5.165 + 0.1525 + 3.685) # cm
 detector_y_center_m = detector_y_center_cm*cm_to_m
 
 # Calculate detector z position
 detector_z_base_cm = (1363 + 303.2155 + 11.43 + 1.05)  # cm
 detector_z_base_m = detector_z_base_cm*cm_to_m
 detector_z_base_mm = detector_z_base_cm*cm_to_mm
-
-# Set terminal attribute when collision occurs
-collision_event.terminal = True
 
 
 # Define magnet elements
@@ -129,14 +130,16 @@ class Element:
             )
 
 class Dipole(Element):
-    def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, B_x):
+    def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, B_x,B_y,B_z):
         super().__init__(x_min, x_max, y_min, y_max, z_min, z_max)
         self.B_x = B_x  # Tesla
+        self.B_y = B_y  # Tesla
+        self.B_z = B_z  # Tesla
         self.hits = []
         
     def field(self, x, y, z):
         if self.is_inside(x, y, z):
-            return np.array([self.B_x, 0, 0])
+            return np.array([self.B_x, self.B_y, self.B_z])
         else:
             return np.array([0, 0, 0])
     
@@ -236,13 +239,6 @@ for i in range(5):
 
 
 # Create magnetic elements
-dipole = Dipole(
-    x_min=-2.2352, x_max=2.2352,
-    y_min=-6.1976, y_max=3.3528,
-    z_min=1260.34, z_max=1351.78,
-    B_x=0.219  # Tesla
-)
-
 quad0 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
@@ -261,9 +257,21 @@ quad2 = Quadrupole(
     z_min=812.3336, z_max=909.6664, # cm
     gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/cm
 )
+xcorr = Dipole(
+    x_min=-8.6995/2., x_max=+8.6995/2.,
+    y_min=-5.715/2., y_max=+5.715/2.,
+    z_min=999.29032-11.811/2, z_max=999.29032+11.811/2,
+    B_x=0, B_y=0.026107, B_z=0  # Tesla
+)
+dipole = Dipole(
+    x_min=-2.2352, x_max=2.2352,
+    y_min=-6.1976, y_max=3.3528,
+    z_min=1260.34, z_max=1351.78,
+    B_x=0.219, B_y=0, B_z=0  # Tesla
+)
 
 ### collect all elements
-elements = [quad0, quad1, quad2, dipole] + detectors
+elements = [quad0, quad1, quad2, xcorr, dipole] + detectors
 
 
 
@@ -357,7 +365,7 @@ def collision_event(t, state, elements_to_check=None):
         Distance from nearest wall (negative inside element boundaries, zero at boundary, positive outside)
     """
     if elements_to_check is None:
-        elements_to_check = [quad0, quad1, quad2, dipole] 
+        elements_to_check = [quad0, quad1, quad2, xcorr, dipole] 
     
     x, y, z = state[0], state[1], state[2]
     
@@ -388,6 +396,8 @@ def collision_event(t, state, elements_to_check=None):
         
     return min_distance
 
+# Set terminal attribute when collision occurs
+collision_event.terminal = True
 
 
 
@@ -432,6 +442,8 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
     for det in detectors: record_hits(det,det.z_pos,solution,particle_id)
     ### dipole
     record_hits(dipole,dipole.z_max,solution,particle_id)
+    ### xcorr
+    record_hits(xcorr,xcorr.z_max,solution,particle_id)
     ### quads
     record_hits(quad0,quad0.z_max,solution,particle_id)
     record_hits(quad1,quad1.z_max,solution,particle_id)
@@ -454,7 +466,7 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
 
         # Determine which element was hit
         collision_element = None
-        for element in [quad0, quad1, quad2, dipole]:
+        for element in [quad0, quad1, quad2, xcorr, dipole]:
             if (element.z_min <= collision_state[2] <= element.z_max):
                 if abs(collision_state[0] - element.x_min) < 1e-6 or abs(collision_state[0] - element.x_max) < 1e-6 or \
                    abs(collision_state[1] - element.y_min) < 1e-6 or abs(collision_state[1] - element.y_max) < 1e-6:
@@ -468,6 +480,8 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
             element_name = "Quadrupole 1"
         elif collision_element == quad2:
             element_name = "Quadrupole 2"
+        elif collision_element == xcorr:
+            element_name = "Xcorr"
         elif collision_element == dipole:
             element_name = "Dipole"
 
@@ -493,6 +507,7 @@ def plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100):
     quad0.plot_element(ax, 'blue')
     quad1.plot_element(ax, 'green')
     quad2.plot_element(ax, 'blue')
+    xcorr.plot_element(ax, 'red')
     dipole.plot_element(ax, 'red')
     
     # Plot detector planes
@@ -518,10 +533,11 @@ def plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100):
     quad_patch = mpatches.Patch(color='blue', alpha=0.5, label='Focusing Quad')
     quad_neg_patch = mpatches.Patch(color='green', alpha=0.5, label='Defocusing Quad')
     dipole_patch = mpatches.Patch(color='red', alpha=0.5, label='Dipole')
+    xcorr_patch = mpatches.Patch(color='red', alpha=0.5, label='XCorr')
     detector_patch = mpatches.Patch(color='purple', alpha=0.5, label='Detector')
     
     handles, labels = ax.get_legend_handles_labels()
-    handles.extend([quad_patch, quad_neg_patch, dipole_patch, detector_patch])
+    handles.extend([quad_patch, quad_neg_patch, xcorr_patch, dipole_patch, detector_patch])
     ax.legend(handles=handles, loc='upper right')
     ax.set_title('Charged Particle Propagation Through Magnetic Elements')
     
@@ -676,7 +692,7 @@ if __name__ == "__main__":
     
 
     ### plot the hits:
-    fig, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 5, figsize=(10, 3.7), sharex=True, sharey=True, tight_layout=True)
     P0 = []
     hOcc = []
     for i,detector in enumerate(detectors):
@@ -690,7 +706,7 @@ if __name__ == "__main__":
             yy  = hit['y']
             zz  = hit['z']
             pz  = initial_states[pid][5]
-            X.append(xx*m_to_mm)
+            X.append((xx-detector_x_center_m)*m_to_mm)
             Y.append((yy-detector_y_center_m)*m_to_mm)
             Z.append((zz-detector_z_base_m)*m_to_mm)
             if(fullacc and pid not in list_good_tracks): continue

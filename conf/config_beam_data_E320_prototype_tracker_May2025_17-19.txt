@@ -9,43 +9,83 @@ saveprimitive  = 0
 nCPU           = 10
 nprintout      = 20
 skipmasking    = 1
-detevtlib      = 20252302
+detevtlib      = 20250517
 
-### run490 (Al foil allin, focused)
+# ### run616 (early morning shift - very good beam, bkg only --> not all pvs are present)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run616.root
+
+# ### run618 (early morning shift - very good beam, bkg only)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run618.root
+
+# ### run621 (noon shift - worse good beam, bkg only)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run621.root
+
+# ### run669 (!!!positrons run!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run669.root
+
+# ### run670 (!!!positrons run!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run670.root
+
+# ### run671 (!!!positrons run!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run671.root
+
+### run676 (!!!positrons run!!!)
 first2process = 0
 nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
+inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run676.root
 
-# ### run494 (Al foil allin, defocused):
-# first2process = 2000
-# nmax2process  = 2000
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run494.root
-
-# ### run496 (Al foil in slightly, defocused):
-# first2process = 0
-# nmax2process  = 2000
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run496.root
-
-# ### run501 (beam-only):
-# first2process = 0
-# nmax2process  = 100000
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
-
-# ### run502 (Be window in):
-# # first2process = 362
+# ### run690 (!!!positrons run, low bkg!!!)
 # first2process = 0
 # nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run690.root
 
-# ### run503 (beam-only, focusing on foil, 6h-long)
+# ### run691 (!!!positrons run, low bkg!!!)
 # first2process = 0
 # nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run691.root
 
-# ### run510 (Be window in long run, parasitic)
+# ### run692 (!!!positrons run, low bkg!!!)
 # first2process = 0
 # nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run692.root
+
+# ### run693 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run693.root
+
+# ### run694 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run694.root
+
+# ### run696 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run696.root
+
+# ### run701 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run701.root
+
+# ### run702 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run702.root
+
 
 
 
@@ -124,16 +164,16 @@ cut_spot_ycenter = 11
 cut_strip        = 0
 cut_strip_x      = 5
 cut_strip_y      = 5
-### full chip ROI, i.e. no cuts
-cut_ROI_xmin = 0
-cut_ROI_xmax = 1024
-cut_ROI_ymin = 0
-cut_ROI_ymax = 512
-### just the strip of the positrons of run 490 etc
-# cut_ROI_xmin = 850
+# ### full chip ROI, i.e. no cuts
+# cut_ROI_xmin = 0
 # cut_ROI_xmax = 1024
 # cut_ROI_ymin = 0
-# cut_ROI_ymax = 150
+# cut_ROI_ymax = 512
+### just the strip of the positrons of run 669
+cut_ROI_xmin = 200
+cut_ROI_xmax = 900
+cut_ROI_ymin = 160
+cut_ROI_ymax = 230
 
 
 [ALIGNMENT]
@@ -233,8 +273,6 @@ Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
 ### design
 # yZero2PipeTop = 51.65
-### from adjusting with the energy
-# yZero2PipeTop = 56.65
 ### from adjusting with toy MC
 yZero2PipeTop = 52.65
 
@@ -260,13 +298,13 @@ yFlangeMax         = +31.752
 ### thetax/y are the angles in degrees ARROUND the x/y axis in real space, such that
 ### thetax rotates the blob up/down vertically and thetay rotates the blob horizontally.
 ### thetay in !!!degrees!!! is "found" from the dipole exit plane
-thetay = 0.160
+thetay = 0.
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
 # thetax = 0.29
 thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
-xOffset = 0.
+xOffset = +3.
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)

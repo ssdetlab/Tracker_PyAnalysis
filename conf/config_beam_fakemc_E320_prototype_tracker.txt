@@ -6,6 +6,7 @@ pdgIdMatch     = 13
 runtype        = beam
 skiptracking   = 0
 saveprimitive  = 0
+detevtlib      = 20252302
 
 ### run001 fake particles
 first2process  = 0

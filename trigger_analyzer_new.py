@@ -71,23 +71,47 @@ def trimArr(arr,direction,frac):
     trim_arr = srt_arr[:-nTrim] if(direction=="up") else srt_arr[nTrim:]
     return trim_arr
 
+# def getThr(name,arr,direction,nsigma=3,frac=0.):
+#     arr0 = arr.copy()
+#     if(frac>0.): arr0 = trimArr(arr,direction,frac)
+#     avg = np.average(arr0)
+#     std = np.std(arr0)
+#     thr = 0
+#     if(direction=="down"): thr = avg - nsigma*std
+#     elif(direction=="up"): thr = avg + nsigma*std
+#     else:
+#         print("Error, direction can be down/up. got {direction}. Quitting.")
+#         quit()
+#     nremoved = 0
+#     for y in arr:
+#         if(direction=="up"   and y>thr): nremoved+=1
+#         if(direction=="down" and y<thr): nremoved+=1
+#     print(f"Threshold for {name} is: thr={thr:.3f} for avg={avg:.3f}, std={std:.5f} and nsigma={nsigma}. Triggers removed: {nremoved} ({(nremoved/len(arr))*100:.2f}%)")
+#     return thr
+
+
 def getThr(name,arr,direction,nsigma=3,frac=0.):
     arr0 = arr.copy()
     if(frac>0.): arr0 = trimArr(arr,direction,frac)
     avg = np.average(arr0)
     std = np.std(arr0)
-    thr = 0
-    if(direction=="down"): thr = avg - nsigma*std
-    elif(direction=="up"): thr = avg + nsigma*std
+    thr_up = 0
+    thr_dn = 0
+    if(direction=="down"):   thr_dn = avg - nsigma*std
+    elif(direction=="up"):   thr_up = avg + nsigma*std
+    elif(direction=="both"):
+        thr_dn = avg - nsigma*std
+        thr_up = avg + nsigma*std
     else:
         print("Error, direction can be down/up. got {direction}. Quitting.")
         quit()
     nremoved = 0
     for y in arr:
-        if(direction=="up"   and y>thr): nremoved+=1
-        if(direction=="down" and y<thr): nremoved+=1
-    print(f"Threshold for {name} is: thr={thr:.3f} for avg={avg:.3f}, std={std:.5f} and nsigma={nsigma}. Triggers removed: {nremoved} ({(nremoved/len(arr))*100:.2f}%)")
-    return thr
+        if(direction=="up"   and y>thr_up): nremoved+=1
+        if(direction=="down" and y<thr_dn): nremoved+=1
+        if(direction=="both" and (y<thr_dn or y>thr_up)): nremoved+=1
+    print(f"Threshold for {name} is: thr_up={thr_up:.3f} thr_dn={thr_dn:.3f} for avg={avg:.3f}, std={std:.5f} and nsigma={nsigma}. Triggers removed: {nremoved} ({(nremoved/len(arr))*100:.2f}%)")
+    return thr_dn,thr_up
 
 
 def add_graph(gname,x,y,col=ROOT.kBlack):
@@ -106,9 +130,6 @@ def add_graph(gname,x,y,col=ROOT.kBlack):
 
 if __name__ == "__main__":
     
-    # print config once
-    show_config()
-    
     ### see https://root.cern/manual/python
     print("---- start loading libs")
     if(os.uname()[1]=="wisett"):
@@ -125,6 +146,8 @@ if __name__ == "__main__":
         ROOT.gSystem.Load('libtrk_event_dict.dylib')
     print("---- finish loading libs")
     
+    # print config once
+    show_config()
     
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
@@ -193,14 +216,18 @@ if __name__ == "__main__":
     y_bpm_q0_3218 = np.zeros(nentries)
     y_bpm_q1_3265 = np.zeros(nentries)
     y_bpm_q2_3315 = np.zeros(nentries)
+    y_betax       = np.zeros(nentries)
+    y_betay       = np.zeros(nentries)
+    y_DTORT2_x    = np.zeros(nentries)
+    y_DTORT2_y    = np.zeros(nentries)
+    y_DTORT2_xrms = np.zeros(nentries)
+    y_DTORT2_yrms = np.zeros(nentries)
+    y_DTORT2_cnts = np.zeros(nentries)
     
     ranges = []
     rng = []
     counter = 0
     for ientry,entry in enumerate(ttree):
-        if(ientry<imin): continue
-        if(ientry>=imax): break
-    
         trgn   = entry.event.trg_n
         ts_bgn = entry.event.ts_begin
         ts_end = entry.event.ts_end
@@ -210,47 +237,64 @@ if __name__ == "__main__":
         x_ent[counter] = ientry
         x_tim.append( get_human_timestamp_ns(ts_bgn) )
         
-        
         y_dt[counter]       = dt
-        y_dipole[counter]   = entry.event.epics_frame.espec_dipole_bact
-        y_q0act[counter]    = entry.event.epics_frame.espec_quad0_bact
-        y_q1act[counter]    = entry.event.epics_frame.espec_quad1_bact
-        y_q2act[counter]    = entry.event.epics_frame.espec_quad2_bact
-        y_m12[counter]      = entry.event.epics_frame.mcalc_m12
-        y_m34[counter]      = entry.event.epics_frame.mcalc_m34
-        y_rad[counter]      = entry.event.epics_frame.radm_li20_1_ch01_meas
-        y_toro2040[counter] = entry.event.epics_frame.toro_li20_2040_tmit_pc
-        y_toro2452[counter] = entry.event.epics_frame.toro_li20_2452_tmit_pc
-        y_toro3163[counter] = entry.event.epics_frame.toro_li20_3163_tmit_pc
-        y_toro3255[counter] = entry.event.epics_frame.toro_li20_3255_tmit_pc
-        y_foilm1[counter]   = entry.event.epics_frame.xps_li20_mc05_m1_rbv
-        y_foilm2[counter]   = entry.event.epics_frame.xps_li20_mc05_m2_rbv
-        y_yag[counter]      = entry.event.epics_frame.yag_hm_rbv
-        y_pmt3060[counter]  = entry.event.epics_frame.pmt_s20_3060 
-        y_pmt3070[counter]  = entry.event.epics_frame.pmt_s20_3070 
-        y_pmt3179[counter]  = entry.event.epics_frame.pmt_s20_3179 
-        y_pmt3350[counter]  = entry.event.epics_frame.pmt_s20_3350 
-        y_pmt3360[counter]  = entry.event.epics_frame.pmt_s20_3360 
-        y_bpm_pb_3156[counter] = entry.event.epics_frame.bpm_pb_3156_tmit 
-        y_bpm_q0_3218[counter] = entry.event.epics_frame.bpm_quad0_3218_tmit 
-        y_bpm_q1_3265[counter] = entry.event.epics_frame.bpm_quad1_3265_tmit 
-        y_bpm_q2_3315[counter] = entry.event.epics_frame.bpm_quad2_3315_tmit 
-    
-        ### test!!!
-        toro3163 = entry.event.epics_frame.toro_li20_3163_tmit_pc
-        toro3255 = entry.event.epics_frame.toro_li20_3255_tmit_pc
-        radmon   = entry.event.epics_frame.radm_li20_1_ch01_meas
-        pmt3060  = entry.event.epics_frame.pmt_s20_3060
-        pmt3070  = entry.event.epics_frame.pmt_s20_3070
-        pmt3179  = entry.event.epics_frame.pmt_s20_3179
-        pmt3350  = entry.event.epics_frame.pmt_s20_3350
-        pmt3360  = entry.event.epics_frame.pmt_s20_3360
-        bpm_q0_3218 = entry.event.epics_frame.bpm_quad0_3218_tmit
-        bpm_q1_3265 = entry.event.epics_frame.bpm_quad1_3265_tmit
-        bpm_q2_3315 = entry.event.epics_frame.bpm_quad2_3315_tmit
         
-        histos["h_time"].Fill(dt)
-        histos["h_radmon"].Fill(radmon)
+        if(ientry<imin): continue
+        if(ientry>=imax): break
+        
+        if(len(entry.event.ev_epics_frame.pv_map)>0):
+            y_dipole[counter]   = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3330:BACT'].value))
+            y_q0act[counter]    = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3141:BACT'].value))
+            y_q1act[counter]    = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3261:BACT'].value))
+            y_q2act[counter]    = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3091:BACT'].value))
+            y_m12[counter]      = float(str(entry.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT054'].value))
+            y_m34[counter]      = float(str(entry.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT055'].value))
+            y_rad[counter]      = float(str(entry.event.ev_epics_frame.pv_map['RADM:LI20:1:CH01:MEAS'].value))
+            y_toro2040[counter] = float(str(entry.event.ev_epics_frame.pv_map['TORO:LI20:2040:TMIT_PC'].value))
+            y_toro2452[counter] = float(str(entry.event.ev_epics_frame.pv_map['TORO:LI20:2452:TMIT_PC'].value))
+            y_toro3163[counter] = float(str(entry.event.ev_epics_frame.pv_map['TORO:LI20:3163:TMIT_PC'].value))
+            y_toro3255[counter] = float(str(entry.event.ev_epics_frame.pv_map['TORO:LI20:3255:TMIT_PC'].value))
+            y_foilm1[counter]   = float(str(entry.event.ev_epics_frame.pv_map['XPS:LI20:MC05:M1.RBV'].value))
+            y_foilm2[counter]   = float(str(entry.event.ev_epics_frame.pv_map['XPS:LI20:MC05:M2.RBV'].value))
+            y_yag[counter]      = float(str(entry.event.ev_epics_frame.pv_map['XPS:LI20:MC10:M1.RBV'].value))
+            y_pmt3060[counter]  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3060:QDCRAW'].value))
+            y_pmt3070[counter]  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3070:QDCRAW'].value))
+            y_pmt3179[counter]  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3179:QDCRAW'].value))
+            y_pmt3350[counter]  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3350:QDCRAW'].value))
+            y_pmt3360[counter]  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3360:QDCRAW'].value))
+            y_bpm_pb_3156[counter] = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3156:TMIT'].value))
+            y_bpm_q0_3218[counter] = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3218:TMIT'].value))
+            y_bpm_q1_3265[counter] = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3265:TMIT'].value))
+            y_bpm_q2_3315[counter] = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3315:TMIT'].value))
+            
+            
+            y_betax[counter] = float(str(entry.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:AO395'].value))
+            y_betay[counter] = float(str(entry.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:AO396'].value))
+            # 'SIOC:SYS1:ML00:CA902', # Closest element in the beamline to the waist (name in ASCII numbers)
+            
+            # # DTORT2
+            y_DTORT2_x[counter] = float(str(entry.event.ev_epics_frame.pv_map['CAMR:LI20:107:X'].value))
+            y_DTORT2_y[counter] = float(str(entry.event.ev_epics_frame.pv_map['CAMR:LI20:107:Y'].value))
+            y_DTORT2_xrms[counter] = float(str(entry.event.ev_epics_frame.pv_map['CAMR:LI20:107:XRMS'].value))
+            y_DTORT2_yrms[counter] = float(str(entry.event.ev_epics_frame.pv_map['CAMR:LI20:107:YRMS'].value))
+            y_DTORT2_cnts[counter] = float(str(entry.event.ev_epics_frame.pv_map['CAMR:LI20:107:SUM'].value))
+        
+    
+            # ### test!!!
+            # toro3163 = float(str(entry.event.ev_epics_frame.pv_map['TORO:LI20:3163:TMIT_PC'].value))
+            # toro3255 = float(str(entry.event.ev_epics_frame.pv_map['TORO:LI20:3255:TMIT_PC'].value))
+            # radmon   = float(str(entry.event.ev_epics_frame.pv_map['RADM:LI20:1:CH01:MEAS'].value))
+            # pmt3060  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3060:QDCRAW'].value))
+            # pmt3070  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3070:QDCRAW'].value))
+            # pmt3179  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3179:QDCRAW'].value))
+            # pmt3350  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3350:QDCRAW'].value))
+            # pmt3360  = float(str(entry.event.ev_epics_frame.pv_map['PMT:LI20:3360:QDCRAW'].value))
+            # bpm_q0_3218 = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3218:TMIT'].value))
+            # bpm_q1_3265 = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3265:TMIT'].value))
+            # bpm_q2_3315 = float(str(entry.event.ev_epics_frame.pv_map['BPMS:LI20:3315:TMIT'].value))
+        
+            histos["h_time"].Fill(dt)
+            histos["h_radmon"].Fill(radmon)
         
         allhits = 0
         for ichip in range(entry.event.st_ev_buffer[0].ch_ev_buffer.size()):
@@ -265,7 +309,9 @@ if __name__ == "__main__":
             fltr_hits_vs_ent[det][counter] = nhits
             
             allhits += nhits
-            
+        
+        # print(f"{trgn} --> {allhits/5}")
+        
         ###############
         ### 2D occupancy:
         if(fillhits):
@@ -284,49 +330,18 @@ if __name__ == "__main__":
     
     lines = {}
     
-    ### GOOD FOR RUNS 502 (SHORT BERYLLIUM) AND 503 (LONG BACKGROUND)
-    thr_toro2040 = getThr("toro2040",y_toro2040,direction="down",nsigma=5,frac=0.05)
-    lines.update({"toro2040":getLine(thr_toro2040,x_trg)})
-    thr_toro2452 = getThr("toro2452",y_toro2452,direction="down",nsigma=5,frac=0.05)
-    lines.update({"toro2452":getLine(thr_toro2452,x_trg)})
-    thr_toro3163 = getThr("toro3163",y_toro3163,direction="down",nsigma=5,frac=0.05)
-    lines.update({"toro3163":getLine(thr_toro3163,x_trg)})
-    thr_toro3255 = getThr("toro3255",y_toro3255,direction="down",nsigma=5,frac=0.05)
-    lines.update({"toro3255":getLine(thr_toro3255,x_trg)})
-    thr_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=79.5,frac=0.01)
-    lines.update({"pmt3060":getLine(thr_pmt3060,x_trg)})
-    thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.01)
-    lines.update({"pmt3070":getLine(thr_pmt3070,x_trg)})
-    thr_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=18,frac=0.01)
-    lines.update({"pmt3179":getLine(thr_pmt3179,x_trg)})
-    thr_pmt3350 = getThr("pmt3350",y_pmt3350,direction="up",nsigma=130,frac=0.01)
-    lines.update({"pmt3350":getLine(thr_pmt3350,x_trg)})
-    thr_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=351.5,frac=0.01)
-    lines.update({"pmt3360":getLine(thr_pmt3360,x_trg)})
-    thr_rad = getThr("rad",y_rad,direction="up",nsigma=5,frac=0.05)
-    lines.update({"rad":getLine(thr_rad,x_trg)})
-    thr_bpm_pb_3156 = getThr("bpm pb 3156",y_bpm_pb_3156,direction="down",nsigma=10,frac=0.01)
-    lines.update({"bpm_pb_3156":getLine(thr_bpm_pb_3156,x_trg)})
-    thr_bpm_q0_3218 = getThr("bpm_q0_3218",y_bpm_q0_3218,direction="down",nsigma=15,frac=0.01)
-    lines.update({"bpm_q0_3218":getLine(thr_bpm_q0_3218,x_trg)})
-    thr_bpm_q1_3265 = getThr("bpm_q1_3265",y_bpm_q1_3265,direction="down",nsigma=15,frac=0.01)
-    lines.update({"bpm_q1_3265":getLine(thr_bpm_q1_3265,x_trg)})
-    thr_bpm_q2_3315 = getThr("bpm_q2_3315",y_bpm_q2_3315,direction="down",nsigma=15,frac=0.01)
-    lines.update({"bpm_q2_3315":getLine(thr_bpm_q2_3315,x_trg)})
-    
-    
-    # ### GOOD FOR RUNS 510 (LONG BERYLLIUM)
-    # thr_toro2040 = getThr("toro2040",y_toro2040,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro2040":getLine(thr_toro2040,x_trg)})
-    # thr_toro2452 = getThr("toro2452",y_toro2452,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro2452":getLine(thr_toro2452,x_trg)})
-    # thr_toro3163 = getThr("toro3163",y_toro3163,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro3163":getLine(thr_toro3163,x_trg)})
-    # thr_toro3255 = getThr("toro3255",y_toro3255,direction="down",nsigma=5,frac=0.05)
-    # lines.update({"toro3255":getLine(thr_toro3255,x_trg)})
+    # ### GOOD FOR RUNS 502 (SHORT BERYLLIUM) AND 503 (LONG BACKGROUND)
+    # thr_dn_toro2040 = getThr("toro2040",y_toro2040,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro2040":getLine(thr_dn_toro2040,x_trg)})
+    # thr_dn_toro2452 = getThr("toro2452",y_toro2452,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro2452":getLine(thr_dn_toro2452,x_trg)})
+    # thr_dn_toro3163 = getThr("toro3163",y_toro3163,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro3163":getLine(thr_dn_toro3163,x_trg)})
+    # thr_dn_toro3255 = getThr("toro3255",y_toro3255,direction="down",nsigma=5,frac=0.05)
+    # lines.update({"toro3255":getLine(thr_dn_toro3255,x_trg)})
     # thr_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=79.5,frac=0.01)
     # lines.update({"pmt3060":getLine(thr_pmt3060,x_trg)})
-    # thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.2)
+    # thr_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.01)
     # lines.update({"pmt3070":getLine(thr_pmt3070,x_trg)})
     # thr_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=18,frac=0.01)
     # lines.update({"pmt3179":getLine(thr_pmt3179,x_trg)})
@@ -334,7 +349,7 @@ if __name__ == "__main__":
     # lines.update({"pmt3350":getLine(thr_pmt3350,x_trg)})
     # thr_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=351.5,frac=0.01)
     # lines.update({"pmt3360":getLine(thr_pmt3360,x_trg)})
-    # thr_rad = getThr("rad",y_rad,direction="up",nsigma=2,frac=0.2)
+    # thr_rad = getThr("rad",y_rad,direction="up",nsigma=5,frac=0.05)
     # lines.update({"rad":getLine(thr_rad,x_trg)})
     # thr_bpm_pb_3156 = getThr("bpm pb 3156",y_bpm_pb_3156,direction="down",nsigma=10,frac=0.01)
     # lines.update({"bpm_pb_3156":getLine(thr_bpm_pb_3156,x_trg)})
@@ -345,24 +360,104 @@ if __name__ == "__main__":
     # thr_bpm_q2_3315 = getThr("bpm_q2_3315",y_bpm_q2_3315,direction="down",nsigma=15,frac=0.01)
     # lines.update({"bpm_q2_3315":getLine(thr_bpm_q2_3315,x_trg)})
     
+    
+    ### GOOD FOR COLLISIONS
+    thr_dn_toro2040,thr_up_toro2040 = getThr("toro2040",y_toro2040,direction="both",nsigma=5,frac=0.05)
+    lines.update({"toro2040_dn":getLine(thr_dn_toro2040,x_trg)})
+    lines.update({"toro2040_up":getLine(thr_up_toro2040,x_trg)})
+    
+    thr_dn_toro2452,thr_up_toro2452 = getThr("toro2452",y_toro2452,direction="both",nsigma=5,frac=0.05)
+    lines.update({"toro2452_dn":getLine(thr_dn_toro2452,x_trg)})
+    lines.update({"toro2452_up":getLine(thr_up_toro2452,x_trg)})
+    
+    thr_dn_toro3163,thr_up_toro3163 = getThr("toro3163",y_toro3163,direction="both",nsigma=5,frac=0.05)
+    lines.update({"toro3163_dn":getLine(thr_dn_toro3163,x_trg)})
+    lines.update({"toro3163_up":getLine(thr_up_toro3163,x_trg)})
+    
+    thr_dn_toro3255,thr_up_toro3255 = getThr("toro3255",y_toro3255,direction="both",nsigma=5,frac=0.05)
+    lines.update({"toro3255_dn":getLine(thr_dn_toro3255,x_trg)})
+    lines.update({"toro3255_up":getLine(thr_dn_toro3255,x_trg)})
+    
+    # thr_dn_pmt3060,thr_up_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=79.5,frac=0.01)
+    thr_dn_pmt3060,thr_up_pmt3060 = getThr("pmt3060",y_pmt3060,direction="up",nsigma=5,frac=0.01)
+    lines.update({"pmt3060_dn":getLine(thr_dn_pmt3060,x_trg)})
+    lines.update({"pmt3060_up":getLine(thr_up_pmt3060,x_trg)})
+    
+    # thr_dn_pmt3070,thr_up_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=8.3,frac=0.2)
+    thr_dn_pmt3070,thr_up_pmt3070 = getThr("pmt3070",y_pmt3070,direction="up",nsigma=5,frac=0.01)
+    lines.update({"pmt3070_dn":getLine(thr_dn_pmt3070,x_trg)})
+    lines.update({"pmt3070_up":getLine(thr_up_pmt3070,x_trg)})
+    
+    # thr_dn_pmt3179,thr_up_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=18,frac=0.01)
+    thr_dn_pmt3179,thr_up_pmt3179 = getThr("pmt3179",y_pmt3179,direction="up",nsigma=5,frac=0.01)
+    lines.update({"pmt3179_dn":getLine(thr_dn_pmt3179,x_trg)})
+    lines.update({"pmt3179_up":getLine(thr_up_pmt3179,x_trg)})
+    
+    
+    # thr_dn_pmt3350,thr_up_pmt3350 = getThr("pmt3350",y_pmt3350,direction="up",nsigma=130,frac=0.01)
+    thr_dn_pmt3350,thr_up_pmt3350 = getThr("pmt3350",y_pmt3350,direction="up",nsigma=5,frac=0.01)
+    lines.update({"pmt3350_dn":getLine(thr_dn_pmt3350,x_trg)})
+    lines.update({"pmt3350_up":getLine(thr_up_pmt3350,x_trg)})
+    
+    # thr_dn_pmt3360,thr_up_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=351.5,frac=0.01)
+    thr_dn_pmt3360,thr_up_pmt3360 = getThr("pmt3360",y_pmt3360,direction="up",nsigma=5,frac=0.01)
+    lines.update({"pmt3360_dn":getLine(thr_dn_pmt3360,x_trg)})
+    lines.update({"pmt3360_up":getLine(thr_up_pmt3360,x_trg)})
+    
+    thr_dn_rad,thr_up_rad = getThr("rad",y_rad,direction="up",nsigma=2,frac=0.2)
+    lines.update({"rad_dn":getLine(thr_dn_rad,x_trg)})
+    lines.update({"rad_up":getLine(thr_up_rad,x_trg)})
+    
+    thr_dn_bpm_pb_3156,thr_up_bpm_pb_3156 = getThr("bpm pb 3156",y_bpm_pb_3156,direction="down",nsigma=3,frac=0.01)
+    lines.update({"bpm_pb_3156_dn":getLine(thr_dn_bpm_pb_3156,x_trg)})
+    lines.update({"bpm_pb_3156_up":getLine(thr_up_bpm_pb_3156,x_trg)})
+    
+    thr_dn_bpm_q0_3218,thr_up_bpm_q0_3218 = getThr("bpm_q0_3218",y_bpm_q0_3218,direction="down",nsigma=3,frac=0.01)
+    lines.update({"bpm_q0_3218_dn":getLine(thr_dn_bpm_q0_3218,x_trg)})
+    lines.update({"bpm_q0_3218_up":getLine(thr_up_bpm_q0_3218,x_trg)})
+    
+    thr_dn_bpm_q1_3265,thr_up_bpm_q1_3265 = getThr("bpm_q1_3265",y_bpm_q1_3265,direction="down",nsigma=3,frac=0.01)
+    lines.update({"bpm_q1_3265_dn":getLine(thr_dn_bpm_q1_3265,x_trg)})
+    lines.update({"bpm_q1_3265_up":getLine(thr_up_bpm_q1_3265,x_trg)})
+    
+    thr_dn_bpm_q2_3315,thr_up_bpm_q2_3315 = getThr("bpm_q2_3315",y_bpm_q2_3315,direction="down",nsigma=3,frac=0.01)
+    lines.update({"bpm_q2_3315_dn":getLine(thr_dn_bpm_q2_3315,x_trg)})
+    lines.update({"bpm_q2_3315_up":getLine(thr_up_bpm_q2_3315,x_trg)})
+    
     fltr_trgs = {}
     removed_triggers = []
     for i in range(len(x_trg)):
         fail = False
-        if(not fail and y_toro2040[i]<thr_toro2040):       fail = True
-        if(not fail and y_toro2452[i]<thr_toro2452):       fail = True
-        if(not fail and y_toro3163[i]<thr_toro3163):       fail = True
-        if(not fail and y_toro3255[i]<thr_toro3255):       fail = True
-        if(not fail and y_pmt3060[i]>thr_pmt3060):         fail = True
-        if(not fail and y_pmt3070[i]>thr_pmt3070):         fail = True
-        if(not fail and y_pmt3179[i]>thr_pmt3179):         fail = True
-        if(not fail and y_pmt3350[i]>thr_pmt3350):         fail = True
-        if(not fail and y_pmt3360[i]>thr_pmt3360):         fail = True
-        if(not fail and y_rad[i]>thr_rad):                 fail = True
-        if(not fail and y_bpm_pb_3156[i]<thr_bpm_pb_3156): fail = True
-        if(not fail and y_bpm_q0_3218[i]<thr_bpm_q0_3218): fail = True
-        if(not fail and y_bpm_q1_3265[i]<thr_bpm_q1_3265): fail = True
-        if(not fail and y_bpm_q2_3315[i]<thr_bpm_q2_3315): fail = True
+        if(not fail and y_toro2040[i]<thr_dn_toro2040 and thr_dn_toro2040>0):       fail = True
+        if(not fail and y_toro2452[i]<thr_dn_toro2452 and thr_dn_toro2452>0):       fail = True
+        if(not fail and y_toro3163[i]<thr_dn_toro3163 and thr_dn_toro3163>0):       fail = True
+        if(not fail and y_toro3255[i]<thr_dn_toro3255 and thr_dn_toro3255>0):       fail = True
+        
+        if(not fail and y_toro2040[i]>thr_up_toro2040 and thr_up_toro2040>0):       fail = True
+        if(not fail and y_toro2452[i]>thr_up_toro2452 and thr_up_toro2452>0):       fail = True
+        if(not fail and y_toro3163[i]>thr_up_toro3163 and thr_up_toro3163>0):       fail = True
+        if(not fail and y_toro3255[i]>thr_up_toro3255 and thr_up_toro3255>0):       fail = True
+        
+        if(not fail and y_pmt3060[i]>thr_up_pmt3060 and thr_up_pmt3060>0):         fail = True
+        if(not fail and y_pmt3070[i]>thr_up_pmt3070 and thr_up_pmt3070>0):         fail = True
+        if(not fail and y_pmt3179[i]>thr_up_pmt3179 and thr_up_pmt3179>0):         fail = True
+        if(not fail and y_pmt3350[i]>thr_up_pmt3350 and thr_up_pmt3350>0):         fail = True
+        if(not fail and y_pmt3360[i]>thr_up_pmt3360 and thr_up_pmt3360>0):         fail = True
+        
+        # if(not fail and y_rad[i]>thr_up_rad and thr_up_rad>0):                 fail = True
+        
+        if(not fail and y_bpm_pb_3156[i]<thr_dn_bpm_pb_3156 and thr_dn_bpm_pb_3156>0): fail = True
+        if(not fail and y_bpm_q0_3218[i]<thr_dn_bpm_q0_3218 and thr_dn_bpm_q0_3218>0): fail = True
+        if(not fail and y_bpm_q1_3265[i]<thr_dn_bpm_q1_3265 and thr_dn_bpm_q1_3265>0): fail = True
+        if(not fail and y_bpm_q2_3315[i]<thr_dn_bpm_q2_3315 and thr_dn_bpm_q2_3315>0): fail = True
+        
+        ############ TODO
+        for det in cfg["detectors"]:
+            if(not fail and (hits_vs_trg[det][i]>800 or hits_vs_trg[det][i]<80)):
+                fail = True
+                break
+        ############ TODO
+        
         ##########################
         if(fail):
             trg = int(x_trg[i])
@@ -386,7 +481,7 @@ if __name__ == "__main__":
                     fltr_hits_vs_trg[det][counter+i] = 0
                     fltr_hits_vs_ent[det][counter+i] = 0
                     if(fltr_trg1 not in final_fltr_trgs): final_fltr_trgs.append( fltr_trg1 )
-    # print(final_fltr_trgs)
+    print(final_fltr_trgs)
     print(f'After neighbours removal, removed {len(final_fltr_trgs)}, which is {len(final_fltr_trgs)/len(x_trg)*100:.2f}% of the total')
     
     pklname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_BadTriggers.pkl")
@@ -437,20 +532,30 @@ if __name__ == "__main__":
     add_graph("bpm_q1_3265",x_trg,y_bpm_q1_3265,ROOT.kRed)
     add_graph("bpm_q2_3315",x_trg,y_bpm_q2_3315,ROOT.kBlue)
     
+    add_graph("betax",x_trg,y_betax,ROOT.kBlack)
+    add_graph("betay",x_trg,y_betay,ROOT.kRed)
+    add_graph("DTORT2_x",x_trg,y_DTORT2_x,ROOT.kBlack)
+    add_graph("DTORT2_y",x_trg,y_DTORT2_y,ROOT.kRed)
+    add_graph("DTORT2_xrms",x_trg,y_DTORT2_xrms,ROOT.kBlack)
+    add_graph("DTORT2_yrms",x_trg,y_DTORT2_yrms,ROOT.kRed)
+    add_graph("DTORT2_cnts",x_trg,y_DTORT2_cnts,ROOT.kBlack)
+    
     
     for i,det in enumerate(detectors):
         gname = f"hits_vs_ent_{det}"
         graphs[gname].SetTitle(f"{det}: fired pixels per tree entry;Tree entry;Fired pixels")
         graphs[gname].SetMaximum(maxhits*5)
         graphs[gname].SetMinimum(0.9)
-        graphs[gname].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+        # graphs[gname].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+        graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
         graphs[gname].SetLineColor(detcol[i])
     for i,det in enumerate(detectors):
         gname = f"hits_vs_trg_{det}"
         graphs[gname].SetTitle(f"{det}: fired pixels per trigger;Trigger number;Fired pixels")
         graphs[gname].SetMaximum(maxhits*5)
         graphs[gname].SetMinimum(0.9)
-        graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
+        # graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
+        graphs[gname].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
         graphs[gname].SetLineColor(detcol[i])
         
     for i,det in enumerate(detectors):
@@ -458,14 +563,16 @@ if __name__ == "__main__":
         graphs[gname].SetTitle(f"{det}: fired pixels per tree entry after filter;Tree entry;Fired pixels after filter")
         graphs[gname].SetMaximum(maxhits*5)
         graphs[gname].SetMinimum(0.9)
-        graphs[gname].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+        # graphs[gname].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+        graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
         graphs[gname].SetLineColor(detcol[i])
     for i,det in enumerate(detectors):
         gname = f"fltr_hits_vs_trg_{det}"
         graphs[gname].SetTitle(f"{det}: fired pixels per trigger after filter;Trigger number;Fired pixels after filter")
         graphs[gname].SetMaximum(maxhits*5)
         graphs[gname].SetMinimum(0.9)
-        graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
+        # graphs[gname].GetXaxis().SetLimits(x_ent[0],x_ent[-1])
+        graphs[gname].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
         graphs[gname].SetLineColor(detcol[i])
     
     
@@ -533,6 +640,57 @@ if __name__ == "__main__":
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
+
+
+    ################ TODO
+    cnv = ROOT.TCanvas("c1","",1200,500)
+    cnv.SetTicks(1,1)
+    cnv.SetLogy()
+    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    mg = ROOT.TMultiGraph()
+    for i,det in enumerate(detectors):
+        gname = f"hits_vs_ent_{det}"
+        leg.AddEntry(graphs[gname],f"{det}","l")
+        mg.Add(graphs[gname])
+    mg.Draw("al")
+    leg.Draw("same")
+    mg.SetTitle(f";Entry number;Fired pixels")
+    mg.SetMaximum(maxhits*5)
+    mg.SetMinimum(0.9)
+    mg.GetXaxis().SetLimits(x_ent[0],x_ent[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}(")
+    
+    cnv = ROOT.TCanvas("c2","",1200,500)
+    cnv.SetTicks(1,1)
+    cnv.SetLogy()
+    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    mg = ROOT.TMultiGraph()
+    for i,det in enumerate(detectors):
+        gname = f"fltr_hits_vs_ent_{det}"
+        leg.AddEntry(graphs[gname],f"{det}","l")
+        mg.Add(graphs[gname])
+    mg.Draw("al")
+    leg.Draw("same")
+    mg.SetTitle(f";Entry number;Fired pixels after filter")
+    mg.SetMaximum(maxhits*5)
+    mg.SetMinimum(0.9)
+    mg.GetXaxis().SetLimits(x_ent[0],x_ent[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
+    ################ TODO
+    
+    
     
     cnv = ROOT.TCanvas("c3","",1200,500)
     cnv.SetTicks(1,1)
@@ -608,7 +766,8 @@ if __name__ == "__main__":
     leg.Draw("same")
     for t in ["2040","2452","3163","3255"]:
         gname = f"toro{t}"
-        lines[gname].Draw("same")
+        lines[f"{gname}_dn"].Draw("same")
+        lines[f"{gname}_up"].Draw("same")
     mg.SetTitle(";Trigger number;Toroid charge [pC]")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     # mg.SetMinimum(800)
@@ -634,7 +793,8 @@ if __name__ == "__main__":
     leg.Draw("same")
     for t in ["3060","3070","3179","3350","3360"]:
         gname = f"pmt{t}"
-        lines[gname].Draw("same")
+        lines[f"{gname}_dn"].Draw("same")
+        lines[f"{gname}_up"].Draw("same")
     mg.SetTitle(";Trigger number;PMT [counts]")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
@@ -669,8 +829,8 @@ if __name__ == "__main__":
     graphs["rad"].Draw("al")
     graphs["rad"].SetTitle(";Trigger number;RadMon [mRem/h]")
     graphs["rad"].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
-    # graphs["rad"].SetMaximum(10)
-    lines["rad"].Draw("same")
+    # lines["rad_dn"].Draw("same")
+    # lines["rad_up"].Draw("same")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
@@ -690,7 +850,7 @@ if __name__ == "__main__":
     graphs["bpm_pb_3156"].Draw("al")
     graphs["bpm_pb_3156"].SetTitle(";Trigger number;BPM PB [#electrons]")
     graphs["bpm_pb_3156"].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
-    lines["bpm_pb_3156"].Draw("same")
+    lines["bpm_pb_3156_up"].Draw("same")
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
@@ -712,9 +872,89 @@ if __name__ == "__main__":
     leg.Draw("same")
     for t in ["q0_3218","q1_3265","q2_3315"]:
         gname = f"bpm_{t}"
-        lines[gname].Draw("same")
+        lines[f"{gname}_dn"].Draw("same")
+        lines[f"{gname}_up"].Draw("same")
     mg.SetTitle(";Trigger number;BPM quads [#electrons]")
     mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
+    
+    
+    
+    
+    
+    
+    
+    cnv = ROOT.TCanvas("cbeta_xy","",1200,500)
+    cnv.SetTicks(1,1)
+    # cnv.SetLogy()
+    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    mg = ROOT.TMultiGraph()
+    for t in ["x","y"]:
+        gname = f"beta{t}"
+        leg.AddEntry(graphs[gname],f"#beta({t})","l")
+        mg.Add(graphs[gname])
+    mg.Draw("al")
+    leg.Draw("same")
+    mg.SetTitle(";Trigger number;#beta_{x,y} [cm]")
+    mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
+    
+    cnv = ROOT.TCanvas("cdtotr2_xy","",1200,500)
+    cnv.SetTicks(1,1)
+    # cnv.SetLogy()
+    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    mg = ROOT.TMultiGraph()
+    for t in ["x","y"]:
+        gname = f"DTORT2_{t}"
+        leg.AddEntry(graphs[gname],f"DTORT2({t})","l")
+        mg.Add(graphs[gname])
+    mg.Draw("al")
+    leg.Draw("same")
+    mg.SetTitle(";Trigger number;DTORT2_{x,y} [mm?]")
+    mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
+    
+    cnv = ROOT.TCanvas("cdtotr2_xyrms","",1200,500)
+    cnv.SetTicks(1,1)
+    cnv.SetLogy()
+    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    mg = ROOT.TMultiGraph()
+    for t in ["x","y"]:
+        gname = f"DTORT2_{t}rms"
+        leg.AddEntry(graphs[gname],f"DTORT2(RMs({t}))","l")
+        mg.Add(graphs[gname])
+    mg.Draw("al")
+    leg.Draw("same")
+    mg.SetTitle(";Trigger number;DTORT2_{RMS(x),RMS(y)} [mm?]")
+    mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
+    
+    cnv = ROOT.TCanvas("c13","",1200,500)
+    cnv.SetTicks(1,1)
+    # cnv.SetLogy()
+    graphs["DTORT2_cnts"].Draw("al")
+    graphs["DTORT2_cnts"].SetTitle(";Trigger number;DTORT2 counts")
+    graphs["DTORT2_cnts"].GetXaxis().SetLimits(x_trg[0],x_trg[-1])
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
@@ -767,7 +1007,10 @@ if __name__ == "__main__":
                 print(f"First trigger for {det} is: {x_trg[i]}")
                 break
         
-    
+
+    print(f'\nRemoved triggers: {len(removed_triggers)}, which is {len(removed_triggers)/len(x_trg)*100:.2f}% of the total')
+    print(f"x_trg[0]={x_trg[0]},  x_trg[-1]={x_trg[-1]}")
+    print(f"imin={imin},  imax={imax}")
     
 
 

@@ -259,7 +259,7 @@ if __name__ == "__main__":
         badtriggers = pickle.load(fpkltrigger)
         fpkltrigger.close()
     nbadtrigs = len(badtriggers)
-    print(f"Found {nbadtrigs} bad triggers")
+    print(f"Found {nbadtrigs} bad triggers in the entire run")
     
     
     ### counters
@@ -442,12 +442,27 @@ if __name__ == "__main__":
     ### save all events
     nevents = 0
     ntracks = 0
+    nbadtrigs_actual = 0
+    ntrigs_actual = 0
+    tracks_triggers_dict = {"all":{"trgs":{"all":0,"good":0},"trks":0}, "even":{"trgs":{"all":0,"good":0},"trks":0}, "odd":{"trgs":{"all":0,"good":0},"trks":0}}
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
         with open(fpkl,'rb') as handle:
             data = pickle.load(handle)
             for ievt,event in enumerate(data):
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
+                
+                # if(int(event.trigger)%2==0): continue
+                iseven = (int(event.trigger)%2==0)
+                
+                tracks_triggers_dict["all"]["trgs"]["all"] += 1
+                if(iseven): tracks_triggers_dict["even"]["trgs"]["all"] += 1
+                else:       tracks_triggers_dict["odd"]["trgs"]["all"]  += 1
+                
+                tracks_triggers_dict
+                
+                ntrigs_actual += 1
+                
                 nevents += 1
                 
                 histos["hTriggers"].Fill(0.5)
@@ -456,12 +471,15 @@ if __name__ == "__main__":
                 counters_x_trg.append( event.trigger )
                 append_global_counters()
                 icounter = len(counters_x_trg)-1
-
                 
                 ### skip bad triggers...
-                if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(event.trigger) in badtriggers)): continue
+                if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(event.trigger) in badtriggers)):
+                    nbadtrigs_actual += 1
+                    continue
                 histos["hTriggers"].Fill(1.5)
-                
+                tracks_triggers_dict["all"]["trgs"]["good"] += 1
+                if(iseven): tracks_triggers_dict["even"]["trgs"]["good"] += 1
+                else:       tracks_triggers_dict["odd"]["trgs"]["good"]  += 1
 
                 ### check errors
                 if(not cfg["isMC"]):
@@ -518,6 +536,21 @@ if __name__ == "__main__":
                     ### first require max cluster ####
                     ##################################
                     if(track.maxcls>cfg["cut_maxcls"]): continue
+                    
+                    
+                    #####################
+                    ### pixel ROI cut ###
+                    #####################
+                    inROI = True
+                    for det in cfg["detectors"]:
+                        for pix in track.trkcls[det].pixels:
+                            # print(f"{det}: pix={pix.x,pix.y}")
+                            if(pix.x<cfg["cut_ROI_xmin"] or pix.x>cfg["cut_ROI_xmax"]): inROI = False
+                            if(pix.y<cfg["cut_ROI_ymin"] or pix.y>cfg["cut_ROI_ymax"]): inROI = False
+                            if(not inROI): break
+                        if(not inROI): break
+                    if(not inROI): continue
+                    
                     
                     ### fill some quantities before alignment
                     if(track.chi2ndof<=cfg["cut_chi2dof"] and pass_geoacc_selection(track)): ##TODO: missing the shared hits cut here...
@@ -678,6 +711,11 @@ if __name__ == "__main__":
                 hzx = ROOT.TH2D("hzx","",event.hough_space["zx_xbins"],event.hough_space["zx_xmin"],event.hough_space["zx_xmax"],  event.hough_space["zx_ybins"],event.hough_space["zx_ymin"],event.hough_space["zx_ymax"])
                 hzy = ROOT.TH2D("hzy","",event.hough_space["zy_xbins"],event.hough_space["zy_xmin"],event.hough_space["zy_xmax"],  event.hough_space["zy_ybins"],event.hough_space["zy_ymin"],event.hough_space["zy_ymax"])
                 
+                ### count selected tracks
+                tracks_triggers_dict["all"]["trks"] += len(selected_tracks)
+                if(iseven): tracks_triggers_dict["even"]["trks"] += len(selected_tracks)
+                else:       tracks_triggers_dict["odd"]["trks"]  += len(selected_tracks)
+                
                 ### plot some selected tracks
                 for track in selected_tracks:
                     
@@ -759,7 +797,7 @@ if __name__ == "__main__":
                 print(f"Event[{nevents-1}], Trigger[{event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
     # print(f"Events:{nevents}, Tracks:{ntracks}")
-    print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
+    print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual}, Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
     
     ### plot the counters
     fmultpdfname = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
@@ -1741,7 +1779,10 @@ if __name__ == "__main__":
     fout.Close()
     
     ### summary of tracking
-    print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
+    # print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
+    print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual} Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
+    
+    print(f"\ncounters: {tracks_triggers_dict}")
     
     
     # get the end time

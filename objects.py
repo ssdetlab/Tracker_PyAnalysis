@@ -177,7 +177,7 @@ class Meta:
         return f"Meta: "
         
 class Magnets:
-    def __init__(self,dipole_in_GeV,quad0,quad1,quad2,m12,m34,xcor):
+    def __init__(self,dipole_in_GeV,quad0,quad1,quad2,m12,m34,zobj,zimg,xcor):
         self.ThetaB = 0.006 ### mrad
         self.dipole = self.get_dipole(dipole_in_GeV)
         self.quad0 = quad0
@@ -185,6 +185,8 @@ class Magnets:
         self.quad2 = quad2
         self.m12   = m12
         self.m34   = m34
+        self.zobj  = zobj
+        self.zimg  = zimg
         self.xcor  = xcor
     def get_dipole(self,Dipole_settings_in_GeV):
         B_in_Tesla = Dipole_settings_in_GeV*math.sin(self.ThetaB)/(0.3*cfg["zDipoleLenghMeters"])
