@@ -6,13 +6,16 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import solve_ivp
 import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
+import time
 import pickle
+import multiprocessing
 
 import argparse
 parser = argparse.ArgumentParser(description='serial_analyzer.py...')
 parser.add_argument('-mag', metavar='magnets settings (run 502 or run 490)', required=True,  help='magnets settings (run 502 or run 490)')
 parser.add_argument('-gen', metavar='particles to generate', required=True,  help='particles to generate')
 parser.add_argument('-acc', metavar='require full acceptance?', required=False,  help='require full acceptance?')
+parser.add_argument('-mlt', metavar='multi processing?', required=False,  help='multi processing?')
 argus = parser.parse_args()
 MagnetsSettings = int(argus.mag)
 if(MagnetsSettings!=502 and MagnetsSettings!=490):
@@ -23,6 +26,7 @@ if(Nparticles<=0):
     print(f"Unsupported Nparticles: {Nparticles}")
     quit()
 fullacc = True if(argus.acc is not None and argus.acc=="1") else False
+mltprc  = True if(argus.mlt is not None and argus.mlt=="1") else False
 
 
 
@@ -61,15 +65,17 @@ chipYcm = chipYmm*mm_to_cm
 chipXm  = chipXmm*mm_to_m
 chipYm  = chipYmm*mm_to_m
 
-zIP = 0
+zIP = +30 # cm?
 zBe = -84 # cm
 
 # Define detector x range
-detector_x_center_cm = (6.0) # cm
+detector_x_center_cm = (-1.05) # cm
+# detector_x_center_cm = (0.) # cm
 detector_x_center_m = detector_x_center_cm*cm_to_m
 
 # Define detector y range
 detector_y_center_cm = (5.165 + 0.1525 + 3.685) # cm
+# detector_y_center_cm = (5.165 + 0.1525 + 3.685 - 0.2) # cm
 detector_y_center_m = detector_y_center_cm*cm_to_m
 
 # Calculate detector z position
@@ -171,10 +177,6 @@ class Quadrupole(Element):
             'px': px, 'py': py, 'pz': pz
         })
 
-
-
-
-# Create detector planes
 class Detector(Element):
     def __init__(self, x_min, x_max, y_min, y_max, z_pos):
         # For detectors, z_min and z_max are the same (thin plane)
@@ -223,7 +225,90 @@ class Detector(Element):
             pz  = initial_states[pid][5]/GeV_c_to_kgms
             print(f"  Particle {pid}: x={xx:.6f} m, y={yy:.6f} m (pz={pz:.2f} GeV)")
 
+class Beampipe(Element):
+    def __init__(self, inner_radius_cm, outer_radius_cm, z_min_cm, z_max_cm):
+        # For bounding box, use outer radius to define x,y limits
+        super().__init__(-outer_radius_cm, outer_radius_cm, 
+                         -outer_radius_cm, outer_radius_cm, 
+                         z_min_cm, z_max_cm)
+        
+        self.inner_radius = inner_radius_cm * cm_to_m
+        self.outer_radius = outer_radius_cm * cm_to_m
+        self.z_min_pipe = z_min_cm * cm_to_m
+        self.z_max_pipe = z_max_cm * cm_to_m
+        self.hits = []
+        
+    def field(self, x, y, z):
+        # Beampipe doesn't generate magnetic fields
+        return np.array([0, 0, 0])
+        
+    def is_inside_pipe_material(self, x, y, z):
+        """Check if point is inside the pipe material (between inner and outer radius)"""
+        if not (self.z_min_pipe <= z <= self.z_max_pipe):
+            return False
+        
+        r = np.sqrt(x**2 + y**2)
+        return self.inner_radius <= r <= self.outer_radius
+    
+    def is_outside_vacuum(self, x, y, z):
+        """Check if point is outside the vacuum region (beyond inner radius)"""
+        if not (self.z_min_pipe <= z <= self.z_max_pipe):
+            return False
+        
+        r = np.sqrt(x**2 + y**2)
+        return r > self.inner_radius
+        
+    def record_hit(self, particle_id, x, y, z, px, py, pz):
+        self.hits.append({
+            'particle_id': particle_id,
+            'x': x, 'y': y, 'z': z,
+            'px': px, 'py': py, 'pz': pz
+        })
+        
+    def plot_element(self, ax, color='gray', alpha=0.3):
+        """Plot beampipe as a semi-transparent cylinder"""
+        # Create cylindrical surface
+        z_pipe = np.linspace(self.z_min_pipe, self.z_max_pipe, 50)
+        theta = np.linspace(0, 2*np.pi, 50)
+        
+        # Create meshgrid for outer surface
+        Z_outer, THETA_outer = np.meshgrid(z_pipe, theta)
+        X_outer = self.outer_radius * np.cos(THETA_outer)
+        Y_outer = self.outer_radius * np.sin(THETA_outer)
+        
+        # Create meshgrid for inner surface  
+        X_inner = self.inner_radius * np.cos(THETA_outer)
+        Y_inner = self.inner_radius * np.sin(THETA_outer)
+        
+        # Plot outer surface
+        ax.plot_surface(X_outer, Y_outer, Z_outer, 
+                       color=color, alpha=alpha, linewidth=0)
+        
+        # Plot inner surface (slightly more transparent)
+        ax.plot_surface(X_inner, Y_inner, Z_outer, 
+                       color=color, alpha=alpha*0.5, linewidth=0)
+        
+        # Add end caps
+        r_cap = np.linspace(self.inner_radius, self.outer_radius, 20)
+        theta_cap = np.linspace(0, 2*np.pi, 50)
+        R_cap, THETA_cap = np.meshgrid(r_cap, theta_cap)
+        X_cap = R_cap * np.cos(THETA_cap)
+        Y_cap = R_cap * np.sin(THETA_cap)
+        
+        # Front cap
+        Z_cap_front = np.full_like(X_cap, self.z_min_pipe)
+        ax.plot_surface(X_cap, Y_cap, Z_cap_front, 
+                       color=color, alpha=alpha, linewidth=0)
+        
+        # Back cap  
+        Z_cap_back = np.full_like(X_cap, self.z_max_pipe)
+        ax.plot_surface(X_cap, Y_cap, Z_cap_back, 
+                       color=color, alpha=alpha, linewidth=0)
 
+########################################################################
+########################################################################
+########################################################################
+########################################################################
 
 # Create the detector objects
 detectors = []
@@ -235,33 +320,33 @@ for i in range(5):
     )
     detectors.append(detector)
 
-
-
-
 # Create magnetic elements
 quad0 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
     z_min=367.33336, z_max=464.6664, # cm
-    gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/cm
+    gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/m
 )
 quad1 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
     z_min=590.3336, z_max=687.6664, # cm
-    gradient=+28.55 if(MagnetsSettings==502) else +46.42 # kG/cm
+    gradient=+28.55 if(MagnetsSettings==502) else +46.42 # kG/m
 )
 quad2 = Quadrupole(
     x_min=-2.4610, x_max=2.4610, # cm
     y_min=-2.4610, y_max=2.4610, # cm
     z_min=812.3336, z_max=909.6664, # cm
-    gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/cm
+    gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/m
 )
 xcorr = Dipole(
-    x_min=-8.6995/2., x_max=+8.6995/2.,
-    y_min=-5.715/2., y_max=+5.715/2.,
-    z_min=999.29032-11.811/2, z_max=999.29032+11.811/2,
-    B_x=0, B_y=0.026107, B_z=0  # Tesla
+    # x_min=-8.6995/2., x_max=+8.6995/2.,
+    # y_min=-5.715/2., y_max=+5.715/2.,
+    # z_min=999.29032-11.811/2, z_max=999.29032+11.811/2,
+    x_min=-10.795, x_max=+10.795, 
+    y_min=-4.699, y_max=+4.699,
+    z_min=987.779, z_max=1011.15,
+    B_x=0, B_y=+0.026107, B_z=0  # Tesla
 )
 dipole = Dipole(
     x_min=-2.2352, x_max=2.2352,
@@ -270,8 +355,27 @@ dipole = Dipole(
     B_x=0.219, B_y=0, B_z=0  # Tesla
 )
 
+# Create beampipe from z=0 to entrance of dipole:
+beampipe_inner_radius_cm = 2.   # 2 cm inner radius 
+beampipe_outer_radius_cm = 2.2  # 2.2 cm outer radius
+beampipe_z_start_cm = 0.0       # Start at IP
+beampipe_z_end_cm = dipole.z_min * m_to_cm - 0.0  # End 0 cm before dipole entrance
+beampipe = Beampipe(
+    inner_radius_cm=beampipe_inner_radius_cm,
+    outer_radius_cm=beampipe_outer_radius_cm, 
+    z_min_cm=beampipe_z_start_cm,
+    z_max_cm=beampipe_z_end_cm
+)
+
+
 ### collect all elements
-elements = [quad0, quad1, quad2, xcorr, dipole] + detectors
+elements = [quad0, quad1, quad2, xcorr, dipole, beampipe] + detectors
+
+
+
+########################################################################
+########################################################################
+########################################################################
 
 
 
@@ -310,11 +414,7 @@ def record_hits(element,z_element,trajectory,particle_id):
 
 # Define the equations of motion for a charged particle in a magnetic field
 def particle_motion(t, state):
-    """
-    State vector: [x, y, z, px, py, pz]
-    where (x, y, z) is position in meters
-    and (px, py, pz) is momentum in kg*m/s
-    """
+    # State vector: [ x[m], y[m], z[m], px[kg*m/s], py[kg*m/s], pz[kg*m/s] ]
     x, y, z, px, py, pz = state
     position = np.array([x, y, z])
     momentum = np.array([px, py, pz])
@@ -344,11 +444,12 @@ def particle_motion(t, state):
 
 
 
-# Define an event function to detect collisions with magnet walls
-def collision_event(t, state, elements_to_check=None):
-    """
-    Event function to detect when a particle hits the wall of any magnet element.
-    Returns zero when a collision occurs (negative when inside, positive when outside).
+
+# Add this function to replace your existing collision_event function
+def collision_event(t, state, elements_to_check=None, beampipe=None):
+    '''
+    Event function to detect when a particle hits walls of magnet elements or beampipe.
+    Returns zero when a collision occurs.
     
     Parameters:
     -----------
@@ -357,13 +458,15 @@ def collision_event(t, state, elements_to_check=None):
     state : array 
         Current state [x, y, z, px, py, pz]
     elements_to_check : list, optional
-        List of elements to check for collisions. If None, checks all magnetic elements
+        List of elements to check for collisions
+    beampipe : Beampipe, optional
+        Beampipe object to check for collisions
         
     Returns:
     --------
     float
-        Distance from nearest wall (negative inside element boundaries, zero at boundary, positive outside)
-    """
+        Distance from nearest wall (negative inside boundaries, zero at boundary, positive outside)
+    '''
     if elements_to_check is None:
         elements_to_check = [quad0, quad1, quad2, xcorr, dipole] 
     
@@ -372,6 +475,14 @@ def collision_event(t, state, elements_to_check=None):
     # Initialize distance to a large value
     min_distance = float('inf')
     
+    # Check beampipe collision first (most restrictive)
+    if beampipe is not None and beampipe.z_min_pipe <= z <= beampipe.z_max_pipe:
+        r = np.sqrt(x**2 + y**2)
+        # Distance to inner wall of beampipe (negative if outside vacuum)
+        distance_to_vacuum_boundary = beampipe.inner_radius - r
+        min_distance = min(min_distance, distance_to_vacuum_boundary)
+    
+    # Check magnet element collisions
     for element in elements_to_check:
         # Skip if not in z-range of element (with small margin)
         if not (element.z_min - 0.0001 <= z <= element.z_max + 0.0001):
@@ -396,17 +507,16 @@ def collision_event(t, state, elements_to_check=None):
         
     return min_distance
 
-# Set terminal attribute when collision occurs
+# Set terminal attribute
 collision_event.terminal = True
 
 
 
 
 
-# Propagate particle with collision detection
-def propagate_particle_with_collision(particle_id, initial_state, t_span, max_step=1e-9):
-    """
-    Propagate particle through beamline with collision detection.
+def propagate_particle_with_collision(particle_id, initial_state, t_span, beampipe=None, max_step=1e-9):
+    '''
+    Propagate particle through beamline with collision detection including beampipe.
 
     Parameters:
     -----------
@@ -416,6 +526,8 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
         Initial state [x0, y0, z0, px0, py0, pz0]
     t_span : tuple
         (t_start, t_end) for integration
+    beampipe : Beampipe, optional
+        Beampipe object for collision detection
     max_step : float, optional
         Maximum step size for integrator
 
@@ -425,30 +537,30 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
         Solution object from solve_ivp
     collision_info : dict or None
         Information about collision if it occurred, None otherwise
-    """
-    # Use solve_ivp with event detection
+    '''
+    # Use solve_ivp with event detection including beampipe
     solution = solve_ivp(
         particle_motion,
         t_span,
         initial_state,
-        method='RK45', #'RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA'
-        events=collision_event,
+        method='RK45',
+        events=lambda t, state: collision_event(t, state, beampipe=beampipe),
         max_step=max_step,
         rtol=1e-8,
         atol=1e-10
     )
 
-    # Check for detector crossings as before
-    for det in detectors: record_hits(det,det.z_pos,solution,particle_id)
-    ### dipole
-    record_hits(dipole,dipole.z_max,solution,particle_id)
-    ### xcorr
-    record_hits(xcorr,xcorr.z_max,solution,particle_id)
-    ### quads
-    record_hits(quad0,quad0.z_max,solution,particle_id)
-    record_hits(quad1,quad1.z_max,solution,particle_id)
-    record_hits(quad2,quad2.z_max,solution,particle_id)
+    # Check for detector crossings
+    for det in detectors: record_hits(det, det.z_pos, solution, particle_id)
+    # Record hits on other elements
+    record_hits(dipole, dipole.z_max, solution, particle_id)
+    record_hits(xcorr,  xcorr.z_max,  solution, particle_id)
+    record_hits(quad0,  quad0.z_max,  solution, particle_id)
+    record_hits(quad1,  quad1.z_max,  solution, particle_id)
+    record_hits(quad2,  quad2.z_max,  solution, particle_id)
 
+    # Record beampipe hits if it exists
+    if beampipe is not None: record_hits(beampipe, beampipe.z_max_pipe, solution, particle_id)
 
     # Check if collision occurred
     collision_info = None
@@ -466,24 +578,32 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
 
         # Determine which element was hit
         collision_element = None
-        for element in [quad0, quad1, quad2, xcorr, dipole]:
-            if (element.z_min <= collision_state[2] <= element.z_max):
-                if abs(collision_state[0] - element.x_min) < 1e-6 or abs(collision_state[0] - element.x_max) < 1e-6 or \
-                   abs(collision_state[1] - element.y_min) < 1e-6 or abs(collision_state[1] - element.y_max) < 1e-6:
-                    collision_element = element
-                    break
-
         element_name = "unknown"
-        if collision_element == quad0:
-            element_name = "Quadrupole 0"
-        elif collision_element == quad1:
-            element_name = "Quadrupole 1"
-        elif collision_element == quad2:
-            element_name = "Quadrupole 2"
-        elif collision_element == xcorr:
-            element_name = "Xcorr"
-        elif collision_element == dipole:
-            element_name = "Dipole"
+
+        # Check if beampipe was hit first
+        if (beampipe is not None and
+            beampipe.z_min_pipe <= collision_state[2] <= beampipe.z_max_pipe):
+            r = np.sqrt(collision_state[0]**2 + collision_state[1]**2)
+            if abs(r - beampipe.inner_radius) < 1e-6:
+                collision_element = beampipe
+                element_name = "Beampipe"
+
+        # If not beampipe, check other elements
+        if collision_element is None:
+            for element in [quad0, quad1, quad2, xcorr, dipole]:
+                if (element.z_min <= collision_state[2] <= element.z_max):
+                    if (abs(collision_state[0] - element.x_min) < 1e-6 or
+                        abs(collision_state[0] - element.x_max) < 1e-6 or
+                        abs(collision_state[1] - element.y_min) < 1e-6 or
+                        abs(collision_state[1] - element.y_max) < 1e-6):
+                        collision_element = element
+                        break
+
+            if   collision_element == quad0:  element_name = "Quadrupole 0"
+            elif collision_element == quad1:  element_name = "Quadrupole 1"
+            elif collision_element == quad2:  element_name = "Quadrupole 2"
+            elif collision_element == xcorr:  element_name = "Xcorr"
+            elif collision_element == dipole: element_name = "Dipole"
 
         collision_info = {
             "time": collision_time,
@@ -496,60 +616,140 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, max_st
 
 
 
+def get_xy_at_z(solution, collision, z_target):
+    ### check if there is NO collision first:
+    if collision is not None:
+        return None,None
+    ### get the trajectory coordinates
+    z = solution.y[2]
+    x = solution.y[0]
+    y = solution.y[1]
+    
+    ### Loop over each segment and look for a crossing
+    for i in range(len(z) - 1):
+        z1, z2 = z[i], z[i+1]
+        if (z1 <= z_target <= z2) or (z2 <= z_target <= z1):
+            # avoid division by zero
+            if(z2 == z1): frac = 0.0
+            else:         frac = (z_target - z1) / (z2 - z1)
+            x_interp = x[i] + frac * (x[i+1] - x[i])
+            y_interp = y[i] + frac * (y[i+1] - y[i])
+            return x_interp, y_interp
+
+    raise ValueError(f"Trajectory does not cross z = {z_target:.3f} m.")
 
 
-# Plot the beamline and particle trajectory
-def plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100):
+
+
+### TODO this function is for multiprocess runs only
+def refill_detector_hits(initial_states, trajectories):
+    if(len(initial_states)!=len(trajectories)):
+        raise ValueError(f"number of initial_states {len(initial_states)} is not the same as number of trajectories {len(trajectories)}")
+    ### remove old hits
+    for detector in detectors: detector.hits = []
+    ### refill the hits
+    for pid,trajectory in enumerate(trajectories):
+        ### Record hits in detectors
+        for det in detectors: record_hits(det,det.z_pos,trajectory,pid)
+        # Record hits on other elements
+        record_hits(dipole, dipole.z_max, trajectory, pid)
+        record_hits(xcorr,  xcorr.z_max,  trajectory, pid)
+        record_hits(quad0,  quad0.z_max,  trajectory, pid)
+        record_hits(quad1,  quad1.z_max,  trajectory, pid)
+        record_hits(quad2,  quad2.z_max,  trajectory, pid)
+        # Record beampipe hits if it exists
+        if beampipe is not None: record_hits(beampipe, beampipe.z_max_pipe, trajectory, pid)
+        
+            
+            
+    
+
+
+
+def plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100):
     fig = plt.figure(figsize=(16, 10))
     ax = fig.add_subplot(111, projection='3d')
-    
+
     # Plot magnetic elements
     quad0.plot_element(ax, 'blue')
     quad1.plot_element(ax, 'green')
     quad2.plot_element(ax, 'blue')
-    xcorr.plot_element(ax, 'red')
+    xcorr.plot_element(ax, 'orange')
     dipole.plot_element(ax, 'red')
-    
+    beampipe.plot_element(ax, 'gray', alpha=0.3)
+
     # Plot detector planes
     detector_colors = ['green', 'green', 'green', 'green', 'green']
     for i, detector in enumerate(detectors):
         detector.plot_element(ax, detector_colors[i % len(detector_colors)])
-    
-    # Plot particle trajectories
-    for i, trajectory in enumerate(particle_trajectories):
-        if(i>=nmaxtrks): break
+
+    # Plot particle trajectories with collision handling
+    collision_count = 0
+    for i, (trajectory, collision) in enumerate(zip(particle_trajectories, particle_collisions)):
+        if i >= nmaxtrks:
+            break
+            
         x, y, z = trajectory.y[0], trajectory.y[1], trajectory.y[2]
-        ax.plot(x, y, z, '-', linewidth=1.)
-    
+        
+        if collision is not None:
+            # Find the index where collision occurred
+            collision_z = collision['position'][2]
+            collision_idx = None
+            
+            # Find the closest point to collision in trajectory
+            for j, z_val in enumerate(z):
+                if z_val >= collision_z:
+                    collision_idx = j
+                    break
+            
+            if collision_idx is not None:
+                # Plot only up to collision point
+                ax.plot(x[:collision_idx+1], y[:collision_idx+1], z[:collision_idx+1], 'r-', linewidth=1.5, alpha=0.8)  # Red for collided particles
+                # Mark collision point?
+                # ax.scatter(collision['position'][0], collision['position'][1], collision['position'][2], c='red', s=20, marker='x')
+                collision_count += 1
+            else:
+                # Fallback: plot entire trajectory in red
+                ax.plot(x, y, z, 'r-', linewidth=1.0, alpha=0.6)
+                collision_count += 1
+        else:
+            # No collision: plot entire trajectory in blue
+            ax.plot(x, y, z, 'b-', linewidth=1.0, alpha=0.8)
+
+    print(f"Plotted {collision_count} collided trajectories out of {min(nmaxtrks, len(particle_trajectories))}")
+
     # Set axis labels and limits
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Y [m]')
     ax.set_zlabel('Z [m]')
     ax.set_xlim(-0.5, 0.5)
     ax.set_ylim(-0.5, 0.5)
-    ax.set_zlim(0, 18)  # Extend z limit to include detectors
-    
+    ax.set_zlim(0, 18)
+
     # Add legend for elements
     quad_patch = mpatches.Patch(color='blue', alpha=0.5, label='Focusing Quad')
     quad_neg_patch = mpatches.Patch(color='green', alpha=0.5, label='Defocusing Quad')
     dipole_patch = mpatches.Patch(color='red', alpha=0.5, label='Dipole')
-    xcorr_patch = mpatches.Patch(color='red', alpha=0.5, label='XCorr')
+    xcorr_patch = mpatches.Patch(color='orange', alpha=0.5, label='XCorr')
     detector_patch = mpatches.Patch(color='purple', alpha=0.5, label='Detector')
-    
+    beampipe_patch = mpatches.Patch(color='gray', alpha=0.3, label='Beampipe')
+    collision_patch = mpatches.Patch(color='red', alpha=0.8, label='Collided particles')
+
     handles, labels = ax.get_legend_handles_labels()
-    handles.extend([quad_patch, quad_neg_patch, xcorr_patch, dipole_patch, detector_patch])
+    handles.extend([quad_patch, quad_neg_patch, xcorr_patch, dipole_patch, detector_patch, beampipe_patch, collision_patch])
     ax.legend(handles=handles, loc='upper right')
-    ax.set_title('Charged Particle Propagation Through Magnetic Elements')
-    
+    ax.set_title(f'Particle Propagation (MagSet={MagnetsSettings}) - {collision_count} collisions')
+
     plt.tight_layout()
     plt.savefig(f"{pdfname}_tracks.pdf")
     plt.show()
+
+    return fig
     
-    
-    
-    
-    # Plot detector hit patterns
-    fig_det, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
+
+# Plot detector hit patterns
+def plot_scatter(pdfname):
+    fig, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
     for i, detector in enumerate(detectors):
         rect = plt.Rectangle(
             (detector.x_min, detector.y_min),
@@ -558,33 +758,28 @@ def plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100):
             fill=False, edgecolor='gray'
         )
         axs[i].add_patch(rect)
-        
+
         # Plot hits
         hit_x = [hit['x'] for hit in detector.hits]
         hit_y = [hit['y'] for hit in detector.hits]
         particle_ids = [hit['particle_id'] for hit in detector.hits]
-        
+
         for j, (x, y, pid) in enumerate(zip(hit_x, hit_y, particle_ids)): axs[i].plot(x, y, 'o', markersize=1)
-        
-        # ax_det.set_xlim(detector.x_min * 1.2, detector.x_max * 1.2)
-        # ax_det.set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
-        # ax_det.set_xlabel('X [m]')
-        # ax_det.set_ylabel('Y [m]')
-        # ax_det.set_title(f'Detector {i+1} at z={detector.z_pos:.2f} m')
-        # ax_det.grid(True)
-        
+
         axs[i].set_xlim(detector.x_min * 1.2, detector.x_max * 1.2)
         axs[i].set_ylim(detector.y_min * 0.9, detector.y_max * 1.1)
         axs[i].set_xlabel('X [m]')
         axs[i].set_ylabel('Y [m]')
         axs[i].set_title(f'ALPIDE_{i}')
         axs[i].grid(True)
-        
+
     plt.tight_layout()
     plt.savefig(f"{pdfname}_scatter.pdf")
     plt.show()
-    
-    return fig, fig_det
+
+    return fig
+
+
 
 
 def truncated_exp_NK(a,b,how_many):
@@ -594,8 +789,20 @@ def truncated_exp_NK(a,b,how_many):
     return rands[0] if(how_many==1) else rands
 
 
+def collect_errors(error):
+    ### https://superfastpython.com/multiprocessing-pool-error-callback-functions-in-python/
+    print(f'Error: {error}', flush=True)
+
+
 # Example usage
 if __name__ == "__main__":
+    
+    print(f"Run multiprocessing: {mltprc}")
+    
+    print(f"MagnetsSettings: {MagnetsSettings}")
+    print(f"quad0: {quad0.gradient} T/m")
+    print(f"quad1: {quad1.gradient} T/m")
+    print(f"quad2: {quad2.gradient} T/m")
     
     pdfname = f"generator_{MagnetsSettings}"
     
@@ -604,11 +811,18 @@ if __name__ == "__main__":
     # Momentum in units of GeV/c and convert to kg*m/s
     Emin = 0.5 ## GeV 
     Emax = 5.0 ## GeV
+    
     sigmax = 0.0001 ## m (100 um)
     sigmay = 0.0001 ## m (100 um)
     sigmaz = 0.0005 ## m (500 um)
-    sigmaPx = 0.0030 ## GeV
-    sigmaPy = 0.0005 ## GeV
+    sigmaPx = 0.00030 ## GeV
+    sigmaPy = 0.00005 ## GeV
+    
+    # sigmax = 0.0001 ## m (100 um)
+    # sigmay = 0.0001 ## m (100 um)
+    # sigmaz = 0.0005 ## m (500 um)
+    # sigmaPx = 0.0030 ## GeV
+    # sigmaPy = 0.0005 ## GeV
     '''
     NBW from Arka (PTARMIGAN)
     sigma_x: 0.004166 mm
@@ -616,15 +830,16 @@ if __name__ == "__main__":
     sigma_z: 7.205e-3 mm
     sigma_px: 0.001037 GeV
     sigma_py: 0.000193 GeV
-    sigma_pz: 0.7707 GeV
     '''
+    
+    z0 = zBe if(MagnetsSettings==502) else zIP
     
     initial_states = []
     PZ0 = []
     for i in range(Nparticles):
         XX = np.random.normal(0.0,sigmax)
         YY = np.random.normal(0.0,sigmay)
-        ZZ = np.random.normal(zBe*cm_to_m,sigmaz)
+        ZZ = np.random.normal(z0*cm_to_m,sigmaz)
         PX = np.random.normal(0.0,sigmaPx*GeV_c_to_kgms)
         PY = np.random.normal(0.0,sigmaPy*GeV_c_to_kgms)
         EE = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
@@ -634,7 +849,6 @@ if __name__ == "__main__":
         initial_states.append(state)
     
     
-    
     # Time range for propagation (seconds)
     # For relativistic particles going ~c, need to consider the longest path to the detectors
     # Last detector is at ~18 meters
@@ -642,32 +856,76 @@ if __name__ == "__main__":
     t_span = (0, tmax)
     
     
-    
-    # Propagate particles and check for collisions
+    # Propagate particles and check for collisions (including beampipe)
     particle_trajectories = []
     particle_collisions   = []
-    for i,state in enumerate(initial_states):
-        solution, collision = propagate_particle_with_collision(i, state, t_span)
-        particle_trajectories.append(solution)
-        particle_collisions.append(collision)
-        if(i%100==0): print(f"done propagating particle {i}")
-    
-    # Plot the system with particle trajectories
-    main_fig, detector_fig = plot_system(particle_trajectories, initial_states, pdfname, nmaxtrks=100)
 
-    # # Some diagnostics about final positions
-    # for i, traj in enumerate(particle_trajectories):
-    #     final_x = traj.y[0][-1]
-    #     final_y = traj.y[1][-1]
-    #     final_z = traj.y[2][-1]
-    #     px = traj.y[3][-1]
-    #     py = traj.y[4][-1]
-    #     pz = traj.y[5][-1]
-    #     p_tot = np.sqrt(px**2 + py**2 + pz**2)
-    #     angle_x = np.arctan2(px, pz) * 180 / np.pi
-    #     angle_y = np.arctan2(py, pz) * 180 / np.pi
+
+    #########################
+    ### Run the propagation
+    #########################
+    if(not mltprc):
+        ##########################
+        ### no multiprocessing ###
+        ##########################
+        for i,state in enumerate(initial_states):
+            solution, collision = propagate_particle_with_collision(i, state, t_span, beampipe=beampipe)
+            particle_trajectories.append(solution)
+            particle_collisions.append(collision)
+            if(i%100==0): print(f"done propagating particle {i}")
+    else:
+        ############################
+        ### with multiprocessing ###
+        ############################
+        num_cores = 10 # Number of cores to activate
+        pool = multiprocessing.Pool(processes=num_cores) # Create the pool
+
+        # This list will hold the AsyncResult objects. Each AsyncResult corresponds to one submitted task
+        async_results = []
+        ### loop on the initial states
+        for i,state in enumerate(initial_states):
+            result = pool.apply_async(propagate_particle_with_collision, args=(i, state, t_span, beampipe), error_callback=collect_errors)
+            async_results.append(result)
+            if(i%100==0): print(f"done propagating particle {i}")
+        # After submitting all tasks:
+        pool.close() # No more tasks can be added to the pool
+        
+        # Collect results from each submitted task. The loop here is over the 'async_results' list, which has N elements
+        for i,async_res in enumerate(async_results):
+            # .get() blocks until the task associated with this async_res is complete. It retrieves the tuple (obj1_result, obj2_result) returned by my_function_per_task.
+            solution, collision = async_res.get()
+            # APPEND the individual results for THIS task to the main lists. This doesn't overwrite; it adds a new element to the end of the list.
+            particle_trajectories.append(solution)
+            particle_collisions.append(collision)
+        # Wait for all worker processes to finish and terminate
+        pool.join()
+        
+        ### re-record the hits
+        print(f"starting refill:")
+        st = time.time()
+        refill_detector_hits(initial_states, particle_trajectories)
+        et = time.time()
+        elapsed_time = et - st
+        print('end time:', elapsed_time, 'seconds')
+    ##########################
     
     
+    
+    
+    ############################
+    ### Now do some plotting ###
+    ############################
+    
+    
+    
+    
+    ### Plot the system with particle trajectories
+    main_fig = plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100)
+    
+    ### Plot the hits as scatter plot (using detector.hits)
+    scat_fig = plot_scatter(pdfname)
+
+    ### check acceptance
     npivots = 0
     list_good_tracks = []
     for pivot in detectors[0].hits:
@@ -682,23 +940,16 @@ if __name__ == "__main__":
                     break
         if(nhits==len(detectors)-1):
             list_good_tracks.append( pivot_pid )
-    print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")
-    
-                
-
-            
+    print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")       
     
     
-    
-
-    ### plot the hits:
-    fig, axs = plt.subplots(1, 5, figsize=(10, 3.7), sharex=True, sharey=True, tight_layout=True)
+    ### plot the hits COARSELY:
+    fig, axs = plt.subplots(1, 5, figsize=(10, 3.5), sharex=True, sharey=True, tight_layout=True)
     P0 = []
     hOcc = []
     for i,detector in enumerate(detectors):
         X = []
         Y = []
-        Z = []
         P = []
         for hit in detector.hits:
             pid = hit['particle_id']
@@ -706,23 +957,54 @@ if __name__ == "__main__":
             yy  = hit['y']
             zz  = hit['z']
             pz  = initial_states[pid][5]
-            X.append((xx-detector_x_center_m)*m_to_mm)
-            Y.append((yy-detector_y_center_m)*m_to_mm)
-            Z.append((zz-detector_z_base_m)*m_to_mm)
+            X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
             if(fullacc and pid not in list_good_tracks): continue
             P.append(pz/GeV_c_to_kgms)
-        hOcc.append( axs[i].hist2d(X, Y, bins=(100,200),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
-        if(i==0):
-            P0 = P
-        axs[i].set_xlabel('X [m]')
-        axs[i].set_ylabel('Y [m]')
+        hOcc.append( axs[i].hist2d(X, Y, bins=(200,100),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
+        if(i==0): P0 = P
+        axs[i].set_xlabel('X [mm]')
+        axs[i].set_ylabel('Y [mm]')
         axs[i].set_title(f'ALPIDE_{i}')
         plt.locator_params(axis='x', nbins=10)
         plt.locator_params(axis='y', nbins=10)
         axs[i].xaxis.set_minor_locator(AutoMinorLocator(10))
         axs[i].yaxis.set_minor_locator(AutoMinorLocator(10))
     plt.tight_layout()
-    plt.savefig(f"{pdfname}_occupancy.pdf")
+    plt.savefig(f"{pdfname}_occupancy_coarse.pdf")
+    plt.show()
+    
+    
+
+    ### plot the hits FINELY:
+    fig, axs = plt.subplots(1, 5, figsize=(10, 3.5), sharex=True, sharey=True, tight_layout=True)
+    P0 = []
+    hOcc = []
+    for i,detector in enumerate(detectors):
+        X = []
+        Y = []
+        P = []
+        for hit in detector.hits:
+            pid = hit['particle_id']
+            xx  = hit['x']
+            yy  = hit['y']
+            zz  = hit['z']
+            pz  = initial_states[pid][5]
+            X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            if(fullacc and pid not in list_good_tracks): continue
+            P.append(pz/GeV_c_to_kgms)
+        hOcc.append( axs[i].hist2d(X, Y, bins=(npix_y+1,npix_x+1),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
+        if(i==0): P0 = P
+        axs[i].set_xlabel('X [mm]')
+        axs[i].set_ylabel('Y [mm]')
+        axs[i].set_title(f'ALPIDE_{i}')
+        plt.locator_params(axis='x', nbins=10)
+        plt.locator_params(axis='y', nbins=10)
+        axs[i].xaxis.set_minor_locator(AutoMinorLocator(10))
+        axs[i].yaxis.set_minor_locator(AutoMinorLocator(10))
+    plt.tight_layout()
+    plt.savefig(f"{pdfname}_occupancy_fine.pdf")
     plt.show()
     
     
@@ -888,13 +1170,6 @@ if __name__ == "__main__":
     plt.show()
     
     
-        
-    # ### plot the energy
-    # fig, ax = plt.subplots(tight_layout=True)
-    # ax.hist(P0, bins=50,range=(1.5,3.5))
-    # plt.tight_layout()
-    # plt.savefig("generator_energy.pdf")
-    # plt.show()
     
     fig, axs = plt.subplots(1, 2, figsize=(6, 3), tight_layout=True)
     hpz0 = axs[0].hist(PZ0, bins=50,range=(Emin,Emax), rasterized=True)
@@ -924,8 +1199,25 @@ if __name__ == "__main__":
     plt.show()
     
     
+    # for t,trajectory in enumerate(particle_trajectories):
+    #     collision = particle_collisions[t]
+    #     z = detectors[0].z_pos
+    #     x, y = get_xy_at_z(trajectory,collision,z)
+    #     if(x is not None and y is not None):
+    #         print(f"At z = {z:.4e} m: x={x:.4e} m, y={y:.4e} m")
+    
+    
     ### save config to pickle
-    data = {"initial_states":initial_states, "particle_trajectories":particle_trajectories, "particle_collisions":particle_collisions, "dipole":dipole, "quad0":quad0, "quad1":quad1, "quad2":quad2}
+    data = {
+        "initial_states": initial_states, 
+        "particle_trajectories": particle_trajectories, 
+        "particle_collisions": particle_collisions, 
+        "dipole": dipole, 
+        "quad0": quad0, 
+        "quad1": quad1, 
+        "quad2": quad2,
+        "beampipe": beampipe
+    }
     for i,detector in enumerate(detectors): data.update( {f"ALPIDE_{i}":detector} )
     fpklname = "generator.pkl"
     fpkl = open(fpklname,'wb')
