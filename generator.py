@@ -615,7 +615,6 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, beampi
     return solution, collision_info
 
 
-
 def get_xy_at_z(solution, collision, z_target):
     ### check if there is NO collision first:
     if collision is not None:
@@ -639,9 +638,7 @@ def get_xy_at_z(solution, collision, z_target):
     raise ValueError(f"Trajectory does not cross z = {z_target:.3f} m.")
 
 
-
-
-### TODO this function is for multiprocess runs only
+### TODO this function is needed for multiprocess runs ONLY
 def refill_detector_hits(initial_states, trajectories):
     if(len(initial_states)!=len(trajectories)):
         raise ValueError(f"number of initial_states {len(initial_states)} is not the same as number of trajectories {len(trajectories)}")
@@ -660,11 +657,6 @@ def refill_detector_hits(initial_states, trajectories):
         # Record beampipe hits if it exists
         if beampipe is not None: record_hits(beampipe, beampipe.z_max_pipe, trajectory, pid)
         
-            
-            
-    
-
-
 
 def plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100):
     fig = plt.figure(figsize=(16, 10))
@@ -747,7 +739,6 @@ def plot_system(particle_trajectories, particle_collisions, initial_states, pdfn
     return fig
     
 
-# Plot detector hit patterns
 def plot_scatter(pdfname):
     fig, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
     for i, detector in enumerate(detectors):
@@ -780,8 +771,6 @@ def plot_scatter(pdfname):
     return fig
 
 
-
-
 def truncated_exp_NK(a,b,how_many):
     a = -np.log(a)
     b = -np.log(b)
@@ -794,7 +783,11 @@ def collect_errors(error):
     print(f'Error: {error}', flush=True)
 
 
-# Example usage
+
+
+#####################
+### main function ###
+#####################
 if __name__ == "__main__":
     
     print(f"Run multiprocessing: {mltprc}")
@@ -922,8 +915,10 @@ if __name__ == "__main__":
     ### Plot the system with particle trajectories
     main_fig = plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100)
     
+
     ### Plot the hits as scatter plot (using detector.hits)
     scat_fig = plot_scatter(pdfname)
+
 
     ### check acceptance
     npivots = 0
@@ -941,8 +936,8 @@ if __name__ == "__main__":
         if(nhits==len(detectors)-1):
             list_good_tracks.append( pivot_pid )
     print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")       
-    
-    
+
+
     ### plot the hits COARSELY:
     fig, axs = plt.subplots(1, 5, figsize=(10, 3.5), sharex=True, sharey=True, tight_layout=True)
     P0 = []
@@ -973,8 +968,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(f"{pdfname}_occupancy_coarse.pdf")
     plt.show()
-    
-    
+
 
     ### plot the hits FINELY:
     fig, axs = plt.subplots(1, 5, figsize=(10, 3.5), sharex=True, sharey=True, tight_layout=True)
@@ -1008,6 +1002,7 @@ if __name__ == "__main__":
     plt.show()
     
     
+    ### plot the exit plane at the dipole:
     rectD1 = plt.Rectangle(
         (dipole.x_min, dipole.y_min),
         dipole.x_max - dipole.x_min,
@@ -1021,8 +1016,6 @@ if __name__ == "__main__":
         fill=False, edgecolor='blue'
     )
     
-    
-    ### plot the exit plane at the dipole:
     fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
     X = []
     Y = []
@@ -1170,7 +1163,7 @@ if __name__ == "__main__":
     plt.show()
     
     
-    
+    ### plot the energies
     fig, axs = plt.subplots(1, 2, figsize=(6, 3), tight_layout=True)
     hpz0 = axs[0].hist(PZ0, bins=50,range=(Emin,Emax), rasterized=True)
     hp0  = axs[1].hist(P0,  bins=50,range=(1.5,4.5), rasterized=True)
@@ -1199,6 +1192,7 @@ if __name__ == "__main__":
     plt.show()
     
     
+    ### example how to get the x,y at any point along the trajectory
     # for t,trajectory in enumerate(particle_trajectories):
     #     collision = particle_collisions[t]
     #     z = detectors[0].z_pos
