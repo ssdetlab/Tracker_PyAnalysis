@@ -35,23 +35,22 @@ plt.rcParams['image.cmap'] = 'afmhot'
 # plt.rcParams['image.cmap'] = 'copper'
 
 # Convert units
-m_to_cm = 100
-m_to_mm = 1000
+m_to_cm  = 100
+m_to_mm  = 1000
 cm_to_mm = 10
-cm_to_m = 0.01
-mm_to_m = 0.001
+cm_to_m  = 0.01
+mm_to_m  = 0.001
 mm_to_cm = 0.1
-kG_to_T = 0.1
+kG_to_T  = 0.1
 GeV_c_to_kgms = 5.344286e-19  # 1000x more than MeV/c
 
 
 # Physical constants
 e = 1.602176634e-19  # elementary charge in C
 c = 299792458  # speed of light in m/s
-m_positron = 9.1093837015e-31  # positron mass in kg
-q_positron = e  # positron charge in C
-mc2_GeV = 0.000511  # Rest energy of positron in GeV
-mc2_kgms = mc2_GeV*GeV_c_to_kgms
+m_e = 9.1093837015e-31  # electron/positron mass in kg
+mc2_GeV    = 0.000511  # Rest energy of positron in GeV
+mc2_kgms   = mc2_GeV*GeV_c_to_kgms
 
 ### chip
 npix_x = 1024
@@ -75,7 +74,6 @@ detector_x_center_m = detector_x_center_cm*cm_to_m
 
 # Define detector y range
 detector_y_center_cm = (5.165 + 0.1525 + 3.685) # cm
-# detector_y_center_cm = (5.165 + 0.1525 + 3.685 - 0.2) # cm
 detector_y_center_m = detector_y_center_cm*cm_to_m
 
 # Calculate detector z position
@@ -414,21 +412,21 @@ def record_hits(element,z_element,trajectory,particle_id):
 
 # Define the equations of motion for a charged particle in a magnetic field
 def particle_motion(t, state):
-    # State vector: [ x[m], y[m], z[m], px[kg*m/s], py[kg*m/s], pz[kg*m/s] ]
-    x, y, z, px, py, pz = state
+    # State vector: [x[m],y[m],z[m], px[kg*m/s],py[kg*m/s],pz[kg*m/s], m[kg],q[unit]]
+    x,y,z, px,py,pz, m,q = state
     position = np.array([x, y, z])
     momentum = np.array([px, py, pz])
     
     # Relativistic velocity
     p_mag = np.linalg.norm(momentum)
-    gamma = np.sqrt(1 + (p_mag/(m_positron*c))**2)  # Relativistic factor
-    velocity = momentum / (gamma * m_positron)
+    gamma = np.sqrt(1 + (p_mag/(m*c))**2)  # Relativistic factor
+    velocity = momentum / (gamma * m)
     
     # Magnetic field at current position
     B = total_field(position)
     
     # Lorentz force: F = q(v × B)
-    force = q_positron * np.cross(velocity, B)
+    force = (q * e) * np.cross(velocity, B)
     
     # Rate of change of position is velocity
     dx_dt = velocity[0]
@@ -440,7 +438,7 @@ def particle_motion(t, state):
     dpy_dt = force[1]
     dpz_dt = force[2]
     
-    return [dx_dt, dy_dt, dz_dt, dpx_dt, dpy_dt, dpz_dt]
+    return [dx_dt,dy_dt,dz_dt, dpx_dt,dpy_dt,dpz_dt, m,q]
 
 
 
@@ -520,16 +518,11 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, beampi
 
     Parameters:
     -----------
-    particle_id : int
-        Unique identifier for the particle
-    initial_state : array
-        Initial state [x0, y0, z0, px0, py0, pz0]
-    t_span : tuple
-        (t_start, t_end) for integration
-    beampipe : Beampipe, optional
-        Beampipe object for collision detection
-    max_step : float, optional
-        Maximum step size for integrator
+    particle_id : int, Unique identifier for the particle
+    initial_state : array, Initial state [x0, y0, z0, px0, py0, pz0]
+    t_span : tuple, (t_start, t_end) for integration
+    beampipe : Beampipe, optional, Beampipe object for collision detection
+    max_step : float, optional, Maximum step size for integrator
 
     Returns:
     --------
@@ -800,7 +793,7 @@ if __name__ == "__main__":
     pdfname = f"generator_{MagnetsSettings}"
     
     # Define example initial conditions for particles
-    # Format: [x0, y0, z0, px0, py0, pz0]
+    # Format: [x0,y0,z0, px0,py0,pz0, m,q]
     # Momentum in units of GeV/c and convert to kg*m/s
     Emin = 0.5 ## GeV 
     Emax = 5.0 ## GeV
@@ -830,6 +823,8 @@ if __name__ == "__main__":
     initial_states = []
     PZ0 = []
     for i in range(Nparticles):
+        MM = m_e ## kg
+        QQ = +1 ## unit charge
         XX = np.random.normal(0.0,sigmax)
         YY = np.random.normal(0.0,sigmay)
         ZZ = np.random.normal(z0*cm_to_m,sigmaz)
@@ -838,7 +833,7 @@ if __name__ == "__main__":
         EE = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
         PZ = np.sqrt( EE**2 - mc2_kgms**2 - PX**2 - PY**2 )
         PZ0.append(PZ/GeV_c_to_kgms)
-        state = [XX,YY,ZZ, PX,PY,PZ]
+        state = [XX,YY,ZZ, PX,PY,PZ, MM,QQ]
         initial_states.append(state)
     
     
