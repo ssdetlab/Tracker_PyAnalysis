@@ -437,6 +437,34 @@ if __name__ == "__main__":
     window.SetLineColor(ROOT.kBlue)
     window.SetLineWidth(1)
     
+    #################################
+    ### prepare for eudaq writeup ###
+    #################################
+    ### declare the data tree and its classes
+    ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; };" )
+    ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
+    ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
+    ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
+    ### declare the meta-data tree and its classes
+    ROOT.gROOT.ProcessLine("struct run_meta_data  { Int_t run_number; Double_t run_start; Double_t run_end; };" )
+    ### the main root gile
+    runnum = get_run_from_file(cfg["inputfile"])
+    fEUDAQout = ROOT.TFile.Open(f"tree_with_HT_selected_tracks_only_Run{runnum}.root", "RECREATE")
+    ### data tree
+    tEUDAQout = ROOT.TTree("MyTree","")
+    eudaq_event = ROOT.event()
+    tEUDAQout.Branch("event", eudaq_event)
+    ### meta-data tree
+    tEUDAQoutMeta = ROOT.TTree("MyTreeMeta","")
+    run_meta_data = ROOT.run_meta_data()
+    tEUDAQoutMeta.Branch("run_meta_data", run_meta_data)
+    ### fill meta-data tree
+    run_meta_data.run_number = runnum ### dummy
+    run_meta_data.run_start  = -1.    ### dummy
+    run_meta_data.run_end    = -1.    ### dummy
+    tEUDAQoutMeta.Fill()
+    
+    
     
     
     ### save all events
@@ -449,11 +477,27 @@ if __name__ == "__main__":
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
         with open(fpkl,'rb') as handle:
             data = pickle.load(handle)
-            for ievt,event in enumerate(data):
+            for ievt,pkl_event in enumerate(data):
                 # print(f"Reading event #{ievt}, trigger:{event.trigger}, ts:[{get_human_timestamp_ns(event.timestamp_bgn)}, {get_human_timestamp_ns(event.timestamp_end)}]")
                 
-                # if(int(event.trigger)%2==0): continue
-                iseven = (int(event.trigger)%2==0)
+                
+                ########################################
+                ### nicely clear per event for eudaq ###
+                ########################################
+                for s in range(eudaq_event.st_ev_buffer.size()):
+                    for c in range(eudaq_event.st_ev_buffer[s].ch_ev_buffer.size()):
+                        eudaq_event.st_ev_buffer[s].ch_ev_buffer[c].hits.clear()
+                    eudaq_event.st_ev_buffer[s].ch_ev_buffer.clear()
+                eudaq_event.st_ev_buffer.clear()
+                eudaq_event.trg_n    = pkl_event.trigger
+                eudaq_event.ts_begin = -1.
+                eudaq_event.ts_end   = -1.
+                eudaq_event.st_ev_buffer.push_back( ROOT.stave() )
+                ########################################
+                
+                
+                # if(int(pkl_event.trigger)%2==0): continue
+                iseven = (int(pkl_event.trigger)%2==0)
                 
                 tracks_triggers_dict["all"]["trgs"]["all"] += 1
                 if(iseven): tracks_triggers_dict["even"]["trgs"]["all"] += 1
@@ -468,12 +512,12 @@ if __name__ == "__main__":
                 histos["hTriggers"].Fill(0.5)
                 
                 ### counters
-                counters_x_trg.append( event.trigger )
+                counters_x_trg.append( pkl_event.trigger )
                 append_global_counters()
                 icounter = len(counters_x_trg)-1
                 
                 ### skip bad triggers...
-                if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(event.trigger) in badtriggers)):
+                if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(pkl_event.trigger) in badtriggers)):
                     nbadtrigs_actual += 1
                     continue
                 histos["hTriggers"].Fill(1.5)
@@ -483,20 +527,20 @@ if __name__ == "__main__":
 
                 ### check errors
                 if(not cfg["isMC"]):
-                    if(len(event.errors)!=len(cfg["detectors"])): continue
+                    if(len(pkl_event.errors)!=len(cfg["detectors"])): continue
                     nErrors = 0
-                    for det in cfg["detectors"]: nErrors += len(event.errors[det])
+                    for det in cfg["detectors"]: nErrors += len(pkl_event.errors[det])
                     if(nErrors>0): continue
 
                 
                 ### check pixels
-                # if(len(event.pixels)!=len(cfg["detectors"])): continue
-                if(len(event.npixels)!=len(cfg["detectors"])): continue
+                # if(len(pkl_event.pixels)!=len(cfg["detectors"])): continue
+                if(len(pkl_event.npixels)!=len(cfg["detectors"])): continue
                 n_pixels = 0
                 pass_pixels = True
                 for det in cfg["detectors"]:
-                    #npix = len( event.pixels[det] )
-                    npix = event.npixels[det]
+                    #npix = len( pkl_event.pixels[det] )
+                    npix = pkl_event.npixels[det]
                     if(npix==0): pass_pixels = False
                     n_pixels += npix
                 set_global_counter("Pixels/chip",icounter,n_pixels/Ndet)
@@ -504,13 +548,13 @@ if __name__ == "__main__":
 
 
                 ### check clusters
-                # if(len(event.clusters)!=len(cfg["detectors"])): continue
-                if(len(event.nclusters)!=len(cfg["detectors"])): continue
+                # if(len(pkl_event.clusters)!=len(cfg["detectors"])): continue
+                if(len(pkl_event.nclusters)!=len(cfg["detectors"])): continue
                 n_clusters = 0
                 pass_clusters = True
                 for det in cfg["detectors"]:
-                    # ncls = len(event.clusters[det])
-                    ncls = event.nclusters[det]
+                    # ncls = len(pkl_event.clusters[det])
+                    ncls = pkl_event.nclusters[det]
                     if(ncls==0): pass_clusters = False
                     n_clusters += ncls
                 set_global_counter("Clusters/chip",icounter,n_clusters/Ndet)
@@ -518,19 +562,19 @@ if __name__ == "__main__":
 
 
                 ### check seeds
-                n_seeds = len(event.seeds)
+                n_seeds = len(pkl_event.seeds)
                 set_global_counter("Track Seeds",icounter,n_seeds)
                 if(n_seeds==0): continue
 
 
                 ### check tracks
-                n_tracks = len(event.tracks)
+                n_tracks = len(pkl_event.tracks)
                 if(n_tracks==0): continue
 
 
                 good_tracks = []
                 acceptance_tracks = []
-                for track in event.tracks:
+                for track in pkl_event.tracks:
                     
                     ##################################
                     ### first require max cluster ####
@@ -582,9 +626,9 @@ if __name__ == "__main__":
 
 
                     if(cfg["isMC"] and cfg["isFakeMC"]):
-                        slp = event.fakemcparticles[0].slp
-                        itp = event.fakemcparticles[0].itp
-                        vtx = event.fakemcparticles[0].vtx
+                        slp = pkl_event.fakemcparticles[0].slp
+                        itp = pkl_event.fakemcparticles[0].itp
+                        vtx = pkl_event.fakemcparticles[0].vtx
                         histos["hTheta_xz_tru_all"].Fill(slp[0])
                         histos["hTheta_yz_tru_all"].Fill(slp[1])
                     
@@ -625,9 +669,9 @@ if __name__ == "__main__":
                     
                     
                     if(cfg["isMC"] and cfg["isFakeMC"]):
-                        slp = event.fakemcparticles[0].slp
-                        itp = event.fakemcparticles[0].itp
-                        vtx = event.fakemcparticles[0].vtx
+                        slp = pkl_event.fakemcparticles[0].slp
+                        itp = pkl_event.fakemcparticles[0].itp
+                        vtx = pkl_event.fakemcparticles[0].vtx
                         histos["hTheta_xz_tru"].Fill(slp[0])
                         histos["hTheta_yz_tru"].Fill(slp[1])
                         # print(f"thetaf_xz={thetaf_xz}, slp={slp[0]}, thetaf_yz={thetaf_yz}, slp={slp[1]}")
@@ -703,13 +747,13 @@ if __name__ == "__main__":
                 
                 ### event displays
                 if(cfg["plot_offline_evtdisp"] and len(good_tracks)>0):
-                    fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_offline_{event.trigger}.pdf")
-                    plot_event(event.meta.run,event.meta.start,event.meta.dur,event.trigger,fevtdisplayname,event.clusters,event.tracks,chi2threshold=cfg["cut_chi2dof"])
+                    fevtdisplayname = tfilenamein.replace("tree_","event_displays/").replace(".root",f"_offline_{pkl_event.trigger}.pdf")
+                    plot_event(pkl_event.meta.run,pkl_event.meta.start,pkl_event.meta.dur,pkl_event.trigger,fevtdisplayname,pkl_event.clusters,pkl_event.tracks,chi2threshold=cfg["cut_chi2dof"])
                 
                 
                 ### the Hough space (for the tunnel widths)
-                hzx = ROOT.TH2D("hzx","",event.hough_space["zx_xbins"],event.hough_space["zx_xmin"],event.hough_space["zx_xmax"],  event.hough_space["zx_ybins"],event.hough_space["zx_ymin"],event.hough_space["zx_ymax"])
-                hzy = ROOT.TH2D("hzy","",event.hough_space["zy_xbins"],event.hough_space["zy_xmin"],event.hough_space["zy_xmax"],  event.hough_space["zy_ybins"],event.hough_space["zy_ymin"],event.hough_space["zy_ymax"])
+                hzx = ROOT.TH2D("hzx","",pkl_event.hough_space["zx_xbins"],pkl_event.hough_space["zx_xmin"],pkl_event.hough_space["zx_xmax"],  pkl_event.hough_space["zx_ybins"],pkl_event.hough_space["zx_ymin"],pkl_event.hough_space["zx_ymax"])
+                hzy = ROOT.TH2D("hzy","",pkl_event.hough_space["zy_xbins"],pkl_event.hough_space["zy_xmin"],pkl_event.hough_space["zy_xmax"],  pkl_event.hough_space["zy_ybins"],pkl_event.hough_space["zy_ymin"],pkl_event.hough_space["zy_ymax"])
                 
                 ### count selected tracks
                 tracks_triggers_dict["all"]["trks"] += len(selected_tracks)
@@ -718,6 +762,23 @@ if __name__ == "__main__":
                 
                 ### plot some selected tracks
                 for track in selected_tracks:
+                    
+                    ###########################
+                    ### fill the eudaq tree ###
+                    ###########################
+                    for det in cfg["detectors"]:
+                        chipid = cfg["det2plane"][det]
+                        eudaq_event.st_ev_buffer[0].ch_ev_buffer.push_back( ROOT.chip() )
+                        ichip = eudaq_event.st_ev_buffer[0].ch_ev_buffer.size()-1
+                        eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].chip_id = int(chipid)
+                        for pixel in track.trkcls[det].pixels:
+                            ix = pixel.x
+                            iy = pixel.y
+                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.push_back( ROOT.pixel() )
+                            ihit = eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.size()-1
+                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].ix = ix
+                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].iy = iy
+                    ###########################
                     
                     # dx,dy = res_track2cluster("ALPIDE_3",track.points,track.direction,track.centroid)
                     # if(dx>-0.02): continue
@@ -789,12 +850,16 @@ if __name__ == "__main__":
                         histos[f"h_tunnel_width_y_{det}"].Fill(ymax-ymin)
                 
                 
-                ### at the end of the event, clean the Hough space histos
+                ### at the end of the pkl_event, clean the Hough space histos
                 del hzx
                 del hzy
                 
+                ###########################
+                ### fill the eudaq tree ###
+                tEUDAQout.Fill()
+                ###########################
                 
-                print(f"Event[{nevents-1}], Trigger[{event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
+                print(f"Event[{nevents-1}], Trigger[{pkl_event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
     # print(f"Events:{nevents}, Tracks:{ntracks}")
     print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual}, Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
@@ -1777,6 +1842,17 @@ if __name__ == "__main__":
     for hname,hist in histos.items(): hist.Write()
     fout.Write()
     fout.Close()
+    
+    ########################
+    ### write eudaq file ###
+    ########################
+    fEUDAQout.cd()
+    tEUDAQout.Write()
+    tEUDAQoutMeta.Write()
+    fEUDAQout.Write()
+    fEUDAQout.Close()
+    ########################
+    
     
     ### summary of tracking
     # print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")

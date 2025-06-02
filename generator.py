@@ -42,15 +42,17 @@ cm_to_m  = 0.01
 mm_to_m  = 0.001
 mm_to_cm = 0.1
 kG_to_T  = 0.1
-GeV_c_to_kgms = 5.344286e-19  # 1000x more than MeV/c
+GeV_to_kgms   = 5.39e-19
+GeV_to_kg     = 1.8e-27
+GeV_to_kgm2s2 = 1.6e-10
 
 
 # Physical constants
-e = 1.602176634e-19  # elementary charge in C
-c = 299792458  # speed of light in m/s
-m_e = 9.1093837015e-31  # electron/positron mass in kg
-mc2_GeV    = 0.000511  # Rest energy of positron in GeV
-mc2_kgms   = mc2_GeV*GeV_c_to_kgms
+c        = 299792458  # speed of light in m/s
+c2       = c*c
+e        = 1.602176634e-19  # elementary charge in C
+m_e      = 9.1093837015e-31  # electron/positron mass in kg
+m_p      = 1.67262192e-27 # proton/antiproton mass in kg
 
 ### chip
 npix_x = 1024
@@ -68,17 +70,17 @@ zIP = +30 # cm?
 zBe = -84 # cm
 
 # Define detector x range
-detector_x_center_cm = (-1.05) # cm
-# detector_x_center_cm = (0.) # cm
+detector_x_center_cm = -1.0 # cm
+# detector_x_center_cm = 0. # cm
 detector_x_center_m = detector_x_center_cm*cm_to_m
 
 # Define detector y range
-detector_y_center_cm = (5.165 + 0.1525 + 3.685) # cm
-detector_y_center_m = detector_y_center_cm*cm_to_m
+detector_y_center_cm = 5.165 + 0.1525 + 3.685 # cm
+detector_y_center_m  = detector_y_center_cm*cm_to_m
 
 # Calculate detector z position
-detector_z_base_cm = (1363 + 303.2155 + 11.43 + 1.05)  # cm
-detector_z_base_m = detector_z_base_cm*cm_to_m
+detector_z_base_cm = 1363 + 303.2155 + 11.43 + 1.05  # cm
+detector_z_base_m  = detector_z_base_cm*cm_to_m
 detector_z_base_mm = detector_z_base_cm*cm_to_mm
 
 
@@ -214,13 +216,12 @@ class Detector(Element):
             print(f"Detector at z={self.z_pos:.2f} m: No hits recorded")
             return
         
-        GeV_c_to_kgms = 5.344286e-19  # 1000x more than MeV/c
         print(f"Detector at z={self.z_pos:.2f} m hits:")
         for hit in self.hits:
             pid = hit['particle_id']
             xx  = hit['x']
             yy  = hit['y']
-            pz  = initial_states[pid][5]/GeV_c_to_kgms
+            pz  = initial_states[pid][5]/GeV_to_kgms
             print(f"  Particle {pid}: x={xx:.6f} m, y={yy:.6f} m (pz={pz:.2f} GeV)")
 
 class Beampipe(Element):
@@ -312,7 +313,7 @@ class Beampipe(Element):
 detectors = []
 for i in range(5):
     detector = Detector(
-        x_min=-chipYcm/2., x_max=+chipYcm/2.,
+        x_min=detector_x_center_cm-chipYcm/2., x_max=detector_x_center_cm+chipYcm/2.,
         y_min=detector_y_center_cm-chipXcm/2., y_max=detector_y_center_cm+chipXcm/2.,
         z_pos=detector_z_base_cm + i
     )
@@ -338,17 +339,14 @@ quad2 = Quadrupole(
     gradient=-7.637 if(MagnetsSettings==502) else -30.68 # kG/m
 )
 xcorr = Dipole(
-    # x_min=-8.6995/2., x_max=+8.6995/2.,
-    # y_min=-5.715/2., y_max=+5.715/2.,
-    # z_min=999.29032-11.811/2, z_max=999.29032+11.811/2,
     x_min=-10.795, x_max=+10.795, 
     y_min=-4.699, y_max=+4.699,
     z_min=987.779, z_max=1011.15,
     B_x=0, B_y=+0.026107, B_z=0  # Tesla
 )
 dipole = Dipole(
-    x_min=-2.2352, x_max=2.2352,
-    y_min=-6.1976, y_max=3.3528,
+    x_min=-2.996, x_max=2.2352,
+    y_min=-6.3752, y_max=3.1752,
     z_min=1260.34, z_max=1351.78,
     B_x=0.219, B_y=0, B_z=0  # Tesla
 )
@@ -454,7 +452,7 @@ def collision_event(t, state, elements_to_check=None, beampipe=None):
     t : float
         Current time value
     state : array 
-        Current state [x, y, z, px, py, pz]
+        Current state [x,y,z, px,py,pz, m,q]
     elements_to_check : list, optional
         List of elements to check for collisions
     beampipe : Beampipe, optional
@@ -519,7 +517,7 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, beampi
     Parameters:
     -----------
     particle_id : int, Unique identifier for the particle
-    initial_state : array, Initial state [x0, y0, z0, px0, py0, pz0]
+    initial_state : array, Initial state [x0,y0,z0, px0,py0,pz0, m,q]
     t_span : tuple, (t_start, t_end) for integration
     beampipe : Beampipe, optional, Beampipe object for collision detection
     max_step : float, optional, Maximum step size for integrator
@@ -636,19 +634,14 @@ def refill_detector_hits(initial_states, trajectories):
     if(len(initial_states)!=len(trajectories)):
         raise ValueError(f"number of initial_states {len(initial_states)} is not the same as number of trajectories {len(trajectories)}")
     ### remove old hits
-    for detector in detectors: detector.hits = []
+    for element in elements:
+        element.hits = []
     ### refill the hits
     for pid,trajectory in enumerate(trajectories):
-        ### Record hits in detectors
-        for det in detectors: record_hits(det,det.z_pos,trajectory,pid)
-        # Record hits on other elements
-        record_hits(dipole, dipole.z_max, trajectory, pid)
-        record_hits(xcorr,  xcorr.z_max,  trajectory, pid)
-        record_hits(quad0,  quad0.z_max,  trajectory, pid)
-        record_hits(quad1,  quad1.z_max,  trajectory, pid)
-        record_hits(quad2,  quad2.z_max,  trajectory, pid)
-        # Record beampipe hits if it exists
-        if beampipe is not None: record_hits(beampipe, beampipe.z_max_pipe, trajectory, pid)
+        for element in elements:
+            z = element.z_pos if(element in detectors) else element.z_max
+            record_hits(element,z,trajectory,pid)
+    
         
 
 def plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100):
@@ -798,17 +791,17 @@ if __name__ == "__main__":
     Emin = 0.5 ## GeV 
     Emax = 5.0 ## GeV
     
-    sigmax = 0.0001 ## m (100 um)
-    sigmay = 0.0001 ## m (100 um)
-    sigmaz = 0.0005 ## m (500 um)
-    sigmaPx = 0.00030 ## GeV
-    sigmaPy = 0.00005 ## GeV
-    
     # sigmax = 0.0001 ## m (100 um)
     # sigmay = 0.0001 ## m (100 um)
     # sigmaz = 0.0005 ## m (500 um)
-    # sigmaPx = 0.0030 ## GeV
-    # sigmaPy = 0.0005 ## GeV
+    # sigmaPx = 0.00030 ## GeV
+    # sigmaPy = 0.00005 ## GeV
+    
+    sigmax = 0.00005 ## m (50 um)
+    sigmay = 0.00005 ## m (50 um)
+    sigmaz = 0.00005 ## m (50 um)
+    sigmaPx = 0.0008 ## GeV
+    sigmaPy = 0.0004 ## GeV
     '''
     NBW from Arka (PTARMIGAN)
     sigma_x: 0.004166 mm
@@ -817,22 +810,30 @@ if __name__ == "__main__":
     sigma_px: 0.001037 GeV
     sigma_py: 0.000193 GeV
     '''
-    
+
+    ### origin of particles
     z0 = zBe if(MagnetsSettings==502) else zIP
+
+    ### particle species
+    MM = m_e ## kg, positron
+    QQ = +1  ## unit charge, positron
+    mGeV = (MM*c2)/GeV_to_kgm2s2 ## GeV
     
     initial_states = []
     PZ0 = []
     for i in range(Nparticles):
-        MM = m_e ## kg
-        QQ = +1 ## unit charge
         XX = np.random.normal(0.0,sigmax)
         YY = np.random.normal(0.0,sigmay)
         ZZ = np.random.normal(z0*cm_to_m,sigmaz)
-        PX = np.random.normal(0.0,sigmaPx*GeV_c_to_kgms)
-        PY = np.random.normal(0.0,sigmaPy*GeV_c_to_kgms)
-        EE = truncated_exp_NK(Emin,Emax,1)*GeV_c_to_kgms
-        PZ = np.sqrt( EE**2 - mc2_kgms**2 - PX**2 - PY**2 )
-        PZ0.append(PZ/GeV_c_to_kgms)
+        PX = np.random.normal(XX,sigmaPx) # GeV
+        PY = np.random.normal(YY,sigmaPy) # GeV
+        EE = truncated_exp_NK(Emin,Emax,1) # GeV
+        PZ = np.sqrt( EE**2 - mGeV**2 - PX**2 - PY**2 ) # GeV
+        PZ0.append(PZ) # GeV
+        ### convert to proper mks units
+        PX *= GeV_to_kgms # kg*m/s
+        PY *= GeV_to_kgms # kg*m/s
+        PZ *= GeV_to_kgms # kg*m/s
         state = [XX,YY,ZZ, PX,PY,PZ, MM,QQ]
         initial_states.append(state)
     
@@ -899,11 +900,9 @@ if __name__ == "__main__":
     
     
     
-    
     ############################
     ### Now do some plotting ###
     ############################
-    
     
     
     
@@ -947,11 +946,14 @@ if __name__ == "__main__":
             yy  = hit['y']
             zz  = hit['z']
             pz  = initial_states[pid][5]
-            X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
-            Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            # X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            X.append(xx*m_to_mm)
+            # Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            Y.append(yy*m_to_mm) 
             if(fullacc and pid not in list_good_tracks): continue
-            P.append(pz/GeV_c_to_kgms)
-        hOcc.append( axs[i].hist2d(X, Y, bins=(200,100),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
+            P.append(pz/GeV_to_kgms)
+        # hOcc.append( axs[i].hist2d(X, Y, bins=(200,100),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
+        hOcc.append( axs[i].hist2d(X, Y, bins=(200,100),range=[[detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm],[detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm]], rasterized=True) )
         if(i==0): P0 = P
         axs[i].set_xlabel('X [mm]')
         axs[i].set_ylabel('Y [mm]')
@@ -979,11 +981,14 @@ if __name__ == "__main__":
             yy  = hit['y']
             zz  = hit['z']
             pz  = initial_states[pid][5]
-            X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
-            Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            # X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            X.append(xx*m_to_mm)
+            # Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
+            Y.append(yy*m_to_mm)
             if(fullacc and pid not in list_good_tracks): continue
-            P.append(pz/GeV_c_to_kgms)
-        hOcc.append( axs[i].hist2d(X, Y, bins=(npix_y+1,npix_x+1),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
+            P.append(pz/GeV_to_kgms)
+        # hOcc.append( axs[i].hist2d(X, Y, bins=(npix_y+1,npix_x+1),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
+        hOcc.append( axs[i].hist2d(X, Y, bins=(npix_y+1,npix_x+1),range=[[detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm],[detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm]], rasterized=True) )
         if(i==0): P0 = P
         axs[i].set_xlabel('X [mm]')
         axs[i].set_ylabel('Y [mm]')
@@ -1127,7 +1132,7 @@ if __name__ == "__main__":
         pid = point['particle_id']
         if(fullacc and pid not in list_good_tracks): continue
         XX.append(point['x'])
-        px = initial_states[pid][3]/GeV_c_to_kgms
+        px = initial_states[pid][3]/GeV_to_kgms
         PX.append( px )   
     hdivx = axs[0].hist2d(XX, PX, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]], rasterized=True)
     axs[0].set_xlabel('X [m]')
@@ -1143,7 +1148,7 @@ if __name__ == "__main__":
         pid = point['particle_id']
         if(fullacc and pid not in list_good_tracks): continue
         YY.append(point['y'])
-        py = initial_states[pid][4]/GeV_c_to_kgms
+        py = initial_states[pid][4]/GeV_to_kgms
         PY.append( py )
     hdivy = axs[1].hist2d(YY, PY, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]], rasterized=True)
     axs[1].set_xlabel('Y [m]')

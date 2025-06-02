@@ -11,10 +11,10 @@ nprintout      = 20
 skipmasking    = 1
 detevtlib      = 20252302
 
-### run490 (Al foil allin, focused)
-first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
+# ### run490 (Al foil allin, focused)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
 
 # ### run494 (Al foil allin, defocused):
 # first2process = 2000
@@ -31,11 +31,11 @@ inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run490.root
 # nmax2process  = 100000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 
-# ### run502 (Be window in):
-# # first2process = 362
-# first2process = 0
-# nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+### run502 (Be window in):
+# first2process = 362
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 
 # ### run503 (beam-only, focusing on foil, 6h-long)
 # first2process = 0
