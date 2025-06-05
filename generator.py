@@ -48,11 +48,11 @@ GeV_to_kgm2s2 = 1.6e-10
 
 
 # Physical constants
-c        = 299792458  # speed of light in m/s
-c2       = c*c
-e        = 1.602176634e-19  # elementary charge in C
-m_e      = 9.1093837015e-31  # electron/positron mass in kg
-m_p      = 1.67262192e-27 # proton/antiproton mass in kg
+c   = 299792458  # speed of light in m/s
+c2  = c*c
+e   = 1.602176634e-19  # elementary charge in C
+m_e = 9.1093837015e-31  # electron/positron mass in kg
+m_p = 1.67262192e-27 # proton/antiproton mass in kg
 
 ### chip
 npix_x = 1024

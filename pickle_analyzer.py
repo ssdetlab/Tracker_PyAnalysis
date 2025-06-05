@@ -761,7 +761,7 @@ if __name__ == "__main__":
                 else:       tracks_triggers_dict["odd"]["trks"]  += len(selected_tracks)
                 
                 ### plot some selected tracks
-                for track in selected_tracks:
+                for itrk,track in enumerate(selected_tracks):
                     
                     ###########################
                     ### fill the eudaq tree ###
@@ -771,13 +771,14 @@ if __name__ == "__main__":
                         eudaq_event.st_ev_buffer[0].ch_ev_buffer.push_back( ROOT.chip() )
                         ichip = eudaq_event.st_ev_buffer[0].ch_ev_buffer.size()-1
                         eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].chip_id = int(chipid)
+                        trkpixels = []
                         for pixel in track.trkcls[det].pixels:
-                            ix = pixel.x
-                            iy = pixel.y
                             eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.push_back( ROOT.pixel() )
                             ihit = eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.size()-1
-                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].ix = ix
-                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].iy = iy
+                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].ix = pixel.x
+                            eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ihit].iy = pixel.y
+                            trkpixels.append([pixel.x,pixel.y])
+                        # print(f"itrk[{itrk}]: chipid={chipid} --> trkpixels={trkpixels}")
                     ###########################
                     
                     # dx,dy = res_track2cluster("ALPIDE_3",track.points,track.direction,track.centroid)
