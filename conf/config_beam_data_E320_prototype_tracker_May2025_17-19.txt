@@ -41,15 +41,15 @@ detevtlib      = 20250517
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run671.root
 
-### run676 (!!!positrons run!!!)
-first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run676.root
-
-# ### run690 (!!!positrons run, low bkg!!!)
+# ### run676 (!!!positrons run!!!)
 # first2process = 0
 # nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run690.root
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run676.root
+
+### run690 (!!!positrons run, low bkg!!!)
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run690.root
 
 # ### run691 (!!!positrons run, low bkg!!!)
 # first2process = 0
@@ -158,9 +158,10 @@ cut_chi2dof = 3
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
 cut_spot         = 1
-cut_spot_radius  = 11
-cut_spot_xcenter = 0
-cut_spot_ycenter = 11
+cut_spot_radius_x = 4
+cut_spot_radius_y = 15
+cut_spot_xcenter = -3
+cut_spot_ycenter = 7
 cut_strip        = 0
 cut_strip_x      = 5
 cut_strip_y      = 5

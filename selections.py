@@ -14,13 +14,20 @@ from utils import *
 def spot_cut(x,y):
     CX = cfg["cut_spot_xcenter"]
     CY = cfg["cut_spot_ycenter"]
-    X = x-CX
-    Y = y-CY
-    R = cfg["cut_spot_radius"]
-    if( math.sqrt(X*X+Y*Y)>R ): return False
-    if( math.sqrt(X*X+Y*Y)>R ): return False
-    if( math.sqrt(X*X+Y*Y)>R ): return False
-    if( math.sqrt(X*X+Y*Y)>R ): return False
+    RX = cfg["cut_spot_radius_x"]
+    RY = cfg["cut_spot_radius_y"]
+    X = (x-CX)/RX
+    Y = (y-CY)/RY
+    X2 = X*X
+    Y2 = Y*Y
+    # if( math.sqrt(X2+Y2)>R ): return False
+    # if( math.sqrt(X2+Y2)>R ): return False
+    # if( math.sqrt(X2+Y2)>R ): return False
+    # if( math.sqrt(X2+Y2)>R ): return False
+    if( (X2+Y2)>1. ): return False
+    if( (X2+Y2)>1. ): return False
+    if( (X2+Y2)>1. ): return False
+    if( (X2+Y2)>1. ): return False
     return True
 
 def strip_cut(x,y):

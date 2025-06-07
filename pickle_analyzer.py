@@ -472,7 +472,9 @@ if __name__ == "__main__":
     ntracks = 0
     nbadtrigs_actual = 0
     ntrigs_actual = 0
-    tracks_triggers_dict = {"all":{"trgs":{"all":0,"good":0},"trks":0}, "even":{"trgs":{"all":0,"good":0},"trks":0}, "odd":{"trgs":{"all":0,"good":0},"trks":0}}
+    tracks_triggers_dict = { "all": {"trgs":{"all":0,"good":0},"pix":0,"cls":0,"trks":0},
+                             "even":{"trgs":{"all":0,"good":0},"pix":0,"cls":0,"trks":0},
+                             "odd": {"trgs":{"all":0,"good":0},"pix":0,"cls":0,"trks":0} }
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
         with open(fpkl,'rb') as handle:
@@ -499,11 +501,32 @@ if __name__ == "__main__":
                 # if(int(pkl_event.trigger)%2==0): continue
                 iseven = (int(pkl_event.trigger)%2==0)
                 
-                tracks_triggers_dict["all"]["trgs"]["all"] += 1
-                if(iseven): tracks_triggers_dict["even"]["trgs"]["all"] += 1
-                else:       tracks_triggers_dict["odd"]["trgs"]["all"]  += 1
+                ### calculate the average occupancies
+                avgnpix = 0
+                avgncls = 0
+                if( len(pkl_event.npixels)==len(cfg["detectors"]) and len(pkl_event.nclusters)==len(cfg["detectors"])):
+                    for det in cfg["detectors"]:
+                        avgnpix += pkl_event.npixels[det]
+                        avgncls += pkl_event.nclusters[det]
+                        avgnpix /= len(cfg["detectors"])
+                        avgncls /= len(cfg["detectors"])
+                else:
+                    print("---------------------------------------------------------------------------------------")
+                    print(f"Problem with length of pixels array {len(pkl_event.npixels)} or clusters array {len(pkl_event.nclusters)}")
+                    print("---------------------------------------------------------------------------------------")
                 
-                tracks_triggers_dict
+                ### some counters
+                tracks_triggers_dict["all"]["trgs"]["all"] += 1
+                tracks_triggers_dict["all"]["pix"] += avgnpix
+                tracks_triggers_dict["all"]["cls"] += avgncls
+                if(iseven):
+                    tracks_triggers_dict["even"]["trgs"]["all"] += 1
+                    tracks_triggers_dict["even"]["pix"] += avgnpix
+                    tracks_triggers_dict["even"]["cls"] += avgncls
+                else:
+                    tracks_triggers_dict["odd"]["trgs"]["all"]  += 1
+                    tracks_triggers_dict["odd"]["pix"] += avgnpix
+                    tracks_triggers_dict["odd"]["cls"] += avgncls
                 
                 ntrigs_actual += 1
                 
@@ -511,11 +534,13 @@ if __name__ == "__main__":
                 
                 histos["hTriggers"].Fill(0.5)
                 
+                
                 ### counters
                 counters_x_trg.append( pkl_event.trigger )
                 append_global_counters()
                 icounter = len(counters_x_trg)-1
                 
+
                 ### skip bad triggers...
                 if(not cfg["isMC"] and cfg["runtype"]=="beam" and (int(pkl_event.trigger) in badtriggers)):
                     nbadtrigs_actual += 1
@@ -524,6 +549,7 @@ if __name__ == "__main__":
                 tracks_triggers_dict["all"]["trgs"]["good"] += 1
                 if(iseven): tracks_triggers_dict["even"]["trgs"]["good"] += 1
                 else:       tracks_triggers_dict["odd"]["trgs"]["good"]  += 1
+
 
                 ### check errors
                 if(not cfg["isMC"]):
@@ -1858,6 +1884,18 @@ if __name__ == "__main__":
     ### summary of tracking
     # print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
     print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual} Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
+    
+    
+    
+    tracks_triggers_dict["all"]["pix"] /= tracks_triggers_dict["all"]["trgs"]["all"]
+    tracks_triggers_dict["all"]["cls"] /= tracks_triggers_dict["all"]["trgs"]["all"]
+    
+    tracks_triggers_dict["even"]["pix"] /= tracks_triggers_dict["even"]["trgs"]["all"]
+    tracks_triggers_dict["even"]["cls"] /= tracks_triggers_dict["even"]["trgs"]["all"]
+
+    tracks_triggers_dict["odd"]["pix"] /= tracks_triggers_dict["odd"]["trgs"]["all"]
+    tracks_triggers_dict["odd"]["cls"] /= tracks_triggers_dict["odd"]["trgs"]["all"]
+    
     
     print(f"\ncounters: {tracks_triggers_dict}")
     

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -9,6 +10,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 import time
 import pickle
 import multiprocessing
+from matplotlib.animation import FuncAnimation, PillowWriter
+
 
 import argparse
 parser = argparse.ArgumentParser(description='serial_analyzer.py...')
@@ -345,7 +348,7 @@ xcorr = Dipole(
     B_x=0, B_y=+0.026107, B_z=0  # Tesla
 )
 dipole = Dipole(
-    x_min=-2.996, x_max=2.2352,
+    x_min=-2.2352, x_max=2.2352,
     y_min=-6.3752, y_max=3.1752,
     z_min=1260.34, z_max=1351.78,
     B_x=0.219, B_y=0, B_z=0  # Tesla
@@ -644,15 +647,21 @@ def refill_detector_hits(initial_states, trajectories):
     
         
 
-def plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100):
-    fig = plt.figure(figsize=(16, 10))
-    ax = fig.add_subplot(111, projection='3d')
+def plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100, ax=None):
+    
+    isAxNone = (ax is None)
+    
+    # fig = plt.figure(figsize=(16, 10))
+    # ax = fig.add_subplot(111, projection='3d')
+    if ax is None:
+        fig = plt.figure(figsize=(16, 10))
+        ax = fig.add_subplot(111, projection='3d')
 
     # Plot magnetic elements
-    quad0.plot_element(ax, 'blue')
-    quad1.plot_element(ax, 'green')
-    quad2.plot_element(ax, 'blue')
-    xcorr.plot_element(ax, 'orange')
+    quad0.plot_element(ax,  'cyan')
+    quad1.plot_element(ax,  'purple')
+    quad2.plot_element(ax,  'cyan')
+    xcorr.plot_element(ax,  'orange')
     dipole.plot_element(ax, 'red')
     beampipe.plot_element(ax, 'gray', alpha=0.3)
 
@@ -694,7 +703,7 @@ def plot_system(particle_trajectories, particle_collisions, initial_states, pdfn
             # No collision: plot entire trajectory in blue
             ax.plot(x, y, z, 'b-', linewidth=1.0, alpha=0.8)
 
-    print(f"Plotted {collision_count} collided trajectories out of {min(nmaxtrks, len(particle_trajectories))}")
+    if(isAxNone): print(f"Plotted {collision_count} collided trajectories out of {min(nmaxtrks, len(particle_trajectories))}")
 
     # Set axis labels and limits
     ax.set_xlabel('X [m]')
@@ -705,25 +714,54 @@ def plot_system(particle_trajectories, particle_collisions, initial_states, pdfn
     ax.set_zlim(0, 18)
 
     # Add legend for elements
-    quad_patch = mpatches.Patch(color='blue', alpha=0.5, label='Focusing Quad')
-    quad_neg_patch = mpatches.Patch(color='green', alpha=0.5, label='Defocusing Quad')
-    dipole_patch = mpatches.Patch(color='red', alpha=0.5, label='Dipole')
-    xcorr_patch = mpatches.Patch(color='orange', alpha=0.5, label='XCorr')
-    detector_patch = mpatches.Patch(color='purple', alpha=0.5, label='Detector')
-    beampipe_patch = mpatches.Patch(color='gray', alpha=0.3, label='Beampipe')
-    collision_patch = mpatches.Patch(color='red', alpha=0.8, label='Collided particles')
+    beampipe_patch  = mpatches.Patch(color='gray',   alpha=0.3, label='Beampipe')
+    quad0_patch     = mpatches.Patch(color='cyan',   alpha=0.5, label='Quad0')
+    quad1_patch     = mpatches.Patch(color='purple', alpha=0.5, label='Quad1')
+    quad2_patch     = mpatches.Patch(color='cyan',   alpha=0.5, label='Quad2')
+    xcorr_patch     = mpatches.Patch(color='orange', alpha=0.5, label='XCorr')
+    dipole_patch    = mpatches.Patch(color='red',    alpha=0.5, label='Dipole')
+    collision_patch = mpatches.Patch(color='red',    alpha=0.8, label='Collided particles')
+    free_patch      = mpatches.Patch(color='blue',   alpha=0.8, label='Free particles')
+    detector_patch  = mpatches.Patch(color='green',  alpha=0.5, label='Detector')
 
     handles, labels = ax.get_legend_handles_labels()
-    handles.extend([quad_patch, quad_neg_patch, xcorr_patch, dipole_patch, detector_patch, beampipe_patch, collision_patch])
-    ax.legend(handles=handles, loc='upper right')
-    ax.set_title(f'Particle Propagation (MagSet={MagnetsSettings}) - {collision_count} collisions')
+    handles.extend([beampipe_patch, quad0_patch, quad1_patch, quad2_patch, xcorr_patch, dipole_patch, collision_patch, free_patch, detector_patch])
+    ax.legend(handles=handles, loc='center left')
+    ax.set_title(f'Particle Propagation (MagSet={MagnetsSettings})')
 
-    plt.tight_layout()
-    plt.savefig(f"{pdfname}_tracks.pdf")
-    plt.show()
+    if(isAxNone):
+        plt.tight_layout()
+        plt.savefig(f"{pdfname}_tracks.pdf")
+        plt.show()
+        return fig
 
-    return fig
-    
+
+def plot_gif(pdfname):    
+    fig = plt.figure(figsize=(16, 10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    def update(angle):
+        ax.cla()  # Clear the 3D axis for redrawing
+        plot_system(
+            particle_trajectories,
+            particle_collisions,
+            initial_states,
+            pdfname=None,
+            nmaxtrks=100,
+            ax=ax
+        )
+        ax.view_init(elev=30, azim=angle)
+
+    ani = FuncAnimation(
+        fig,
+        update,
+        frames=range(0, 360, 5),  # Rotate full circle in 5° steps
+        interval=100  # milliseconds per frame
+    )
+
+    # Save as animated GIF using Pillow
+    ani.save(f"{pdfname}_tracks_rotation.gif", writer=PillowWriter(fps=10))
+
 
 def plot_scatter(pdfname):
     fig, axs = plt.subplots(1, 5, figsize=(10, 4), sharex=True, sharey=True, tight_layout=True)
@@ -909,6 +947,8 @@ if __name__ == "__main__":
     ### Plot the system with particle trajectories
     main_fig = plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100)
     
+    ### make the gif:
+    plot_gif(pdfname)
 
     ### Plot the hits as scatter plot (using detector.hits)
     scat_fig = plot_scatter(pdfname)

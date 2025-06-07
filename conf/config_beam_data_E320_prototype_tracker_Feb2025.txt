@@ -118,9 +118,10 @@ cut_chi2dof = 3
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
 cut_spot         = 1
-cut_spot_radius  = 11
-cut_spot_xcenter = 0
-cut_spot_ycenter = 11
+cut_spot_radius_x = 4
+cut_spot_radius_y = 15
+cut_spot_xcenter = -3
+cut_spot_ycenter = 7
 cut_strip        = 0
 cut_strip_x      = 5
 cut_strip_y      = 5
@@ -228,14 +229,19 @@ yWindowHeight = 119.888
 xWindow       = 0.
 yWindowMin    = 53.5
 
+####################################
+### the sizes that we align are: ###
+### 1. xOffset
+### 2. thetax
+### 3. yZero2PipeTop
+####################################
+
 [BEAMPIPE]
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
 ### design
 # yZero2PipeTop = 51.65
-### from adjusting with the energy
-# yZero2PipeTop = 56.65
-### from adjusting with toy MC
+### from adjusting with toy MC (51.65 + 1 mm)
 yZero2PipeTop = 52.65
 
 
@@ -260,13 +266,14 @@ yFlangeMax         = +31.752
 ### thetax/y are the angles in degrees ARROUND the x/y axis in real space, such that
 ### thetax rotates the blob up/down vertically and thetay rotates the blob horizontally.
 ### thetay in !!!degrees!!! is "found" from the dipole exit plane
-thetay = 0.160
+thetay = 0
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
-# thetax = 0.29
+# thetax = 0
 thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
-xOffset = 0.
+# xOffset = 0
+xOffset = -10.5
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)
