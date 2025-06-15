@@ -19,6 +19,7 @@ parser.add_argument('-mag', metavar='magnets settings (run 502 or run 490)', req
 parser.add_argument('-gen', metavar='particles to generate', required=True,  help='particles to generate')
 parser.add_argument('-acc', metavar='require full acceptance?', required=False,  help='require full acceptance?')
 parser.add_argument('-mlt', metavar='multi processing?', required=False,  help='multi processing?')
+parser.add_argument('-gif', metavar='do gif?', required=False,  help='do gif?')
 argus = parser.parse_args()
 MagnetsSettings = int(argus.mag)
 if(MagnetsSettings!=502 and MagnetsSettings!=490):
@@ -30,6 +31,7 @@ if(Nparticles<=0):
     quit()
 fullacc = True if(argus.acc is not None and argus.acc=="1") else False
 mltprc  = True if(argus.mlt is not None and argus.mlt=="1") else False
+dogif   = True if(argus.gif is not None and argus.gif=="1") else False
 
 
 
@@ -115,7 +117,7 @@ class Element:
         ])
         return vertices
         
-    def plot_element(self, ax, color, alpha=0.2):
+    def plot_element(self, ax, col, alpha=0.2):
         vertices = self.get_vertices()
         
         # List of sides' vertices
@@ -135,7 +137,7 @@ class Element:
                 face[:, 0].reshape(2, 2),
                 face[:, 1].reshape(2, 2),
                 face[:, 2].reshape(2, 2),
-                color=color, alpha=alpha
+                color=col, alpha=alpha
             )
 
 class Dipole(Element):
@@ -198,7 +200,7 @@ class Detector(Element):
             'px': px, 'py': py, 'pz': pz
         })
         
-    def plot_element(self, ax, color, alpha=0.4):
+    def plot_element(self, ax, col, alpha=0.4):
         # Override to plot as a thin rectangular plane
         vertices = self.get_vertices()
         
@@ -212,7 +214,7 @@ class Detector(Element):
                                    [x[1],y[1],z[1]],
                                    [x[2],y[2],z[2]],
                                    [x[3],y[3],z[3]] ]) )
-        ax.add_collection3d(Poly3DCollection(L1verts, facecolors='green', linewidths=0.5, edgecolors='g', alpha=.20))
+        ax.add_collection3d(Poly3DCollection(L1verts, facecolors=col, linewidths=0.5, edgecolors=col, alpha=.20))
         
     def print_hits(self,initial_states):
         if not self.hits:
@@ -736,7 +738,7 @@ def plot_system(particle_trajectories, particle_collisions, initial_states, pdfn
         return fig
 
 
-def plot_gif(pdfname):    
+def plot_gif(pdfname):
     fig = plt.figure(figsize=(16, 10))
     ax = fig.add_subplot(111, projection='3d')
 
@@ -752,15 +754,16 @@ def plot_gif(pdfname):
         )
         ax.view_init(elev=30, azim=angle)
 
+    print(f"Starting tracks rotating animation")
     ani = FuncAnimation(
         fig,
         update,
-        frames=range(0, 360, 5),  # Rotate full circle in 5° steps
-        interval=100  # milliseconds per frame
+        frames=range(0, 360, 5), ### Rotate full circle in 5 degree steps
+        interval=100  ### milliseconds per frame
     )
-
-    # Save as animated GIF using Pillow
+    ### save as animated GIF using Pillow
     ani.save(f"{pdfname}_tracks_rotation.gif", writer=PillowWriter(fps=10))
+    print(f"Rotating animation saved in {pdfname}_tracks_rotation.gif")
 
 
 def plot_scatter(pdfname):
@@ -948,7 +951,7 @@ if __name__ == "__main__":
     main_fig = plot_system(particle_trajectories, particle_collisions, initial_states, pdfname, nmaxtrks=100)
     
     ### make the gif:
-    plot_gif(pdfname)
+    if(dogif): plot_gif(pdfname)
 
     ### Plot the hits as scatter plot (using detector.hits)
     scat_fig = plot_scatter(pdfname)
@@ -956,19 +959,20 @@ if __name__ == "__main__":
 
     ### check acceptance
     npivots = 0
-    list_good_tracks = []
+    initial_state_nhits = np.zeros(len(initial_states))
+    list_good_tracks    = []
     for pivot in detectors[0].hits:
         pivot_pid = pivot['particle_id']
         npivots +=1
-        nhits = 0
+        nhits   = 1
         for i,detector in enumerate(detectors):
             if(i==0): continue
             for hit in detector.hits:
-                if(pivot_pid==hit['particle_id']):
+                if(hit['particle_id']==pivot_pid):
                     nhits += 1
                     break
-        if(nhits==len(detectors)-1):
-            list_good_tracks.append( pivot_pid )
+        if(nhits==len(detectors)): list_good_tracks.append( pivot_pid ) ### good track
+        initial_state_nhits[pivot_pid] = nhits
     print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")       
 
 
@@ -986,13 +990,10 @@ if __name__ == "__main__":
             yy  = hit['y']
             zz  = hit['z']
             pz  = initial_states[pid][5]
-            # X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
             X.append(xx*m_to_mm)
-            # Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
             Y.append(yy*m_to_mm) 
             if(fullacc and pid not in list_good_tracks): continue
             P.append(pz/GeV_to_kgms)
-        # hOcc.append( axs[i].hist2d(X, Y, bins=(200,100),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
         hOcc.append( axs[i].hist2d(X, Y, bins=(200,100),range=[[detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm],[detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm]], rasterized=True) )
         if(i==0): P0 = P
         axs[i].set_xlabel('X [mm]')
@@ -1021,13 +1022,10 @@ if __name__ == "__main__":
             yy  = hit['y']
             zz  = hit['z']
             pz  = initial_states[pid][5]
-            # X.append((xx-detector_x_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
             X.append(xx*m_to_mm)
-            # Y.append((yy-detector_y_center_m)*m_to_mm) ## TODO: this is important if we want to plot the hits where the (x,y)=(0,0) point is in the center of the chip
             Y.append(yy*m_to_mm)
             if(fullacc and pid not in list_good_tracks): continue
             P.append(pz/GeV_to_kgms)
-        # hOcc.append( axs[i].hist2d(X, Y, bins=(npix_y+1,npix_x+1),range=[[-chipYmm/2,+chipYmm/2],[-chipXmm/2,+chipXmm/2]], rasterized=True) )
         hOcc.append( axs[i].hist2d(X, Y, bins=(npix_y+1,npix_x+1),range=[[detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm],[detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm]], rasterized=True) )
         if(i==0): P0 = P
         axs[i].set_xlabel('X [mm]')
@@ -1042,7 +1040,7 @@ if __name__ == "__main__":
     plt.show()
     
     
-    ### plot the exit plane at the dipole:
+    ### the dipole exit rectngles:
     rectD1 = plt.Rectangle(
         (dipole.x_min, dipole.y_min),
         dipole.x_max - dipole.x_min,
@@ -1056,6 +1054,8 @@ if __name__ == "__main__":
         fill=False, edgecolor='blue'
     )
     
+    
+    ### plot the exit plane at the dipole
     fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)
     X = []
     Y = []
@@ -1168,12 +1168,20 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(1, 2, figsize=(9, 5), tight_layout=True)
     XX = []
     PX = []
-    for point in quad0.hits:
-        pid = point['particle_id']
+    YY = []
+    PY = []
+    for pid,state in enumerate(initial_states):
+        ### state = [XX,YY,ZZ, PX,PY,PZ, MM,QQ]
         if(fullacc and pid not in list_good_tracks): continue
-        XX.append(point['x'])
-        px = initial_states[pid][3]/GeV_to_kgms
-        PX.append( px )   
+        xx = state[0]
+        px = state[3]/GeV_to_kgms
+        yy = state[1]
+        py = state[4]/GeV_to_kgms
+        XX.append( xx )
+        PX.append( px )
+        YY.append( yy )
+        PY.append( py )
+           
     hdivx = axs[0].hist2d(XX, PX, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]], rasterized=True)
     axs[0].set_xlabel('X [m]')
     axs[0].set_ylabel('PX [GeV]')
@@ -1182,14 +1190,7 @@ if __name__ == "__main__":
     axs[0].xaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].grid(True,linewidth=0.25,alpha=0.25)
-    YY = []
-    PY = []
-    for point in quad0.hits:
-        pid = point['particle_id']
-        if(fullacc and pid not in list_good_tracks): continue
-        YY.append(point['y'])
-        py = initial_states[pid][4]/GeV_to_kgms
-        PY.append( py )
+
     hdivy = axs[1].hist2d(YY, PY, bins=(200,200), range=[[-5e-3,+5e-3],[-5e-4,+5e-4]], rasterized=True)
     axs[1].set_xlabel('Y [m]')
     axs[1].set_ylabel('PY [GeV]')
@@ -1198,6 +1199,7 @@ if __name__ == "__main__":
     axs[1].xaxis.set_minor_locator(AutoMinorLocator(10))
     axs[1].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[1].grid(True,linewidth=0.25,alpha=0.25)
+
     plt.tight_layout()
     plt.savefig(f"{pdfname}_divergence.pdf")
     plt.show()

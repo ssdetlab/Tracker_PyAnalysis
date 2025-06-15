@@ -266,14 +266,12 @@ if __name__ == "__main__":
             
             allhits += nhits
             
-        ###############
-        ### 2D occupancy:
-        if(fillhits):
-            n_active_staves, n_active_chips, pixels = get_all_pixles(entry,hPixMatix)
-            for det in cfg["detectors"]:
-                print(f"Filling hits for {det} in entry {ientry} (trigger #{trgn}, with {hits_vs_trg[det][counter]} pixels)")
-                for pix in pixels[det]:
-                    histos["h_pix_occ_2D_"+det].Fill(pix.x,pix.y)
+            ###############
+            ### 2D occupancy:
+            if(fillhits):
+                for ipix in range(nhits):
+                    ix,iy = entry.event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ipix]
+                    histos["h_pix_occ_2D_"+det].Fill(ix,iy)
     
         ### important!!
         counter += 1
@@ -754,7 +752,8 @@ if __name__ == "__main__":
     for idet,det in enumerate(cfg["detectors"]):
         cnv.cd(idet+1)
         ROOT.gPad.SetTicks(1,1)
-        for i in range(3): histos[f"h_pix_occ_2D_{det}"].Smooth()
+        histos[f"h_pix_occ_2D_{det}"].SetTitle(f"{det};x [pixels];y [pixels];Pixels/Trigger")
+        # for i in range(3): histos[f"h_pix_occ_2D_{det}"].Smooth()
         histos[f"h_pix_occ_2D_{det}"].Scale(1./len(x_trg))
         histos[f"h_pix_occ_2D_{det}"].Draw("colz")
         ROOT.gPad.RedrawAxis()

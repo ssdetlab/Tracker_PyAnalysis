@@ -195,6 +195,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         #                   float(str(ttree.event.ev_epics_frame.pv_map['SIOC:SYS1:ML00:CALCOUT053'].value)), ## z image
         #                   float(str(ttree.event.ev_epics_frame.pv_map['LI20:XCOR:3276:BACT'].value))) ## x-correctore
 
+        ### May 17-19 runs
         magnets = Magnets(10, ## dipole
                           -30.68, ## quad0
                           46.42, ## quad1

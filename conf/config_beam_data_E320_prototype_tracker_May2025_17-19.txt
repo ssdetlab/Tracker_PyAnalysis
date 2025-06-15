@@ -11,6 +11,12 @@ nprintout      = 20
 skipmasking    = 1
 detevtlib      = 20250517
 
+### run560 (first run of the campaign, with an Aluminum foil and the positrons focused on the tracker)
+first2process = 0
+nmax2process  = 1
+inputfile     = test_data/e320_prototype_beam_May2025_10-12/runs/tree_Run560.root
+
+
 # ### run616 (early morning shift - very good beam, bkg only --> not all pvs are present)
 # first2process = 0
 # nmax2process  = 0
@@ -46,10 +52,10 @@ detevtlib      = 20250517
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run676.root
 
-### run690 (!!!positrons run, low bkg!!!)
-first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run690.root
+# ### run690 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run690.root
 
 # ### run691 (!!!positrons run, low bkg!!!)
 # first2process = 0
@@ -157,24 +163,26 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
-cut_spot         = 1
-cut_spot_radius_x = 4
-cut_spot_radius_y = 15
 cut_spot_xcenter = -3
-cut_spot_ycenter = 7
-cut_strip        = 0
-cut_strip_x      = 5
-cut_strip_y      = 5
-# ### full chip ROI, i.e. no cuts
-# cut_ROI_xmin = 0
-# cut_ROI_xmax = 1024
-# cut_ROI_ymin = 0
-# cut_ROI_ymax = 512
-### just the strip of the positrons of run 669
-cut_ROI_xmin = 200
-cut_ROI_xmax = 900
-cut_ROI_ymin = 160
-cut_ROI_ymax = 230
+cut_spot_ycenter = 10.5
+cut_spot          = 0
+cut_spot_radius_x = 3
+cut_spot_radius_y = 7.5
+cut_strip        = 1
+cut_strip_x      = 8
+cut_strip_y      = 8
+### full chip ROI, i.e. no cuts
+cut_ROI_xmin = 0
+cut_ROI_xmax = 1024
+cut_ROI_ymin = 0
+cut_ROI_ymax = 512
+### eliptical RoI at the chips surface
+cut_RoI_spot           = 1
+cut_RoI_spot_xcenter   = 512
+cut_RoI_spot_ycenter   = 190
+cut_RoI_spot_radius_x  = 300
+cut_RoI_spot_radius_y  = 20
+cut_RoI_spot_theta_deg = 4.5
 
 
 [ALIGNMENT]
@@ -275,7 +283,8 @@ yMidWin2PipeCenter = 244.094
 ### design
 # yZero2PipeTop = 51.65
 ### from adjusting with toy MC
-yZero2PipeTop = 52.65
+# yZero2PipeTop = 52.65
+yZero2PipeTop = 56.15
 
 
 [DIPOLE]
@@ -301,11 +310,11 @@ yFlangeMax         = +31.752
 ### thetay in !!!degrees!!! is "found" from the dipole exit plane
 thetay = 0.
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
-# thetax = 0.29
+# thetax = 0
 thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
-xOffset = +3.
+xOffset = 0
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)

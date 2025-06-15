@@ -15,8 +15,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from scipy.optimize import curve_fit,basinhopping
-# from skspatial.objects import Line, Sphere
-# from skspatial.plotting import plot_3d
 import pickle
 from pathlib import Path
 import ctypes
@@ -472,9 +470,9 @@ if __name__ == "__main__":
     ntracks = 0
     nbadtrigs_actual = 0
     ntrigs_actual = 0
-    tracks_triggers_dict = { "all": {"trgs":{"all":0,"good":0},"pix":0,"cls":0,"trks":0},
-                             "even":{"trgs":{"all":0,"good":0},"pix":0,"cls":0,"trks":0},
-                             "odd": {"trgs":{"all":0,"good":0},"pix":0,"cls":0,"trks":0} }
+    tracks_triggers_dict = { "all": {"trgs":{"all":0,"good":0},"pix":{"all":0,"good":0},"cls":{"all":0,"good":0},"trks":0},
+                             "even":{"trgs":{"all":0,"good":0},"pix":{"all":0,"good":0},"cls":{"all":0,"good":0},"trks":0},
+                             "odd": {"trgs":{"all":0,"good":0},"pix":{"all":0,"good":0},"cls":{"all":0,"good":0},"trks":0} }
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
         with open(fpkl,'rb') as handle:
@@ -508,8 +506,8 @@ if __name__ == "__main__":
                     for det in cfg["detectors"]:
                         avgnpix += pkl_event.npixels[det]
                         avgncls += pkl_event.nclusters[det]
-                        avgnpix /= len(cfg["detectors"])
-                        avgncls /= len(cfg["detectors"])
+                    avgnpix /= len(cfg["detectors"])
+                    avgncls /= len(cfg["detectors"])
                 else:
                     print("---------------------------------------------------------------------------------------")
                     print(f"Problem with length of pixels array {len(pkl_event.npixels)} or clusters array {len(pkl_event.nclusters)}")
@@ -517,16 +515,16 @@ if __name__ == "__main__":
                 
                 ### some counters
                 tracks_triggers_dict["all"]["trgs"]["all"] += 1
-                tracks_triggers_dict["all"]["pix"] += avgnpix
-                tracks_triggers_dict["all"]["cls"] += avgncls
+                tracks_triggers_dict["all"]["pix"]["all"]  += avgnpix
+                tracks_triggers_dict["all"]["cls"]["all"]  += avgncls
                 if(iseven):
                     tracks_triggers_dict["even"]["trgs"]["all"] += 1
-                    tracks_triggers_dict["even"]["pix"] += avgnpix
-                    tracks_triggers_dict["even"]["cls"] += avgncls
+                    tracks_triggers_dict["even"]["pix"]["all"]  += avgnpix
+                    tracks_triggers_dict["even"]["cls"]["all"]  += avgncls
                 else:
-                    tracks_triggers_dict["odd"]["trgs"]["all"]  += 1
-                    tracks_triggers_dict["odd"]["pix"] += avgnpix
-                    tracks_triggers_dict["odd"]["cls"] += avgncls
+                    tracks_triggers_dict["odd"]["trgs"]["all"] += 1
+                    tracks_triggers_dict["odd"]["pix"]["all"]  += avgnpix
+                    tracks_triggers_dict["odd"]["cls"]["all"]  += avgncls
                 
                 ntrigs_actual += 1
                 
@@ -546,9 +544,19 @@ if __name__ == "__main__":
                     nbadtrigs_actual += 1
                     continue
                 histos["hTriggers"].Fill(1.5)
+                
+                
                 tracks_triggers_dict["all"]["trgs"]["good"] += 1
-                if(iseven): tracks_triggers_dict["even"]["trgs"]["good"] += 1
-                else:       tracks_triggers_dict["odd"]["trgs"]["good"]  += 1
+                tracks_triggers_dict["all"]["pix"]["good"]  += avgnpix
+                tracks_triggers_dict["all"]["cls"]["good"]  += avgncls
+                if(iseven):
+                    tracks_triggers_dict["even"]["trgs"]["good"] += 1
+                    tracks_triggers_dict["even"]["pix"]["good"]  += avgnpix
+                    tracks_triggers_dict["even"]["cls"]["good"]  += avgncls
+                else:
+                    tracks_triggers_dict["odd"]["trgs"]["good"] += 1
+                    tracks_triggers_dict["odd"]["pix"]["good"]  += avgnpix
+                    tracks_triggers_dict["odd"]["cls"]["good"]  += avgncls
 
 
                 ### check errors
@@ -608,18 +616,18 @@ if __name__ == "__main__":
                     if(track.maxcls>cfg["cut_maxcls"]): continue
                     
                     
-                    #####################
-                    ### pixel ROI cut ###
-                    #####################
-                    inROI = True
-                    for det in cfg["detectors"]:
-                        for pix in track.trkcls[det].pixels:
-                            # print(f"{det}: pix={pix.x,pix.y}")
-                            if(pix.x<cfg["cut_ROI_xmin"] or pix.x>cfg["cut_ROI_xmax"]): inROI = False
-                            if(pix.y<cfg["cut_ROI_ymin"] or pix.y>cfg["cut_ROI_ymax"]): inROI = False
-                            if(not inROI): break
-                        if(not inROI): break
-                    if(not inROI): continue
+                    # #####################
+                    # ### pixel ROI cut ###
+                    # #####################
+                    # inROI = True
+                    # for det in cfg["detectors"]:
+                    #     for pix in track.trkcls[det].pixels:
+                    #         # print(f"{det}: pix={pix.x,pix.y}")
+                    #         if(pix.x<cfg["cut_ROI_xmin"] or pix.x>cfg["cut_ROI_xmax"]): inROI = False
+                    #         if(pix.y<cfg["cut_ROI_ymin"] or pix.y>cfg["cut_ROI_ymax"]): inROI = False
+                    #         if(not inROI): break
+                    #     if(not inROI): break
+                    # if(not inROI): continue
                     
                     
                     ### fill some quantities before alignment
@@ -1886,17 +1894,32 @@ if __name__ == "__main__":
     print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual} Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
     
     
-    
-    tracks_triggers_dict["all"]["pix"] /= tracks_triggers_dict["all"]["trgs"]["all"]
-    tracks_triggers_dict["all"]["cls"] /= tracks_triggers_dict["all"]["trgs"]["all"]
-    
-    tracks_triggers_dict["even"]["pix"] /= tracks_triggers_dict["even"]["trgs"]["all"]
-    tracks_triggers_dict["even"]["cls"] /= tracks_triggers_dict["even"]["trgs"]["all"]
+    tracks_triggers_dict["all"]["pix"]["all"]  /= tracks_triggers_dict["all"]["trgs"]["all"]
+    tracks_triggers_dict["all"]["cls"]["all"]  /= tracks_triggers_dict["all"]["trgs"]["all"]
+    tracks_triggers_dict["all"]["pix"]["good"] /= tracks_triggers_dict["all"]["trgs"]["good"]
+    tracks_triggers_dict["all"]["cls"]["good"] /= tracks_triggers_dict["all"]["trgs"]["good"]
 
-    tracks_triggers_dict["odd"]["pix"] /= tracks_triggers_dict["odd"]["trgs"]["all"]
-    tracks_triggers_dict["odd"]["cls"] /= tracks_triggers_dict["odd"]["trgs"]["all"]
+    tracks_triggers_dict["even"]["pix"]["all"]  /= tracks_triggers_dict["even"]["trgs"]["all"]
+    tracks_triggers_dict["even"]["cls"]["all"]  /= tracks_triggers_dict["even"]["trgs"]["all"]
+    tracks_triggers_dict["even"]["pix"]["good"] /= tracks_triggers_dict["even"]["trgs"]["good"]
+    tracks_triggers_dict["even"]["cls"]["good"] /= tracks_triggers_dict["even"]["trgs"]["good"]
+
+    tracks_triggers_dict["odd"]["pix"]["all"]  /= tracks_triggers_dict["odd"]["trgs"]["all"]
+    tracks_triggers_dict["odd"]["cls"]["all"]  /= tracks_triggers_dict["odd"]["trgs"]["all"]
+    tracks_triggers_dict["odd"]["pix"]["good"] /= tracks_triggers_dict["odd"]["trgs"]["good"]
+    tracks_triggers_dict["odd"]["cls"]["good"] /= tracks_triggers_dict["odd"]["trgs"]["good"]
     
     
+    
+    print(f"\ncounters before: {tracks_triggers_dict}")
+    def convert_all_to_ints(d):
+        if isinstance(d, dict):
+            return {k: convert_all_to_ints(v) for k, v in d.items()}
+        elif isinstance(d, float) or isinstance(d, int):
+            return int(d)
+        else:
+            return d
+    tracks_triggers_dict = convert_all_to_ints(tracks_triggers_dict)
     print(f"\ncounters: {tracks_triggers_dict}")
     
     

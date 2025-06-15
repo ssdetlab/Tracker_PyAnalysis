@@ -22,10 +22,12 @@ parser = argparse.ArgumentParser(description='analyze_triggers.py...')
 parser.add_argument('-conf', metavar='config file', required=True,  help='full path to config file')
 parser.add_argument('-imin', metavar='first entry', required=False,  help='first entry')
 parser.add_argument('-imax', metavar='last entry', required=False,  help='last entry')
+parser.add_argument('-pvs',  metavar='analyze pvs?', required=False,  help='analyze pvs?')
 parser.add_argument('-hits', metavar='plot hits?', required=False,  help='plot hits?')
 argus = parser.parse_args()
 configfile = argus.conf
 fillhits = (int(argus.hits)==1) if(argus.hits is not None) else False
+dopvs    = (int(argus.pvs)==1)  if(argus.pvs is not None) else False
 
 import config
 from config import *
@@ -242,7 +244,7 @@ if __name__ == "__main__":
         if(ientry<imin): continue
         if(ientry>=imax): break
         
-        if(len(entry.event.ev_epics_frame.pv_map)>0):
+        if(dopvs and len(entry.event.ev_epics_frame.pv_map)>0):
             y_dipole[counter]   = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3330:BACT'].value))
             y_q0act[counter]    = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3141:BACT'].value))
             y_q1act[counter]    = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3261:BACT'].value))
@@ -309,20 +311,17 @@ if __name__ == "__main__":
             fltr_hits_vs_ent[det][counter] = nhits
             
             allhits += nhits
-        
-        # print(f"{trgn} --> {allhits/5}")
-        
-        ###############
-        ### 2D occupancy:
-        if(fillhits):
-            n_active_staves, n_active_chips, pixels = get_all_pixles(entry,hPixMatix)
-            for det in cfg["detectors"]:
-                print(f"Filling hits for {det} in entry {ientry} (trigger #{trgn}, with {hits_vs_trg[det][counter]} pixels)")
-                for pix in pixels[det]:
-                    histos["h_pix_occ_2D_"+det].Fill(pix.x,pix.y)
+            
+            ###############
+            ### 2D occupancy:
+            if(fillhits):
+                for ipix in range(nhits):
+                    ix,iy = entry.event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ipix]
+                    histos["h_pix_occ_2D_"+det].Fill(ix,iy)
     
         ### important!!
         counter += 1
+        print(f"counter: {counter}")
     
     print(f"beginning:  {x_tim[0]}")
     print(f"end of run: {x_tim[-1]}")
@@ -454,6 +453,7 @@ if __name__ == "__main__":
         ############ TODO
         for det in cfg["detectors"]:
             if(not fail and (hits_vs_trg[det][i]>800 or hits_vs_trg[det][i]<80)):
+            # if(not fail and (hits_vs_trg[det][i]>800000 or hits_vs_trg[det][i]<80)): ### For run560...
                 fail = True
                 break
         ############ TODO
@@ -994,7 +994,8 @@ if __name__ == "__main__":
     for idet,det in enumerate(cfg["detectors"]):
         cnv.cd(idet+1)
         ROOT.gPad.SetTicks(1,1)
-        for i in range(3): histos[f"h_pix_occ_2D_{det}"].Smooth()
+        # for i in range(3): histos[f"h_pix_occ_2D_{det}"].Smooth()
+        histos[f"h_pix_occ_2D_{det}"].SetTitle(f"{det};x [pixels];y [pixels];Pixels/Trigger")
         histos[f"h_pix_occ_2D_{det}"].Scale(1./len(x_trg))
         histos[f"h_pix_occ_2D_{det}"].Draw("colz")
         ROOT.gPad.RedrawAxis()

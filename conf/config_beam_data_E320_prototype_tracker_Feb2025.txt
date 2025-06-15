@@ -117,11 +117,11 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
-cut_spot         = 1
-cut_spot_radius_x = 4
-cut_spot_radius_y = 15
 cut_spot_xcenter = -3
-cut_spot_ycenter = 7
+cut_spot_ycenter = 10.5
+cut_spot          = 1
+cut_spot_radius_x = 3
+cut_spot_radius_y = 7.5
 cut_strip        = 0
 cut_strip_x      = 5
 cut_strip_y      = 5
@@ -135,6 +135,13 @@ cut_ROI_ymax = 512
 # cut_ROI_xmax = 1024
 # cut_ROI_ymin = 0
 # cut_ROI_ymax = 150
+### eliptical RoI at the chips surface
+cut_RoI_spot           = 0
+cut_RoI_spot_xcenter   = 0
+cut_RoI_spot_ycenter   = 0
+cut_RoI_spot_radius_x  = 0
+cut_RoI_spot_radius_y  = 0
+cut_RoI_spot_theta_deg = 0
 
 
 [ALIGNMENT]
@@ -242,7 +249,8 @@ yMidWin2PipeCenter = 244.094
 ### design
 # yZero2PipeTop = 51.65
 ### from adjusting with toy MC (51.65 + 1 mm)
-yZero2PipeTop = 52.65
+# yZero2PipeTop = 52.65
+yZero2PipeTop = 56.15
 
 
 [DIPOLE]

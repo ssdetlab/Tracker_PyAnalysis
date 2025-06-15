@@ -11,6 +11,26 @@ import utils
 from utils import *
     
 
+def tilted_eliptic_RoI_cut(track):
+    X0 = cfg["cut_RoI_spot_xcenter"]
+    Y0 = cfg["cut_RoI_spot_ycenter"]
+    a = cfg["cut_RoI_spot_radius_x"]
+    b = cfg["cut_RoI_spot_radius_y"]
+    t = cfg["cut_RoI_spot_theta_deg"]*np.pi/180.
+    A = (a*math.sin(t))**2 + (b*math.cos(t))**2
+    B = 2*(b**2-a**2)*math.sin(t)*math.cos(t)
+    C = (a*math.cos(t))**2 + (b*math.sin(t))**2
+    D = -2*A*X0 - B*Y0
+    E = -B*X0 - 2*C*Y0
+    F = A*(X0**2) + B*X0*Y0 + C*(Y0**2) - (a*b)**2
+    for det in cfg["detectors"]:
+        for cluster in track.trkcls[det]:
+            x = cluster.x ### cluster center measured in pixels in the EUDAQ frame
+            y = cluster.y ### cluster center measured in pixels in the EUDAQ frame 
+            elipse = A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F
+            if(elipse>0.): return False
+    return True
+
 def spot_cut(x,y):
     CX = cfg["cut_spot_xcenter"]
     CY = cfg["cut_spot_ycenter"]
@@ -20,13 +40,6 @@ def spot_cut(x,y):
     Y = (y-CY)/RY
     X2 = X*X
     Y2 = Y*Y
-    # if( math.sqrt(X2+Y2)>R ): return False
-    # if( math.sqrt(X2+Y2)>R ): return False
-    # if( math.sqrt(X2+Y2)>R ): return False
-    # if( math.sqrt(X2+Y2)>R ): return False
-    if( (X2+Y2)>1. ): return False
-    if( (X2+Y2)>1. ): return False
-    if( (X2+Y2)>1. ): return False
     if( (X2+Y2)>1. ): return False
     return True
 
@@ -54,6 +67,8 @@ def pass_geoacc_selection(track):
     xWinL,xWinR,yWinB,yWinT = get_pdc_window_bounds()
     xDipL,xDipR,yDipB,yDipT = get_dipole_exit_bounds()
     xFlgL,xFlgR,yFlgB,yFlgT = get_dipole_flange_bounds()
+    
+    psss_RoI             = ( cfg["cut_RoI_spot"] and tilted_eliptic_RoI_cut(track) )
     pass_inclination_yz  = ( rN[1]>=r0[1]  and r0[1]>=rW[1]  and rN[1]>=rW[1] )
     pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) )
     pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
@@ -63,7 +78,7 @@ def pass_geoacc_selection(track):
     pass_dk_at_det       = ( pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02) ) ### RELEVANT ONLY FOR PRE-ALIGNMENT!!!
     pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
     pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
-    return (pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot and pass_dipole_strip and pass_dk_at_det)
+    return (psss_RoI and pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot and pass_dipole_strip and pass_dk_at_det)
 
 
 def remove_tracks_with_shared_clusters(tracks):

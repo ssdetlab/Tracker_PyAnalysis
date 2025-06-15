@@ -1,0 +1,21 @@
+1. find the relevant DAQ in the FACET-II elog
+for example, on May 18, 2025, ~22:00 we see: E320_13129
+
+2. get the file like this:
+rsync -av -e 'ssh -J hod@rocky9.slac.stanford.edu' hod@centos7.slac.stanford.edu:/nfs/slac/g/facetdata/nas/nas-li20-pm00/E320/2025/20250518/E320_13129/E320_13129.mat .
+
+3. look at the root file from the trigger_analysis and look for the large features
+
+4. run the script without the pixels (-pix 0) and look at the different patterns in groups of 1k triggers
+
+5. if you identify something, zoom in with the pixels
+
+------------------------
+
+After syncing run e.g. according to the 2 dictionaries in lines 61-81:
+- python3 E320_matlab_pvs_to_python.py -set E320_13130 -pix 1 -run 690
+- python3 E320_matlab_pvs_to_python.py -set E320_13132 -pix 1 -run 691
+- python3 E320_matlab_pvs_to_python.py -set E320_13133 -pix 1 -run 692
+- python3 E320_matlab_pvs_to_python.py -set E320_13133 -pix 1 -run 693
+- python3 E320_matlab_pvs_to_python.py -set E320_13139 -pix 1 -run 696
+
