@@ -49,6 +49,7 @@ if __name__ == "__main__":
     detectorids = [8,6,4,2,0]
     
     fInName = "test_data/e320_prototype_beam_May2025_10-12/runs/run_0000560/beam_quality/tree_Run560_trigger_analysis.root"
+    # fInName = "test_data/e320_prototype_beam_May2025_17-19/runs/run_0000696/beam_quality/tree_Run696_trigger_analysis.root"
     fOutName = fInName.replace(".root","_replot.pdf")
     fIn = ROOT.TFile(fInName,"READ")
 

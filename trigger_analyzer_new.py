@@ -230,6 +230,10 @@ if __name__ == "__main__":
     rng = []
     counter = 0
     for ientry,entry in enumerate(ttree):
+        
+        if(ientry<imin): continue
+        if(ientry>=imax): break
+        
         trgn   = entry.event.trg_n
         ts_bgn = entry.event.ts_begin
         ts_end = entry.event.ts_end
@@ -240,9 +244,6 @@ if __name__ == "__main__":
         x_tim.append( get_human_timestamp_ns(ts_bgn) )
         
         y_dt[counter]       = dt
-        
-        if(ientry<imin): continue
-        if(ientry>=imax): break
         
         if(dopvs and len(entry.event.ev_epics_frame.pv_map)>0):
             y_dipole[counter]   = float(str(entry.event.ev_epics_frame.pv_map['LI20:LGPS:3330:BACT'].value))
@@ -314,7 +315,7 @@ if __name__ == "__main__":
             
             ###############
             ### 2D occupancy:
-            if(fillhits):
+            if(fillhits and nhits<20000):
                 for ipix in range(nhits):
                     ix,iy = entry.event.st_ev_buffer[0].ch_ev_buffer[ichip].hits[ipix]
                     histos["h_pix_occ_2D_"+det].Fill(ix,iy)
@@ -452,8 +453,9 @@ if __name__ == "__main__":
         
         ############ TODO
         for det in cfg["detectors"]:
-            if(not fail and (hits_vs_trg[det][i]>800 or hits_vs_trg[det][i]<80)):
+            # if(not fail and (hits_vs_trg[det][i]>800 or hits_vs_trg[det][i]<80)):
             # if(not fail and (hits_vs_trg[det][i]>800000 or hits_vs_trg[det][i]<80)): ### For run560...
+            if(not fail and (hits_vs_trg[det][i]>20000)): ### For run696...
                 fail = True
                 break
         ############ TODO

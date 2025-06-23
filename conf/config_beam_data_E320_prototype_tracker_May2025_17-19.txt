@@ -11,10 +11,10 @@ nprintout      = 20
 skipmasking    = 1
 detevtlib      = 20250517
 
-### run560 (first run of the campaign, with an Aluminum foil and the positrons focused on the tracker)
-first2process = 0
-nmax2process  = 1
-inputfile     = test_data/e320_prototype_beam_May2025_10-12/runs/tree_Run560.root
+# ### run560 (first run of the campaign, with an Aluminum foil and the positrons focused on the tracker)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_10-12/runs/tree_Run560.root
 
 
 # ### run616 (early morning shift - very good beam, bkg only --> not all pvs are present)
@@ -77,10 +77,10 @@ inputfile     = test_data/e320_prototype_beam_May2025_10-12/runs/tree_Run560.roo
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run694.root
 
-# ### run696 (!!!positrons run, low bkg!!!)
-# first2process = 0
-# nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run696.root
+### run696 (!!!positrons run, low bkg!!!)
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run696.root
 
 # ### run701 (!!!positrons run, low bkg!!!)
 # first2process = 0
@@ -314,7 +314,7 @@ thetay = 0.
 thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
-xOffset = 0
+xOffset = -3
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)

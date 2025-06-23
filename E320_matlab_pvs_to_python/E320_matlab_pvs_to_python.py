@@ -48,7 +48,6 @@ def get_human_timestamp_epics(timestamp_s,fmt="%d/%m/%Y, %H:%M:%S"):
     # return human_timestamp
     return f"{human_timestamp}.{milliseconds:03d}"
 
-
 def get_human_timestamp_eudaq(timestamp_ns,fmt="%d/%m/%Y, %H:%M:%S"):
     unix_timestamp = timestamp_ns/1e9
     milliseconds = int((timestamp_ns % 1e9) / 1e6)
@@ -57,27 +56,35 @@ def get_human_timestamp_eudaq(timestamp_ns,fmt="%d/%m/%Y, %H:%M:%S"):
     return f"{human_timestamp}.{milliseconds:03d}"
 
 
+def eudaq_parity(trgid):
+    return "even" if(trgid%2==0) else "odd"
+def epics_parity(trgid):
+    return "even" if(((trgid-10)/36)%2==0) else "odd"
+
+
+
+
 ### runs can be seen in: https://docs.google.com/spreadsheets/d/1Mux0J1XHzrhXqqxtls9xFwqnpD6LTtEOCWjSFn42w4E/edit?usp=sharing
 epics_index_range = {
-    "E320_13130-RUN_690":[0,-1],      ### Run 690
-    "E320_13132-RUN_691":[2004,3001], ### Run 691
-    "E320_13133-RUN_692":[0,1000],    ### Run 692
-    "E320_13133-RUN_693":[4004,5000], ### Run 693
-    "TEST_13134-RUN_694":[0,60],      ### Run 694
-    "E320_13139-RUN_696":[0,999],     ### Run 696
-    "E320_13158-RUN_701":[0,19], ### Run 701
-    "E320_13165-RUN_702":[0,100], ### Run 702
+    "E320_13130-RUN_690":[0,-1],
+    "E320_13132-RUN_691":[2004,3001],
+    "E320_13133-RUN_692":[0,1000],
+    "E320_13133-RUN_693":[4004,5000],
+    "TEST_13134-RUN_694":[0,60],
+    "E320_13139-RUN_696":[0,999],
+    "E320_13158-RUN_701":[0,19],
+    "E320_13165-RUN_702":[0,100],
     
 }
 eudaq_firstindex_map = {
-    "E320_13130-RUN_690":11178, ### Run 690
-    "E320_13132-RUN_691":18868, ### Run 691
-    "E320_13133-RUN_692":9992,  ### Run 692
-    "E320_13133-RUN_693":650,   ### Run 693
-    "TEST_13134-RUN_694":1524,  ### Run 694
-    "E320_13139-RUN_696":27134, ### Run 696
-    "E320_13158-RUN_701":4760,  ### Run 701
-    "E320_13165-RUN_702":3369,  ### Run 702
+    "E320_13130-RUN_690":11178,
+    "E320_13132-RUN_691":18868,
+    "E320_13133-RUN_692":9992,
+    "E320_13133-RUN_693":650,
+    "TEST_13134-RUN_694":1524,
+    "E320_13139-RUN_696":27134,
+    "E320_13158-RUN_701":4760,
+    "E320_13165-RUN_702":3369,
 }
 
 
@@ -85,8 +92,7 @@ eudaq_firstindex_map = {
 
 
 ### SET INITIAL PARAMETERS FOR ALL IMAGES IN THE DATA SET
-# NO FINAL SLASH!
-main_path   = "."
+main_path   = "../test_data/e320_prototype_beam_May2025_17-19/matlab"
 matlab_file = f"{main_path}/{epics_dataset}.mat" 
 
 mat_data    = scipy.io.loadmat(matlab_file, simplify_cells=True)
@@ -137,9 +143,6 @@ data = {
 print(f"epics_index_range for key={match_key}: {epics_index_range[match_key]}")
 epics_firstindex = epics_index_range[match_key][0]
 epics_lastindex  = epics_index_range[match_key][1] if(epics_index_range[match_key][1]!=-1) else len(data["SLAC_time"])-1
-# for i,t in enumerate(SLAC_time):
-#     ts = get_human_timestamp_epics(t)
-#     print(t,ts)
 print(f"len(SLAC_time)={len(SLAC_time)} --> epics_lastindex={epics_lastindex}")
 
 
@@ -148,7 +151,6 @@ print(f"len(SLAC_time)={len(SLAC_time)} --> epics_lastindex={epics_lastindex}")
 newdata = {}
 for name,arr in data.items():
     print(f"{name}: len(arr)={len(arr)}")
-    # arr = arr[epics_firstindex:epics_lastindex]
     arr = arr[epics_firstindex:epics_lastindex+1] ### +1 to include the last index!
     newdata.update({name:arr})
 print(f'len(data["SLAC_time"])={len(data["SLAC_time"])}')
@@ -241,7 +243,7 @@ fpkl.close()
 
 
 ### plot
-def plotter(name, pdf, arrx, arrsyL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-"):
+def plotter(name, pdf, arrx, arrsyL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-", points=[]):
     ### first page
     fig = plt.figure(figsize=(25, 5))
     ax1 = plt.subplot(111)
@@ -266,6 +268,18 @@ def plotter(name, pdf, arrx, arrsyL, arrsyR, xmin, xmax, xtitle, ytitleL="", yti
         ax2.set_ylabel(ytitleR, color=colR)
         if(logyR): ax2.set_yscale("log")
     
+    if(len(points)>0):
+        for point in points:
+            # ax1.plot(arrx[point], arrsyL[0][point], marker='o', color="black")
+            # ax1.annotate(f"{arrsyL[0][point]}", (arrx[point], arrsyL[0][point]), textcoords="offset points", xytext=(0,10), ha='center')
+            if(point+1<len(arrsyL[0])):
+                ax1.plot(arrx[point+1], arrsyL[0][point+1], marker='x', color="black")
+                ax1.annotate(f"{arrsyL[0][point+1]}", (arrx[point+1], arrsyL[0][point+1]), textcoords="offset points", xytext=(0,10), ha='center')
+            if(point-1>=0):
+                ax1.plot(arrx[point-1], arrsyL[0][point-1], marker='x', color="black")
+                ax1.annotate(f"{arrsyL[0][point-1]}", (arrx[point-1], arrsyL[0][point-1]), textcoords="offset points", xytext=(0,10), ha='center')
+            ax1.plot(arrx[point], arrsyL[0][point], marker='o', color="black")
+    
     plt.title(name, loc='center')
     
     pdf.savefig(fig)
@@ -273,14 +287,12 @@ def plotter(name, pdf, arrx, arrsyL, arrsyR, xmin, xmax, xtitle, ytitleL="", yti
 
 
 def plot_time_diff(name,pdf,tEPICS,tEUDAQ):
-    
     dt = np.subtract(tEPICS+NSECONDS, tEUDAQ/1e9)
-    # print(dt)
-    
-    fig, ax = plt.subplots(1, 1, figsize=(20, 5), tight_layout=True)
-    hdt = ax.hist(dt, bins=250, range=(-0.025,+0.025), rasterized=True)
 
-    ax.set_xlim(-0.025,+0.025)
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 5), tight_layout=True)
+    hdt = ax.hist(dt, bins=250, range=(-0.05,+0.05), rasterized=True)
+
+    ax.set_xlim(-0.05,+0.05)
     ax.set_xlabel('Time difference (EPICS-EUDAQ) [s]')
     ax.set_ylabel('Triggers')
     ax.set_title(name)
@@ -297,17 +309,59 @@ def plot_time_diff(name,pdf,tEPICS,tEUDAQ):
     return dt
 
 
+def plot_PID_mod36(name,pdf,PIDs):
+    print(f"about to check {len(PIDs)} PIDs for {name}")
+    offset = 10
+    mult = 36
+    mod  = np.zeros( len(PIDs) )
+    pid0 = mod[0]
+    wa = []
+    for i,pid in enumerate(PIDs):
+        ### check wraparounds:
+        if(i>0):
+            dpid = pid-pid0
+            if(abs(dpid)>mult):
+                print(f"Wraparound at pid[{i}]={pid} --> (pid-{offset})/{mult}={(pid-offset)/mult}")
+                wa.append(i)
+            pid0 = pid
+        ### fill the parity
+        n = int(pid-offset)
+        if(n%mult==0): continue
+        else:
+            print(f"PID-{offset} is not multiple of 36: {n/36}")
+            mod[i] = 1.5
+    
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 5), tight_layout=True)
+    hmod = ax.hist(mod, bins=2, range=(0,2), rasterized=True)
+
+    ax.set_xlim(0,2)
+    ax.set_xlabel('PID%36')
+    ax.set_ylabel('Triggers')
+    ax.set_title(name)
+    plt.locator_params(axis='x', nbins=10)
+    ax.xaxis.set_minor_locator(AutoMinorLocator(10))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(10))
+    ax.grid(True,linewidth=0.25,alpha=0.25)
+
+    plt.tight_layout()
+    
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    return wa
+
+
 
 match_name = f'EPICS_DAQ_{epics_dataset}__ALPIDE_RUN_{alpide_run}'
 with PdfPages(f'{match_name}.pdf') as pdf:
     
+    xmin0 = data["SLAC_time"][0]
+    xmax0 = data["SLAC_time"][-1]
+    xarr0 = data["SLAC_time"]
+    
     xmin = newdata["SLAC_time"][0]
     xmax = newdata["SLAC_time"][-1]
     xarr = newdata["SLAC_time"]
-
-    arrsyL = [ newdata["scalar_PID"] ]
-    arrsyR = [ data["ALPIDES_trg_number"] ]
-    plotter(match_name, pdf, xarr, arrsyL, arrsyR, xmin, xmax, xtitle='SLAC time [?]', ytitleL='EPICS Pulse ID', ytitleR='EUDAQ Trigger ID', colL="red", colR="black", lstyleL="-", lstyleR="--",  logyL=False, logyR=False)
     
     arrsyL = []
     arrsyR = []
@@ -350,7 +404,32 @@ with PdfPages(f'{match_name}.pdf') as pdf:
         
         dt = plot_time_diff(match_name,pdf,newdata["SLAC_time"],data["ALPIDES_trg_timbeg"])
         print(f"Mean of delta t is: {np.mean(dt)}")
+        wraparound = plot_PID_mod36(match_name,pdf,data["scalar_PID"])
         
+        for i in wraparound:
+            print(f'[{i}]:')
+            j = i-1
+            if(j>0):
+                pid = data["scalar_PID"][j]
+                parity = ((pid-10)/36)%2
+                print(f'  pid[{j}]={pid} --> p={parity}')
+            pid = data["scalar_PID"][i]
+            parity = ((pid-10)/36)%2
+            print(f'  pid[{i}]={data["scalar_PID"][i]} --> p={parity}')
+            j = i+1
+            if(j<len(data["scalar_PID"])-1):
+                pid = data["scalar_PID"][j]
+                parity = ((pid-10)/36)%2
+                print(f'  pid[{j}]={data["scalar_PID"][j]} --> p={parity}')
+
+
+        arrsyL = [ data["scalar_PID"] ]
+        arrsyR = []
+        for name,arr in data.items():
+            if("PMT"  in name): arrsyR.append(arr)
+        plotter(match_name, pdf, xarr0, arrsyL, arrsyR, xmin0, xmax0, xtitle='SLAC time [?]', ytitleL='EPICS Pulse ID', ytitleR='PMTs [counts]', colL="blue", colR="red", lstyleL="-", lstyleR="-",  logyL=False, logyR=True, points=wraparound)
+        
+
 
 
 ### time ranges for EUDAQ
@@ -362,23 +441,19 @@ print(f'EPICS trigger time end:   { get_human_timestamp_epics( newdata["SLAC_tim
 
 
 
-def eudaq_parity(trgid):
-    return "even" if(trgid%2==0) else "odd"
-def epics_parity(trgid):
-    return "even" if(((trgid-10)%36)%2==0) else "odd"
 
 ### trigger numbers for EUDAQ
 eudaq_parity_begin = eudaq_parity( data["ALPIDES_trg_number"][0] )
 eudaq_parity_end   = eudaq_parity( data["ALPIDES_trg_number"][-1] )
 print(f'EUDAQ trigger range length: { len(data["ALPIDES_trg_number"]) }')
 print(f'EUDAQ trigger begin: { data["ALPIDES_trg_number"][0] } --> parity:{ eudaq_parity_begin }')
-# print(f'EUDAQ trigger end:   { data["ALPIDES_trg_number"][-1] } --> parity:{ eudaq_parity_end }')
+print(f'EUDAQ trigger end:   { data["ALPIDES_trg_number"][-1] } --> parity:{ eudaq_parity_end }')
 ### trigger numbers for EPICS
 epics_parity_begin = epics_parity(newdata["scalar_PID"][0])
 epics_parity_end   = epics_parity(newdata["scalar_PID"][-1])
 print(f'EPICS trigger range length: { len(newdata["scalar_PID"]) }')
 print(f'EPICS trigger begin: { newdata["scalar_PID"][0] } --> parity:{ epics_parity_begin }')
-# print(f'EPICS trigger end:   { newdata["scalar_PID"][-1] } --> parity:{ epics_parity_end }')
+print(f'EPICS trigger end:   { newdata["scalar_PID"][-1] } --> parity:{ epics_parity_end }')
 
 
 epics_time_firstindex = newdata["SLAC_time"][0]+NSECONDS

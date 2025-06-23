@@ -24,9 +24,8 @@ def tilted_eliptic_RoI_cut(track):
     E = -B*X0 - 2*C*Y0
     F = A*(X0**2) + B*X0*Y0 + C*(Y0**2) - (a*b)**2
     for det in cfg["detectors"]:
-        for cluster in track.trkcls[det]:
-            x = cluster.x ### cluster center measured in pixels in the EUDAQ frame
-            y = cluster.y ### cluster center measured in pixels in the EUDAQ frame 
+            x = track.trkcls[det].x ### cluster center measured in pixels in the EUDAQ frame
+            y = track.trkcls[det].y ### cluster center measured in pixels in the EUDAQ frame 
             elipse = A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F
             if(elipse>0.): return False
     return True
