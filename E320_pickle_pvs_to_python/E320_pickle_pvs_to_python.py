@@ -135,15 +135,6 @@ for fname in files:
         for pvname in pvnames:
             if(pvname.replace("PMT_","") not in key): continue
             for i,val in enumerate(vals):
-                
-                # t = val["SLAC_time"]+NSECONDS
-                # t0 = 0
-                # if(i>0):
-                #     print(f"i={i}, t={t}, t0={t0}")
-                #     n = len(PV_TIM[pvname])
-                #     t0 = PV_TIM[pvname][n-1]
-                # if(t<=t0): continue
-                
                 PV_VAL[pvname].append(val["value"])
                 PV_PID[pvname].append(val["pid"])
                 PV_TIM[pvname].append(val["SLAC_time"]+NSECONDS)
@@ -159,21 +150,21 @@ def sort_array_pair(primary_arr,secondary_arr):
     sorted_primary_arr, sorted_secondary_arr = zip(*combined_arr)
     return sorted_primary_arr, sorted_secondary_arr
 
-for pvname in pvnames:
+for pvname in pvnames:    
+    prim_arr = PV_TS[pvname]
+    scnd_arr = PV_VAL[pvname]
+    srtd_prim_arr, sretd_scnd_arr = sort_array_pair(prim_arr,scnd_arr)
+    PV_VAL[pvname] = sretd_scnd_arr
+    
+    prim_arr = PV_TS[pvname]
+    scnd_arr = PV_PID[pvname]
+    srtd_prim_arr, sretd_scnd_arr = sort_array_pair(prim_arr,scnd_arr)
+    PV_PID[pvname] = sretd_scnd_arr
+    
     prim_arr = PV_TS[pvname]
     scnd_arr = PV_TIM[pvname]
     srtd_prim_arr, sretd_scnd_arr = sort_array_pair(prim_arr,scnd_arr)
     PV_TIM[pvname] = sretd_scnd_arr
-    
-    prim_arr = PV_TS[pvname]
-    scnd_arr = PV_PID[pvname]
-    srtd_prim_arr, sretd_scnd_arr = sort_array_pair(prim_arr,scnd_arr)
-    PV_PID[pvname] = sretd_scnd_arr
-    
-    prim_arr = PV_TS[pvname]
-    scnd_arr = PV_PID[pvname]
-    srtd_prim_arr, sretd_scnd_arr = sort_array_pair(prim_arr,scnd_arr)
-    PV_PID[pvname] = sretd_scnd_arr
     
     prim_arr = PV_TS[pvname]
     scnd_arr = PV_LT[pvname]
@@ -184,7 +175,7 @@ for pvname in pvnames:
     PV_TS[pvname] = srtd_prim_arr
 
 
-def restore_skipped_triggers(arrt,arrx,step=0.1,default_x=0,interpolate_x=False):
+def restore_skipped_triggers(arrt,arrx,step=0.1,default_x=0,interpolate_x=False,increment=False):
     new_arrt = [arrt[0]]
     new_arrx = [arrx[0]]
     
@@ -200,8 +191,13 @@ def restore_skipped_triggers(arrt,arrx,step=0.1,default_x=0,interpolate_x=False)
         ### fill the missing
         for j in range(1, n_missing + 1):
             t_new = t_prev + j * step
-            if(interpolate_x): x_new = x_prev + (x_curr - x_prev) * (t_new - t_prev) / delta ### linear interpolation
-            else: x_new = default_x
+            if(interpolate_x):
+                x_new = x_prev + (x_curr - x_prev) * (t_new - t_prev) / delta ### linear interpolation
+            else:
+                if(increment):
+                    x_new = x_prev + default_x
+                else:
+                    x_new = default_x
             new_arrt.append(t_new)
             new_arrx.append(x_new)
         
@@ -213,7 +209,7 @@ def restore_skipped_triggers(arrt,arrx,step=0.1,default_x=0,interpolate_x=False)
 
 for pvname in pvnames:
     arrt,PV_VAL[pvname] = restore_skipped_triggers(PV_TS[pvname],PV_VAL[pvname])
-    arrt,PV_PID[pvname] = restore_skipped_triggers(PV_TS[pvname],PV_PID[pvname])
+    arrt,PV_PID[pvname] = restore_skipped_triggers(PV_TS[pvname],PV_PID[pvname],default_x=36,increment=True)
     arrt,PV_TIM[pvname] = restore_skipped_triggers(PV_TS[pvname],PV_TIM[pvname],interpolate_x=True)
     arrt,PV_LT[pvname]  = restore_skipped_triggers(PV_TS[pvname],PV_LT[pvname],interpolate_x=True)
 
@@ -340,19 +336,21 @@ def plotter(name, pdf, arrx, arryL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytit
     plt.close(fig)
 
 
-def plot_time_diff(name,pdf,tarr,xtitle):
-    
-    dt = []
-    for i,t in enumerate(tarr):
+def plot_arr_diff(name,pdf,arr,xtitle,xmin=-1,xmax=-1,nbins=500):
+    d = []
+    for i,t in enumerate(arr):
         if(i==0): continue
-        dt.append(t-tarr[i-1])
-    dtmin = min(dt)
-    dtmax = max(dt)
+        d.append(t-arr[i-1])
+    dmin = min(d)
+    dmax = max(d)
+    print(f"dmin={dmin}, dmax={dmax}")
 
     fig, ax = plt.subplots(1, 1, figsize=(7.5, 5), tight_layout=True)
-    hdt = ax.hist(dt, bins=500, range=(dtmin*0.8,dtmax*1.2), rasterized=True)
+    rng = (dmin*0.8,dmax*1.2) if(dmin>0) else (dmin*1.2,dmax*1.2)
+    if(xmin!=-1 and xmax!=-1): rng = (xmin,xmax)
+    hdt = ax.hist(d, bins=nbins, range=rng, rasterized=True)
 
-    ax.set_xlim(dtmin*0.9,dtmax*1.1)
+    ax.set_xlim(rng[0],rng[1])
     ax.set_xlabel(xtitle)
     ax.set_ylabel('Triggers')
     ax.set_title(name)
@@ -361,6 +359,7 @@ def plot_time_diff(name,pdf,tarr,xtitle):
     ax.yaxis.set_minor_locator(AutoMinorLocator(10))
     ax.grid(True,linewidth=0.25,alpha=0.25)
     ax.set_yscale("log")
+    ax.set_ylim(0.5,None)
 
     plt.tight_layout()
     
@@ -399,7 +398,6 @@ def pad_arr_by_x(arrx,arry):
     nx = len(arrx)
     if(ny<nx): arry = np.pad(arry, (0, nx-ny), 'constant', constant_values=(0))
     return arry
-    
 
 with PdfPages(f'{datasetname}_RUN_{alpide_run}.pdf') as pdf:
     xarr   = PV_TIM["PMT_3070"]
@@ -420,11 +418,13 @@ with PdfPages(f'{datasetname}_RUN_{alpide_run}.pdf') as pdf:
     xmax   = xarr[-1]
     plotter(f'{datasetname}_RUN_{alpide_run}', pdf, xarr, arryL,[], xmin, xmax, xtitle='SLAC time [s]', ytitleL='PID', colL="blue", logyL=True)
     
-    plot_time_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_TIM["PMT_3070"],'SLAC_time shot-to-shot diff [s]')
-    plot_time_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_TS["PMT_3070"],'ts shot-to-shot diff [s]')
-    plot_time_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_LT["PMT_3070"],'lt shot-to-shot diff [s]')
-    plot_time_diff(f'{datasetname}_RUN_{alpide_run}', pdf, data["ALPIDES_trg_timbeg"],'EUDAQ start time shot-to-shot diff [s]')
-    plot_time_diff(f'{datasetname}_RUN_{alpide_run}', pdf, data["ALPIDES_trg_timend"],'EUDAQ end time shot-to-shot diff [s]')
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_PID["PMT_3070"],'PID shot-to-shot diff',nbins=100)
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_PID["PMT_3070"],'PID shot-to-shot diff',xmin=-20,xmax=80, nbins=100)
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_TIM["PMT_3070"],'SLAC_time shot-to-shot diff [s]')
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_TS["PMT_3070"],'ts shot-to-shot diff [s]')
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, PV_LT["PMT_3070"],'lt shot-to-shot diff [s]')
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, data["ALPIDES_trg_timbeg"],'EUDAQ start time shot-to-shot diff [s]')
+    plot_arr_diff(f'{datasetname}_RUN_{alpide_run}', pdf, data["ALPIDES_trg_timend"],'EUDAQ end time shot-to-shot diff [s]')
     
     proctime = np.subtract(data["ALPIDES_trg_timend"],data["ALPIDES_trg_timbeg"])
     plot_time(f'{datasetname}_RUN_{alpide_run}', pdf, proctime,'EUDAQ process time [s]')
