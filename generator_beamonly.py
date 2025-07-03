@@ -55,18 +55,18 @@ m_p = 1.67262192e-27 # proton/antiproton mass in kg
 ########################################################################
 def GenerateGaussianBeam(E_GeV,mass_GeV,charge,mks=False):
     ### These variables assumed to be class members
-    fx0 = 0 ### TODO???
-    fy0 = 0 ### TODO???
-    fz0         = -200.0*cm_to_m
-    fbeamfocus  = 0.0
-    fsigmax     = 35.0*um_to_m
-    fsigmay     = 35.0*um_to_m
-    fsigmaz     = 150.0*um_to_m
+    fx0         = -5*mm_to_m ### TODO???
+    fy0         = 0 ### TODO???
+    fz0         = -200*cm_to_m
+    fbeamfocus  = 0
+    fsigmax     = 50*um_to_m
+    fsigmay     = 50*um_to_m
+    fsigmaz     = 150*um_to_m
     lf          = E_GeV/mass_GeV
-    femittancex = 50.0e-3*mm_to_m/lf
-    femittancey = 50.0e-3*mm_to_m/lf
-    fbetax      = fsigmax*fsigmax/femittancex
-    fbetay      = fsigmay*fsigmay/femittancey
+    femittancex = 50e-3*mm_to_m/lf ### mm-rad
+    femittancey = 50e-3*mm_to_m/lf ### mm-rad
+    fbetax      = (fsigmax**2)/femittancex
+    fbetay      = (fsigmay**2)/femittancey
     
     ### z
     z0     = np.random.normal(fz0,fsigmaz)
@@ -74,7 +74,7 @@ def GenerateGaussianBeam(E_GeV,mass_GeV,charge,mks=False):
     ### x
     sigmax  = fsigmax * np.sqrt(1.0 + (zdrift/fbetax)**2)
     x0      = np.random.normal(fx0, sigmax)
-    meandx  = x0*zdrift / (zdrift*zdrift + fbetax*fbetax)
+    meandx  = x0*zdrift / (zdrift**2 + fbetax**2)
     sigmadx = np.sqrt( femittancex*fbetax / (zdrift**2 + fbetax**2) )
     dx0     = np.random.normal(meandx, sigmadx)
     ### y
@@ -98,18 +98,22 @@ def GenerateGaussianBeam(E_GeV,mass_GeV,charge,mks=False):
 
 
 def propagate_state_in_vacuum_to_z(state, z):
+    if(z==state[2]): return state
     x0 = state[0]
     y0 = state[1]
     z0 = state[2]
     px = state[3]
     py = state[4]
     pz = state[5]
-    p = np.sqrt(px**2 + py**2 + pz**2)
-    thetax = np.arcsin(px/p)
-    thetay = np.arcsin(py/p)
-    x = x0 + np.tan(thetax)*(z-z0) if(z!=z0) else x0
-    y = y0 + np.tan(thetay)*(z-z0) if(z!=z0) else y0
-    state_at_z = [x,y,z, px,py,pz, state[6],state[7]]
+    m  = state[6]
+    q  = state[7]
+    pxz = np.sqrt(px**2 + pz**2)
+    pyz = np.sqrt(py**2 + pz**2)
+    thetax = np.arcsin(px/pxz)
+    thetay = np.arcsin(py/pyz)
+    x = x0 + np.tan(thetax)*(z-z0)
+    y = y0 + np.tan(thetay)*(z-z0)
+    state_at_z = [x,y,z, px,py,pz, m,q]
     return state_at_z
 
 
@@ -132,25 +136,25 @@ def simulate_secondary_production(primary_state,q=+1,Emin=0.5,Emax=5,smear_T=Fal
     
     ### smear trasverse position
     if(smear_pT):
-        x = x + np.random.normal(0,5*um_to_m)
-        y = y + np.random.normal(0,5*um_to_m)
+        x = x + np.random.normal(0,0.3*um_to_m)
+        y = y + np.random.normal(0,0.3*um_to_m)
     ### smear trasverse momenta
     if(smear_pT):
-        smear_sigmax = 5e-4 ### GeV
-        smear_sigmay = 5e-4 ### GeV
+        smear_sigmax = 1.5e-3 ### GeV
+        smear_sigmay = 1.5e-3 ### GeV
         px = px + np.random.normal(0,smear_sigmax) 
         py = py + np.random.normal(0,smear_sigmay)
     ### sample energy from exponential
     E = truncated_exp_NK(Emin,Emax,1) # GeV
     ### assume the x-y momemnta staty the same and correct the z momentum
-    pz = np.sqrt( E**2 - mass**2 - px**2 - px**2 ) # GeV
+    pz = np.sqrt( E**2 - mass**2 - px**2 - py**2 ) # GeV
     secondary_state = [x,y,z, px,py,pz, mass, q]
     
     return secondary_state
 
 
 
-def plot_divergence(states, title_suffix=""):
+def plot_divergence(states, title=""):
     fig, axs = plt.subplots(1, 2, figsize=(10, 5), tight_layout=True)
     XX = []
     PX = []
@@ -166,19 +170,23 @@ def plot_divergence(states, title_suffix=""):
         YY.append( yy )
         PY.append( py )
            
-    hdivx = axs[0].hist2d(XX, PX, bins=(100,100), range=[[-6e-4,+6e-4],[-3e-3,+3e-3]], rasterized=True)
+    # hdivx = axs[0].hist2d(XX, PX, bins=(100,100), range=[[-6e-4,+6e-4],[-3e-3,+3e-3]], rasterized=True)
+    hdivx = axs[0].hist2d(XX, PX, bins=(100,100), rasterized=True)
     axs[0].set_xlabel(r'$x$ [m]')
     axs[0].set_ylabel(r'$p_x$ [GeV]')
     axs[0].xaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].grid(True,linewidth=0.25,alpha=0.25)
 
-    hdivy = axs[1].hist2d(YY, PY, bins=(100,100), range=[[-6e-4,+6e-4],[-3e-3,+3e-3]], rasterized=True)
+    # hdivy = axs[1].hist2d(YY, PY, bins=(100,100), range=[[-6e-4,+6e-4],[-3e-3,+3e-3]], rasterized=True)
+    hdivy = axs[1].hist2d(YY, PY, bins=(100,100), rasterized=True)
     axs[1].set_xlabel(r'$y$ [m]')
     axs[1].set_ylabel(r'$p_y$ [GeV]')
     axs[1].xaxis.set_minor_locator(AutoMinorLocator(10))
     axs[1].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[1].grid(True,linewidth=0.25,alpha=0.25)
+
+    fig.suptitle(title, fontsize=16) # Add overall title
 
     plt.tight_layout()
     plt.show()
@@ -204,7 +212,8 @@ def plot_divergence_gif(states,fig,axs,z_pos):
         YY.append( yy )
         PY.append( py )
            
-    hdivx = axs[0].hist2d(XX, PX, bins=(200,200), range=[[-6e-4,+6e-4],[-3e-3,+3e-3]], rasterized=True)
+    hdivx = axs[0].hist2d(XX, PX, bins=(200,200), range=[[-7.5e-3,+1.1e-2],[2.1e-2,+2.6e-2]], rasterized=True)
+    # hdivx = axs[0].hist2d(XX, PX, bins=(200,200), rasterized=True)
     axs[0].set_xlabel(r'$x$ [m]')
     axs[0].set_ylabel(r'$p_x$ [GeV]')
     # axs[0].set_title(f'z = {z_pos*100:.1f} cm')
@@ -214,7 +223,8 @@ def plot_divergence_gif(states,fig,axs,z_pos):
     axs[0].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].grid(True,linewidth=0.25,alpha=0.25)
 
-    hdivy = axs[1].hist2d(YY, PY, bins=(200,200), range=[[-6e-4,+6e-4],[-3e-3,+3e-3]], rasterized=True)
+    hdivy = axs[1].hist2d(YY, PY, bins=(200,200), range=[[-1e-3,+1e-3],[-3e-3,+3e-3]], rasterized=True)
+    # hdivy = axs[1].hist2d(YY, PY, bins=(200,200), rasterized=True)
     axs[1].set_xlabel(r'$y$ [m]')
     axs[1].set_ylabel(r'$p_y$ [GeV]')
     # axs[1].set_title(f'z = {z_pos*100:.1f} cm')
@@ -268,19 +278,31 @@ def plot_2h(states1,states2):
     py2 = np.array([state[4] for state in states2])
     pz2 = np.array([state[5] for state in states2])
     
-    xmin = min(min(x1),min(x2))*1.2
-    xmax = max(max(x1),max(x2))*1.2
-    ymin = min(min(y1),min(y2))*1.2
-    ymax = max(max(y1),max(y2))*1.2
-    zmin = min(min(z1),min(z2))*1.2
-    zmax = max(max(z1),max(z2))*1.2
-    
-    pxmin = min(min(px1),min(px2))*1.2
-    pxmax = max(max(px1),max(px2))*1.2
-    pymin = min(min(py1),min(py2))*1.2
-    pymax = max(max(py1),max(py2))*1.2
+    xmin = min(min(x1),min(x2))
+    xmax = max(max(x1),max(x2))
+    ymin = min(min(y1),min(y2))
+    ymax = max(max(y1),max(y2))
+    zmin = min(min(z1),min(z2))
+    zmax = max(max(z1),max(z2))
+
+    xmin *= 1.2 if(xmin<0) else 0.8
+    xmax *= 1.2
+    ymin *= 1.2 if(ymin<0) else 0.8
+    ymax *= 1.2
+    zmin *= 1.2 if(zmin<0) else 0.8
+    zmax *= 1.2
+
+    pxmin = min(min(px1),min(px2))
+    pxmax = max(max(px1),max(px2))
+    pymin = min(min(py1),min(py2))
+    pymax = max(max(py1),max(py2))
     pzmin = 0
-    pzmax = max(max(pz1),max(pz2))*1.2
+    pzmax = max(max(pz1),max(pz2))*1.1
+    
+    pxmin *= 1.2 if(pxmin<0) else 0.8
+    pxmax *= 1.2
+    pymin *= 1.2 if(pymin<0) else 0.8
+    pymax *= 1.2
     
     if(xmin==xmax):
         xmin=xmin*(1.-0.8)
@@ -301,6 +323,9 @@ def plot_2h(states1,states2):
     if(pzmin==pzmax):
         pzmin=pzmin*(1.-0.8)
         pzmax=pzmax*(1.+0.8)
+        
+    print(f"x[{xmin:.3f},{xmax:.3f}], y[{ymin:.3f},{ymax:.3f}], z[{zmin:.3f},{zmax:.3f}]")
+    print(f"px[{pxmin:.3f},{pxmax:.3f}], py[{pymin:.3f},{pymax:.3f}], pz[{pzmin:.3f},{pzmax:.3f}]")
     
     fig, axs = plt.subplots(2, 3, figsize=(12,5), tight_layout=True)
     h1x = axs[0][0].hist(x1, bins=100, range=(xmin,xmax), alpha=0.5, label='Primary', color='blue', rasterized=True)
@@ -396,22 +421,23 @@ print(f"Generated {len(states)} particle states")
 if(dogif):
     # Define z positions for animation (from -2m to +0.3m)
     z_start  = -2.0  # meters
-    z_end    = 0.3   # meters
-    n_frames = 10    # number of frames in animation
+    z_end    = 3.67   # meters
+    n_frames = 50    # number of frames in animation
     z_positions = np.linspace(z_start, z_end, n_frames)
     print(f"Animation will show propagation from z = {z_start*100:.1f} cm to z = {z_end*100:.1f} cm")
     anim = animate_beam_propagation(states, z_positions, 'beam_propagation.gif')
 
 
 
-# ### show the primary beam a few key points along z
-# z_key_positions = [-2.0, -0.84, 0.0, 0.3]
-# for z in z_key_positions:
-#     print(f"Plotting at z = {z*100:.1f} cm")
-#     states_at_z = []
-#     for state in states:
-#         states_at_z.append(propagate_state_in_vacuum_to_z(state,z))
-#     plot_divergence(states_at_z, f" at z = {z*100:.1f} cm")
+### show the primary beam a few key points along z in meters
+###                #shoot  Be-window  IP     Al-foil   Q0-entrance
+z_key_positions = [-2.0,   -0.84,     0.0,   0.3,      3.67]
+for z in z_key_positions:
+    print(f"Plotting at z = {z*100:.1f} cm")
+    states_at_z = []
+    for state in states:
+        states_at_z.append(propagate_state_in_vacuum_to_z(state,z))
+    plot_divergence(states_at_z, f"Primaries at z = {z*100:.1f} cm")
 
 
 
@@ -424,13 +450,9 @@ for state in states:
     primary_states_at_foil.append(primary_state_at_foil)
     secondary_state_at_foil = simulate_secondary_production(primary_state_at_foil,q=+1,Emin=0.5,Emax=5,smear_T=True,smear_pT=True)
     secondary_states_at_foil.append(secondary_state_at_foil)
-plot_divergence(secondary_states_at_foil,f" at z = 30 cm")
+plot_divergence(secondary_states_at_foil,f"Secondaries at z = 30 cm")
 
 
 
 ### plot the differences in x,y,px,py
 plot_2h(primary_states_at_foil,secondary_states_at_foil)
-
-
-
-

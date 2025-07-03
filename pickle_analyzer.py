@@ -260,6 +260,7 @@ if __name__ == "__main__":
     print(f"Found {nbadtrigs} bad triggers in the entire run")
     
     
+    
     ### counters
     init_global_counters()
     Ndet = len(cfg["detectors"])
@@ -440,7 +441,7 @@ if __name__ == "__main__":
     #################################
     ### declare the data tree and its classes
     ROOT.gROOT.ProcessLine("struct pixel  { Int_t ix; Int_t iy; };" )
-    ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; };" )
+    ROOT.gROOT.ProcessLine("struct chip   { Int_t chip_id; std::vector<pixel> hits; std::vector<TVector3> cls0; std::vector<TVector3> cls1; std::vector<TVector3> cls2; std::vector<TVector3> cls3; };" )
     ROOT.gROOT.ProcessLine("struct stave  { Int_t stave_id; std::vector<chip> ch_ev_buffer; };" )
     ROOT.gROOT.ProcessLine("struct event  { Int_t trg_n; Double_t ts_begin; Double_t ts_end; std::vector<stave> st_ev_buffer; };" )
     ### declare the meta-data tree and its classes
@@ -487,6 +488,10 @@ if __name__ == "__main__":
                 for s in range(eudaq_event.st_ev_buffer.size()):
                     for c in range(eudaq_event.st_ev_buffer[s].ch_ev_buffer.size()):
                         eudaq_event.st_ev_buffer[s].ch_ev_buffer[c].hits.clear()
+                        eudaq_event.st_ev_buffer[s].ch_ev_buffer[c].cls0.clear()
+                        eudaq_event.st_ev_buffer[s].ch_ev_buffer[c].cls1.clear()
+                        eudaq_event.st_ev_buffer[s].ch_ev_buffer[c].cls2.clear()
+                        eudaq_event.st_ev_buffer[s].ch_ev_buffer[c].cls3.clear()
                     eudaq_event.st_ev_buffer[s].ch_ev_buffer.clear()
                 eudaq_event.st_ev_buffer.clear()
                 eudaq_event.trg_n    = pkl_event.trigger
@@ -495,9 +500,9 @@ if __name__ == "__main__":
                 eudaq_event.st_ev_buffer.push_back( ROOT.stave() )
                 ########################################
                 
-                
-                # if(int(pkl_event.trigger)%2==0): continue
+                ### check parity
                 iseven = (int(pkl_event.trigger)%2==0)
+                
                 
                 ### calculate the average occupancies
                 avgnpix = 0
@@ -579,6 +584,7 @@ if __name__ == "__main__":
                     n_pixels += npix
                 set_global_counter("Pixels/chip",icounter,n_pixels/Ndet)
                 if(not pass_pixels): continue
+            
 
 
                 ### check clusters
@@ -604,7 +610,7 @@ if __name__ == "__main__":
                 ### check tracks
                 n_tracks = len(pkl_event.tracks)
                 if(n_tracks==0): continue
-
+                
 
                 good_tracks = []
                 acceptance_tracks = []
@@ -614,6 +620,8 @@ if __name__ == "__main__":
                     ### first require max cluster ####
                     ##################################
                     if(track.maxcls>cfg["cut_maxcls"]): continue
+                    
+                    
                     
                     
                     # #####################
@@ -805,6 +813,17 @@ if __name__ == "__main__":
                         eudaq_event.st_ev_buffer[0].ch_ev_buffer.push_back( ROOT.chip() )
                         ichip = eudaq_event.st_ev_buffer[0].ch_ev_buffer.size()-1
                         eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].chip_id = int(chipid)
+                        cls0 = ROOT.TVector3( track.trkcls[det].xmm0,track.trkcls[det].ymm0, track.trkcls[det].zmm )
+                        cls1 = ROOT.TVector3( track.trkcls[det].xmm, track.trkcls[det].ymm,  track.trkcls[det].zmm )
+                        v0 = transform_to_real_space([ track.trkcls[det].xmm0,track.trkcls[det].ymm0, track.trkcls[det].zmm  ])
+                        v1 = transform_to_real_space([ track.trkcls[det].xmm, track.trkcls[det].ymm,  track.trkcls[det].zmm  ])
+                        cls2 = ROOT.TVector3( v0[0],v0[1],v0[2] )
+                        cls3 = ROOT.TVector3( v1[0],v1[1],v1[2] )
+                        
+                        eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].cls0.push_back( cls0 )
+                        eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].cls1.push_back( cls1 )
+                        eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].cls2.push_back( cls2 )
+                        eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].cls3.push_back( cls3 )
                         trkpixels = []
                         for pixel in track.trkcls[det].pixels:
                             eudaq_event.st_ev_buffer[0].ch_ev_buffer[ichip].hits.push_back( ROOT.pixel() )

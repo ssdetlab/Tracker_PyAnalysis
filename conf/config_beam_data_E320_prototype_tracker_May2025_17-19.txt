@@ -77,10 +77,10 @@ detevtlib      = 20250517
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run694.root
 
-### run696 (!!!positrons run, low bkg!!!)
-first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run696.root
+# ### run696 (!!!positrons run, low bkg!!!)
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_May2025_17-19/runs/tree_Run696.root
 
 # ### run701 (!!!positrons run, low bkg!!!)
 # first2process = 0

@@ -28,11 +28,21 @@ def get_h1(h):
 
 
 detectors = ["ALPIDE_0","ALPIDE_1","ALPIDE_2","ALPIDE_3","ALPIDE_4"]
-sufxs = [0,1,2,3,4,5]
-quad1 = [46.421, 44.98254, 40.425, 30.05477, 26.718, 29.86015]
-quad0 = [-30.677, -27.9938, -20.38, -11.56, -11.56, -6.659]
-quad2 = [-30.6775, -27.994, -20.3813, -11.56075, -3.371, -6.659]
-m34   = [1, 3, 10, 28, 30, 26]
+sufxs = [0,        1,         2,        3,         4,       5        ]
+quad1 = [+46.4210, +44.98254, +40.4250, +30.05477, +26.718, +29.86015]
+quad0 = [-30.6770, -27.99380, -20.3800, -11.56000, -3.3710, -6.659000]
+quad2 = [-30.6775, -27.99400, -20.3813, -11.56075, -3.3710, -6.659000]
+m34   = [1,        3,         10,       28,        30,      26       ]
+
+
+# data = {}
+# for det in detectors:
+#     for m in m34:
+#         data.update( { f"{det}_M34_{m34}_X":np.zeros(1024+1) } )
+#         data.update( { f"{det}_M34_{m34}_Y":np.zeros(512+1) } )
+
+
+
 
 files = []
 prefix = "test_data/e320_prototype_beam_Feb2025/runs/run_0000490/beam_quality"
@@ -44,7 +54,13 @@ for sfx in sufxs:
         continue
     files.append( ROOT.TFile(path,"READ")  )
 
+
+
+
 maxima = list(range(6*6))
+
+
+
 
 cnv = ROOT.TCanvas("cnv","",3000,1800)
 cnv.Divide(6,6)
@@ -82,6 +98,8 @@ for isfx,sfx in enumerate(sufxs):
         ipad += 1
 cnv.Update()
 cnv.SaveAs("quads_impact.pdf(")
+
+
 
 cnv = ROOT.TCanvas("cnv","",3000,1800)
 cnv.Divide(6,6)
@@ -124,6 +142,8 @@ for isfx,sfx in enumerate(sufxs):
 cnv.Update()
 cnv.SaveAs("quads_impact.pdf")
 
+
+
 cnv = ROOT.TCanvas("cnv","",3000,1800)
 cnv.Divide(6,6)
 ipad = 1
@@ -163,6 +183,3 @@ for isfx,sfx in enumerate(sufxs):
         ipad += 1
 cnv.Update()
 cnv.SaveAs("quads_impact.pdf)")
-
-
-
