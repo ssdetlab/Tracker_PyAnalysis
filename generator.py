@@ -11,6 +11,21 @@ import time
 import pickle
 import multiprocessing
 from matplotlib.animation import FuncAnimation, PillowWriter
+import math
+import ROOT
+ROOT.gROOT.SetBatch(1)
+ROOT.gStyle.SetOptFit(0)
+ROOT.gStyle.SetOptStat(0)
+# ROOT.gStyle.SetPalette(ROOT.kRust)
+# ROOT.gStyle.SetPalette(ROOT.kSolar)
+# ROOT.gStyle.SetPalette(ROOT.kInvertedDarkBodyRadiator)
+ROOT.gStyle.SetPalette(ROOT.kDarkBodyRadiator)
+# ROOT.gStyle.SetPalette(ROOT.kRainbow)
+ROOT.gStyle.SetPadBottomMargin(0.15)
+ROOT.gStyle.SetPadLeftMargin(0.13)
+ROOT.gStyle.SetPadRightMargin(0.16)
+
+import bremss as br
 
 
 import argparse
@@ -23,7 +38,7 @@ parser.add_argument('-shw', metavar='show plots?', required=False,  help='show p
 parser.add_argument('-gif', metavar='do gif?', required=False,  help='do gif?')
 argus = parser.parse_args()
 MagnetsSettings = float(argus.mag)
-magset = [502, 490,490.1,490.2,490.3,490.4,490.5]
+magset = [502, 490.0,490.1,490.2,490.5]
 if(MagnetsSettings not in magset):
     print(f"Unsupported magnets settings run: {MagnetsSettings}")
     quit()
@@ -71,13 +86,16 @@ m_p = 1.67262192e-27 # proton/antiproton mass in kg
 ##################################
 ######### configurations #########
 ##################################
-fx0     = +0*um_to_m ### TODO??? ### this is where the beam is shot from
-fy0     = -1000*um_to_m ### TODO??? ### this is where the beam is shot from
+# fx0     = -100*um_to_m ### TODO??? ### this is where the beam is shot from
+# fy0     = -1200*um_to_m ### TODO??? ### this is where the beam is shot from
+fx0     = 0*um_to_m ### TODO??? ### this is where the beam is shot from
+fy0     = 0*um_to_m ### TODO??? ### this is where the beam is shot from
 fz0     = -200*cm_to_m ### fixed, just has to be before the Be window ### this is where the beam is shot from
+# fsigmax = 50*um_to_m ## beam sigma
+# fsigmay = 50*um_to_m ## beam sigma
 fsigmax = 50*um_to_m ## beam sigma
 fsigmay = 50*um_to_m ## beam sigma
 fsigmaz = 150*um_to_m ## beam sigma
-dy_det  = +0.35 # cm
 zAL     = +30 ### the aluminum foil, cm
 zBe     = -84 ### the beryllium window, cm
 Z0      = zBe if(MagnetsSettings==502) else zAL
@@ -87,24 +105,39 @@ QQ      = +1  ## unit charge, positron
 mGeV    = (MM*c2)/GeV_to_kgm2s2 ## GeV
 E_GeV   = 10 # GeV, energy of primary partticles
 Emin    = 1 ## GeV
-Emax    = 6 ## GeV
+# Emin    = 2 ## GeV
+Emax    = 10 ## GeV
+# Emax    = 3.25 ## GeV
 smearT  = True
 smearP  = True
-smear_sigma_T_um  = 0.3 ## um
-smear_sigma_P_GeV = 1.5e-3 ## GeV
+smear_sigma_T_um  = 0.03 ## um
+smear_sigma_P_GeV = 1.1e-3 ## GeV
 ZMAX    = 18 ## METERES
 tmax    = ZMAX / (0.99 * c) ### time range for propagation (seconds): approximate time to travel 18 meters (last detector is at ~18 meters, relativistic particles going ~c)
 t_span  = (0, tmax)
 max_dt  = 1e-9
-##################################
-##################################
-##################################
+dy_det  = 0 # cm
 
-
+X0   = 35.3  if(MagnetsSettings==502) else 8.897 # cm for Beryllium of Aluminum
+t_cm = 0.005 if(MagnetsSettings==502) else 0.01 # cm (50 or 100 µm)
+E_vals, photons, eplus = br.build_pdfs(0.01,E_GeV,X0,t_cm)
+rng = np.random.default_rng(123)
 
 ### magnets
-magsetvals = {502:[-7.637,28.55,-7.637], 490.0:[-30.68,46.42,-30.68], 490.1:[-27.99,44.98,-27.99], 490.2:[-20.38,40.42,-20.38], 490.3:[-11.56,30.05,-11.56], 490.4:[-3.37,26.72,-3.37], 490.5:[-6.66,28.86,-6.66] }
-magsetdelt = {"quad0":[0,0], "quad1":[0,0], "quad2":[0,0], "xcorr":[0,0], "dipole":[0,0]} ### cm
+magsetvals = {502:[-7.637,28.55,-7.637], 490.0:[-30.68,46.42,-30.68], 490.1:[-27.99,44.98,-27.99], 490.2:[-20.38,40.42,-20.38], 490.5:[-6.66,28.86,-6.66] }
+magsetdelt = {"quad0":[0,0],   "quad1":[0,0],   "quad2":[0,0],   "xcorr":[0,0],   "dipole":[0,0]} ### x,y displacement, cm
+# magsetangl = {"quad0":[0,0,0], "quad1":[0,0,0], "quad2":[0.004,0,0], "xcorr":[0,0,0], "dipole":[0,0,0]} ### 3D rotation, degrees
+magsetangl = {"quad0":[0,0,0], "quad1":[0,0,0], "quad2":[0,0,0], "xcorr":[0,0,0], "dipole":[0,0,0]} ### 3D rotation, degrees
+detangl    = [0,0,0]
+for name,angles in magsetangl.items():
+    for i in range(3):
+        angles[i] = angles[i]*np.pi/180.
+for i in range(3):
+    detangl[i] = detangl[i]*np.pi/180.
+
+##################################
+##################################
+##################################
 
 ### chip
 npix_x = 1024
@@ -117,6 +150,21 @@ chipXcm = chipXmm*mm_to_cm
 chipYcm = chipYmm*mm_to_cm
 chipXm  = chipXmm*mm_to_m
 chipYm  = chipYmm*mm_to_m
+pix_x_nbins = npix_x+1
+pix_x_min   = -0.5
+pix_x_max   = npix_x+0.5
+pix_y_nbins = npix_y+1
+pix_y_min   = -0.5
+pix_y_max   = npix_y+0.5
+rebin2D     = 12
+rebin2D_mid = 4
+hPixelMatrix1 = ROOT.TH1D("h_pix1",";Pixel;Hits",npix_x*npix_y,1,npix_x*npix_y+1)
+hPixelMatrix2 = ROOT.TH2D("h_pix2",";pixel-x;pixel-y;Hits",pix_x_nbins,pix_x_min,pix_x_max, pix_y_nbins,pix_y_min,pix_y_max)
+hPixelMatrix1_middle = ROOT.TH1D("h_pix1_middle",";Pixel;Hits",int(npix_x/rebin2D_mid)*int(npix_y/rebin2D_mid),1,int(npix_x/rebin2D_mid)*int(npix_y/rebin2D_mid)+1)
+hPixelMatrix2_middle = ROOT.TH2D("h_pix2_middle",";pixel-x;pixel-y;Hits",int(npix_x/rebin2D_mid)+1,pix_x_min,pix_x_max, int(npix_y/rebin2D_mid)+1,pix_y_min,pix_y_max)
+hPixelMatrix1_coarse = ROOT.TH1D("h_pix1_coarse",";Pixel;Hits",int(npix_x/rebin2D)*int(npix_y/rebin2D),1,int(npix_x/rebin2D)*int(npix_y/rebin2D)+1)
+hPixelMatrix2_coarse = ROOT.TH2D("h_pix2_coarse",";pixel-x;pixel-y;Hits",int(npix_x/rebin2D)+1,pix_x_min,pix_x_max, int(npix_y/rebin2D)+1,pix_y_min,pix_y_max)
+
 
 # Define detector x range
 detector_x_center_cm = -1.0 # cm
@@ -134,16 +182,52 @@ detector_z_base_mm = detector_z_base_cm*cm_to_mm
 
 
 
+def Rot3D(u,thetax=0,thetay=0,thetaz=0):
+    Rx = [[1,0,0],[0,math.cos(thetax),-math.sin(thetax)], [0,math.sin(thetax),math.cos(thetax)]]
+    Ry = [[math.cos(thetay),0,math.sin(thetay)], [0,1,0], [-math.sin(thetay),0,math.cos(thetay)]]
+    Rz = [[math.cos(thetaz),math.sin(thetaz),0], [-math.sin(thetaz),math.cos(thetaz),0], [0,0,1]]
+    ### rotate around x
+    vx = [0,0,0]
+    vx[0] = Rx[0][0]*u[0]+Rx[0][1]*u[1]+Rx[0][2]*u[2]
+    vx[1] = Rx[1][0]*u[0]+Rx[1][1]*u[1]+Rx[1][2]*u[2]
+    vx[2] = Rx[2][0]*u[0]+Rx[2][1]*u[1]+Rx[2][2]*u[2]
+    ### rotate around y
+    vy = [0,0,0]
+    vy[0] = Ry[0][0]*vx[0]+Ry[0][1]*vx[1]+Ry[0][2]*vx[2]
+    vy[1] = Ry[1][0]*vx[0]+Ry[1][1]*vx[1]+Ry[1][2]*vx[2]
+    vy[2] = Ry[2][0]*vx[0]+Ry[2][1]*vx[1]+Ry[2][2]*vx[2]
+    ### rotate around z
+    vz = [0,0,0]
+    vz[0] = Rz[0][0]*vy[0]+Rz[0][1]*vy[1]+Rz[0][2]*vy[2]
+    vz[1] = Rz[1][0]*vy[0]+Rz[1][1]*vy[1]+Rz[1][2]*vy[2]
+    vz[2] = Rz[2][0]*vy[0]+Rz[2][1]*vy[1]+Rz[2][2]*vy[2]
+    ### result
+    return vz
+
+
 
 # Define magnet elements
 class Element:
-    def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max):
+    def __init__(self, name, x_min, x_max, y_min, y_max, z_min, z_max, angles=[]):
+        self.name  = name
         self.x_min = x_min * cm_to_m
         self.x_max = x_max * cm_to_m
         self.y_min = y_min * cm_to_m
         self.y_max = y_max * cm_to_m
         self.z_min = z_min * cm_to_m
         self.z_max = z_max * cm_to_m
+        
+        if(len(angles)==3):
+            umin = [self.x_min,self.y_min,self.z_min]
+            umax = [self.x_max,self.y_max,self.z_max]
+            vmin = Rot3D(umin,thetax=angles[0],thetay=angles[1],thetaz=angles[2])
+            vmax = Rot3D(umax,thetax=angles[0],thetay=angles[1],thetaz=angles[2])
+            self.x_min = vmin[0]
+            self.y_min = vmin[1]
+            self.z_min = vmin[2]
+            self.x_max = vmax[0]
+            self.y_max = vmax[1]
+            self.z_max = vmax[2]
         
     def is_inside(self, x, y, z):
         return (self.x_min <= x <= self.x_max and 
@@ -186,13 +270,23 @@ class Element:
                 color=col, alpha=alpha
             )
 
+
 class Dipole(Element):
-    def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, B_x,B_y,B_z):
-        super().__init__(x_min, x_max, y_min, y_max, z_min, z_max)
+    def __init__(self, name, x_min, x_max, y_min, y_max, z_min, z_max, B_x,B_y,B_z, angles=[]):
+        super().__init__(name, x_min, x_max, y_min, y_max, z_min, z_max, angles)
+        self.name = name
         self.B_x = B_x  # Tesla
         self.B_y = B_y  # Tesla
         self.B_z = B_z  # Tesla
         self.hits = []
+        self.angles = angles
+        
+        if(len(self.angles)==3):
+            uB = [self.B_x,self.B_y,self.B_z]
+            vB = Rot3D(uB,thetax=self.angles[0],thetay=self.angles[1],thetaz=self.angles[2])
+            self.B_x = vB[0]
+            self.B_y = vB[1]
+            self.B_z = vB[2]
         
     def field(self, x, y, z):
         if self.is_inside(x, y, z):
@@ -207,11 +301,14 @@ class Dipole(Element):
             'px': px, 'py': py, 'pz': pz
         })
 
+
 class Quadrupole(Element):
-    def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, gradient):
-        super().__init__(x_min, x_max, y_min, y_max, z_min, z_max)
+    def __init__(self, name, x_min, x_max, y_min, y_max, z_min, z_max, gradient, angles=[]):
+        super().__init__(name, x_min, x_max, y_min, y_max, z_min, z_max, angles)
+        self.name = name
         self.gradient = gradient * kG_to_T  # Tesla/m
         self.hits = []
+        self.angles = angles
 
     def field(self, x, y, z):
         if self.is_inside(x, y, z):
@@ -221,7 +318,15 @@ class Quadrupole(Element):
             ### field relative to the magnetic center
             B_x = self.gradient * (y - y_center)
             B_y = self.gradient * (x - x_center)
-            return np.array([B_x, B_y, 0])
+            B_z = 0
+            if(len(self.angles)==3):
+                uB = [B_x,B_y,0]
+                vB = Rot3D(uB,thetax=self.angles[0],thetay=self.angles[1],thetaz=self.angles[2])
+                B_x = vB[0]
+                B_y = vB[1]
+                B_z = vB[2]
+            
+            return np.array([B_x, B_y, B_z])
         else:
             return np.array([0, 0, 0])
     
@@ -232,12 +337,14 @@ class Quadrupole(Element):
             'px': px, 'py': py, 'pz': pz
         })
 
+
 class Detector(Element):
-    def __init__(self, x_min, x_max, y_min, y_max, z_pos):
-        # For detectors, z_min and z_max are the same (thin plane)
-        super().__init__(x_min, x_max, y_min, y_max, z_pos, z_pos)
-        self.z_pos = z_pos * cm_to_m
+    def __init__(self, name, x_min, x_max, y_min, y_max, z_min, z_max, angles=[]):
+        super().__init__(name, x_min, x_max, y_min, y_max, z_min, z_max, angles)
+        self.name = name
+        self.z_pos = z_min * cm_to_m
         self.hits = []  # To store particle hits
+        self.angles = angles
         
     def field(self, x, y, z):
         # Detectors don't generate magnetic fields
@@ -279,13 +386,14 @@ class Detector(Element):
             pz  = initial_states[pid][5]/GeV_to_kgms
             print(f"  Particle {pid}: x={xx:.6f} m, y={yy:.6f} m (pz={pz:.2f} GeV)")
 
+
 class Beampipe(Element):
-    def __init__(self, inner_radius_cm, outer_radius_cm, z_min_cm, z_max_cm):
+    def __init__(self, name, inner_radius_cm, outer_radius_cm, z_min_cm, z_max_cm, angles=[]):
         # For bounding box, use outer radius to define x,y limits
-        super().__init__(-outer_radius_cm, outer_radius_cm, 
+        super().__init__(name, -outer_radius_cm, outer_radius_cm, 
                          -outer_radius_cm, outer_radius_cm, 
-                         z_min_cm, z_max_cm)
-        
+                         z_min_cm, z_max_cm, angles)
+        self.name = name
         self.inner_radius = inner_radius_cm * cm_to_m
         self.outer_radius = outer_radius_cm * cm_to_m
         self.z_min_pipe = z_min_cm * cm_to_m
@@ -420,11 +528,27 @@ def propagate_state_in_vacuum_to_z(state, z):
     return state_at_z
 
 
-def truncated_exp_NK(a,b,how_many):
-    a = -np.log(a)
-    b = -np.log(b)
-    rands = np.exp(-(np.random.rand(how_many)*(b-a) + a))
-    return rands[0] if(how_many==1) else rands
+# def truncated_exp_NK(a,b,how_many=1):
+#     a = -np.log(a)
+#     b = -np.log(b)
+#     rands = np.exp(-(np.random.rand(how_many)*(b-a) + a))
+#     return rands[0] if(how_many==1) else rands
+
+def truncated_exp_NK(aa, bb, slope=1.0, how_many=1):
+    '''
+    Sample from a power-law-like distribution between [aa, bb], with controllable slope.
+    slope=1 -> exp distribution
+    slope<1 -> shallower (power-law)
+    slope>1 -> steeper (power-law)
+    '''
+    aa, bb = float(aa), float(bb)
+    if slope == 1:
+        r = np.random.rand(how_many)
+        samples = np.exp(-(r * (-np.log(bb) + np.log(aa)) - np.log(aa)))
+    else:
+        r = np.random.rand(how_many)
+        samples = ((bb**(1-slope) - aa**(1-slope)) * r + aa**(1-slope))**(1/(1-slope))
+    return samples[0] if how_many == 1 else samples
 
 
 def simulate_secondary_production(primary_state,q=+1,Emin=0.5,Emax=5,smear_T=False,smear_pT=False):    
@@ -444,7 +568,11 @@ def simulate_secondary_production(primary_state,q=+1,Emin=0.5,Emax=5,smear_T=Fal
         px = px + np.random.normal(0,smear_sigma_P_GeV) 
         py = py + np.random.normal(0,smear_sigma_P_GeV)
     ### sample energy from exponential
-    E = truncated_exp_NK(Emin,Emax,1) if(Emax>Emin) else Emin # GeV
+    # E = truncated_exp_NK(Emin,Emax,slope=0.3) if(Emax>Emin) else Emin # GeV
+    E = br.sample_from_pdf_on_bins(E_vals, eplus, nsamples=1, rng=rng)
+    while(E[0]<Emin or E[0]>Emax): E = br.sample_from_pdf_on_bins(E_vals, eplus, nsamples=1, rng=rng)
+    E = E[0]
+    
     ### assume the x-y momemnta staty the same and correct the z momentum
     pz = np.sqrt( E**2 - mass**2 - px**2 - py**2 ) # GeV
     secondary_state = [x,y,z, px,py,pz, mass, q]
@@ -469,44 +597,57 @@ def state_GeV_to_kgms(state):
 # Create the detector objects
 detectors = []
 for i in range(5):
+    zpos = detector_z_base_cm + i ### detectors are spaced by 1 cm
     detector = Detector(
+        name=f"ALPIDE_{i}",
         x_min=detector_x_center_cm-chipYcm/2., x_max=detector_x_center_cm+chipYcm/2.,
         y_min=detector_y_center_cm-chipXcm/2., y_max=detector_y_center_cm+chipXcm/2.,
-        z_pos=detector_z_base_cm + i ### detectors are spaced by 1 cm
+        z_min=zpos, z_max=zpos, ### 0 width...
+        angles=detangl
     )
     detectors.append(detector)
 
 # Create magnetic elements
 quad0 = Quadrupole(
+    name="quad0",
     x_min=-2.4610+magsetdelt["quad0"][0], x_max=2.4610+magsetdelt["quad0"][0], # cm
     y_min=-2.4610+magsetdelt["quad0"][1], y_max=2.4610+magsetdelt["quad0"][1], # cm
     z_min=367.33336, z_max=464.6664, # cm
-    gradient=magsetvals[MagnetsSettings][0] # kG/m
+    gradient=magsetvals[MagnetsSettings][0], # kG/m
+    angles=magsetangl["quad0"]
 )
 quad1 = Quadrupole(
+    name="quad1",
     x_min=-2.4610+magsetdelt["quad1"][0], x_max=2.4610+magsetdelt["quad1"][0], # cm
     y_min=-2.4610+magsetdelt["quad1"][1], y_max=2.4610+magsetdelt["quad1"][1], # cm
     z_min=590.3336, z_max=687.6664, # cm
     # gradient=+28.55 if(MagnetsSettings==502) else +46.42 # kG/m
-    gradient=magsetvals[MagnetsSettings][1] # kG/m
+    gradient=magsetvals[MagnetsSettings][1], # kG/m
+    angles=magsetangl["quad1"]
 )
 quad2 = Quadrupole(
+    name="quad2",
     x_min=-2.4610+magsetdelt["quad2"][0], x_max=2.4610+magsetdelt["quad2"][0], # cm
     y_min=-2.4610+magsetdelt["quad2"][1], y_max=2.4610+magsetdelt["quad2"][1], # cm
     z_min=812.3336, z_max=909.6664, # cm
-    gradient=magsetvals[MagnetsSettings][2] # kG/m
+    gradient=magsetvals[MagnetsSettings][2], # kG/m
+    angles=magsetangl["quad2"]
 )
 xcorr = Dipole(
+    name="xcorr",
     x_min=-10.795+magsetdelt["xcorr"][0], x_max=+10.795+magsetdelt["xcorr"][0], 
     y_min=-4.6990+magsetdelt["xcorr"][1], y_max=+4.6990+magsetdelt["xcorr"][1],
     z_min=987.779, z_max=1011.15,
-    B_x=0, B_y=+0.026107, B_z=0  # Tesla
+    B_x=0, B_y=+0.026107, B_z=0,  # Tesla
+    angles=magsetangl["xcorr"]
 )
 dipole = Dipole(
+    name="dipole",
     x_min=-2.2352+magsetdelt["dipole"][0], x_max=2.2352+magsetdelt["dipole"][0],
     y_min=-6.3752+magsetdelt["dipole"][1], y_max=3.1752+magsetdelt["dipole"][1],
     z_min=1260.34, z_max=1351.78,
-    B_x=0.219, B_y=0, B_z=0  # Tesla
+    B_x=0.219, B_y=0, B_z=0,  # Tesla
+    angles=magsetangl["dipole"]
 )
 
 # Create beampipe from z=0 to entrance of dipole:
@@ -515,36 +656,104 @@ beampipe_outer_radius_cm = 2.2  # 2.2 cm outer radius
 beampipe_z_start_cm = 0.0       # Start at IP
 beampipe_z_end_cm = dipole.z_min * m_to_cm - 0.0  # End 0 cm before dipole entrance
 beampipe = Beampipe(
+    name="beampipe",
     inner_radius_cm=beampipe_inner_radius_cm,
     outer_radius_cm=beampipe_outer_radius_cm, 
     z_min_cm=beampipe_z_start_cm,
-    z_max_cm=beampipe_z_end_cm
+    z_max_cm=beampipe_z_end_cm,
 )
 
 
 ### collect all elements
 magnets  = [quad0, quad1, quad2, xcorr, dipole]
 elements = magnets + [beampipe] + detectors
-# ranges   = {"vacuum0" :[Z0_m,quad0.z_min],
-#             "quad0"   :[quad0.z_min,quad0.z_max],
-#             "vacuum1" :[quad0.z_max,quad1.z_min],
-#             "quad1"   :[quad1.z_min,quad1.z_max],
-#             "vacuum2" :[quad1.z_max,quad2.z_min],
-#             "quad2"   :[quad2.z_min,quad2.z_max],
-#             "vacuum3" :[quad2.z_max,xcorr.z_min],
-#             "xcorr"   :[xcorr.z_min,xcorr.z_max],
-#             "vacuum4" :[xcorr.z_max,dipole.z_min],
-#             "dipole"  :[diploe.z_min,dipole.z_max],
-#             "detector":[diploe.z_max,ZMAX],
-#            }
-
+# for element in elements:
+#     if(element.name=="beampipe"): continue
+#     print(f"{element.name}: angles={element.angles}")
 
 
 
 ########################################################################
 ########################################################################
 ########################################################################
+### linear mapping from real space to pixel space
+def real_to_pixel_coords(x_real, y_real, xmin, xmax, ymin, ymax):
+    xpixelmin = 0
+    xpixelmax = npix_y-1
+    nxpixels  = npix_y
+    ypixelmin = 0
+    ypixelmax = npix_x-1
+    nypixels  = npix_x
+    x_real = np.asarray(x_real)
+    y_real = np.asarray(y_real)
+    x_pixel = xpixelmin + (x_real - xmin) * (xpixelmax - xpixelmin) / (xmax - xmin)
+    y_pixel = ypixelmin + (y_real - ymin) * (ypixelmax - ypixelmin) / (ymax - ymin)
+    return x_pixel, y_pixel
 
+### convert to integer indices and clip to valid range
+def real_to_pixel_indices(x_real, y_real, xmin, xmax, ymin, ymax):
+    xpixelmin = 0
+    xpixelmax = npix_y-1
+    nxpixels  = npix_y
+    ypixelmin = 0
+    ypixelmax = npix_x-1
+    nypixels  = npix_x
+    x_pixel, y_pixel = real_to_pixel_coords(x_real, y_real, xmin, xmax, ymin, ymax)
+    x_indices = np.clip(np.round(x_pixel).astype(int), xpixelmin, xpixelmax-1)
+    y_indices = np.clip(np.round(y_pixel).astype(int), ypixelmin, ypixelmax-1)
+    return x_indices, y_indices
+
+### transform to EUDAQ space
+def transform_pixel_indices(x_indices, y_indices, rotate_90_cw=True, mirror_x=True, flip_y=True):
+    xpixelmin = 0
+    xpixelmax = npix_y-1
+    nxpixels  = npix_y
+    ypixelmin = 0
+    ypixelmax = npix_x-1
+    nypixels  = npix_x
+    x_trans   = x_indices.copy()
+    y_trans   = y_indices.copy()
+    # step 1: Rotate 90 degrees clockwise (x,y) -> (y, -x)
+    # After rotation: new_x = y, new_y = max_x - x
+    if(rotate_90_cw):
+        temp_x = y_trans.copy()
+        temp_y = (xpixelmax - 1) - x_trans
+        x_trans = temp_x
+        y_trans = temp_y
+        # Update pixel boundaries after rotation (dimensions swap)
+        xpixelmin, xpixelmax, nxpixels, ypixelmin, ypixelmax, nypixels = \
+            ypixelmin, ypixelmax, nypixels, xpixelmin, xpixelmax, nxpixels
+    # # step 2: mirror x-axis around its center
+    # if(mirror_x):
+    #     x_center = (xpixelmin + xpixelmax - 1) / 2
+    #     x_trans = 2 * x_center - x_trans
+    #     x_trans = np.clip(x_trans, xpixelmin, xpixelmax - 1).astype(int)
+    # # step 3: flip y-axis around its center
+    # if(flip_y):
+    #     y_center = (ypixelmin + ypixelmax) / 2
+    #     y_trans = 2 * y_center - y_trans
+    #     y_trans = np.clip(y_trans, ypixelmin, ypixelmax).astype(int)
+    return x_trans, y_trans
+
+def hist2d_to_1d_root_style(hist2d_result,transform=True):
+    counts, xedges, yedges, image = hist2d_result
+    nbinsx, nbinsy = counts.shape
+    bin_numbers = []
+    occupancy_counts = []
+    for i in range(nbinsx):        # X bins (rows)
+        for j in range(nbinsy):    # Y bins (columns) - inner loop
+            # ROOT-style global bin number: ny * binx + biny
+            # ROOT bins are 1-indexed, but we'll use 0-indexed for simplicity
+            global_bin = nbinsy * i + j
+            occupancy = counts[i, j]
+            bin_numbers.append(global_bin)
+            occupancy_counts.append(occupancy)
+    return np.array(bin_numbers), np.array(occupancy_counts)
+
+
+########################################################################
+########################################################################
+########################################################################
 
 
 # To calculate total magnetic field at a point
@@ -553,7 +762,6 @@ def total_field(position):
     field = np.zeros(3)
     for element in elements: field += element.field(x, y, z)
     return field
-
 
 
 def record_hits(element,z_element,trajectory,particle_id):
@@ -1004,8 +1212,7 @@ if __name__ == "__main__":
     print(f"Run multiprocessing: {mltprc}")
     print(f"MagnetsSettings: {MagnetsSettings}")
 
-    pdfname = f"generator_{MagnetsSettings}"
-    
+    pdfname = f"generator_plots/generator_{MagnetsSettings}"
     
     #####################################################
     #####################################################
@@ -1119,9 +1326,259 @@ if __name__ == "__main__":
                 if(hit['particle_id']==pivot_pid):
                     nhits += 1
                     break
-        if(nhits==len(detectors)): list_good_tracks.append( pivot_pid ) ### good track
+        # if(nhits==len(detectors)): list_good_tracks.append( pivot_pid ) ### good track
+        if(nhits>=1): list_good_tracks.append( pivot_pid ) ### good track
         initial_state_nhits[pivot_pid] = nhits
     print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")       
+
+
+    def proj(h2,projmax=False,name=""):
+        newname = h2.GetName()+"_proj"
+        if(name!=""): newname += f"_{name}"
+        if(not projmax):
+            p = h2.ProjectionX()
+            return p
+        ### if projmax:
+        p = ROOT.TH1D(newname,h2.GetName(),h2.GetNbinsX(),h2.GetXaxis().GetXmin(),h2.GetXaxis().GetXmax())
+        for bx in range(1,h2.GetNbinsX()+1):
+            ymax = 0
+            for by in range(1,h2.GetNbinsY()+1):
+                y = h2.GetBinContent(bx,by)
+                ymax = y if(y>ymax) else ymax
+            p.SetBinContent(bx,ymax)
+        p.SetLineColor(ROOT.kRed)
+        scale = 0.9*h2.GetYaxis().GetXmax()/p.GetMaximum() if(p.GetMaximum()!=0) else 1.
+        p.Scale(scale)
+        return p
+        
+    ### occupancy fine
+    TH1 = {}
+    TH2 = {}
+    PJF = {}
+    for i,detector in enumerate(detectors):
+        det = f"ALPIDE_{i}"
+        TH1.update({det:hPixelMatrix1.Clone(f"{hPixelMatrix1.GetName()} {det}")})
+        TH1[det].SetTitle(det)
+        TH2.update({det:hPixelMatrix2.Clone(f"{hPixelMatrix2.GetName()} {det}")})
+        TH2[det].SetTitle(det)
+        for hit in detector.hits:
+            XX  = np.array(hit['x']*m_to_mm)
+            YY  = np.array(hit['y']*m_to_mm)
+            XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
+            XR,YR = transform_pixel_indices(XP,YP)
+            TH2[det].Fill(XR,YR)
+            bglob = TH2[det].FindBin(XR,YR)
+            TH1[det].AddBinContent(bglob,1)
+    cnv = ROOT.TCanvas("cnv","",1000,1500)
+    cnv.Divide(2,5)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_0"].Draw("col")
+    PJF.update({"ALPIDE_0": proj(TH2["ALPIDE_0"],projmax=True,name="fine")})
+    PJF["ALPIDE_0"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_0"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_1"].Draw("col")
+    PJF.update({"ALPIDE_1": proj(TH2["ALPIDE_1"],projmax=True,name="fine")})
+    PJF["ALPIDE_1"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(4)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_1"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(5)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_2"].Draw("col")
+    PJF.update({"ALPIDE_2": proj(TH2["ALPIDE_2"],projmax=True,name="fine")})
+    PJF["ALPIDE_2"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(6)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_2"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(7)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_3"].Draw("col")
+    PJF.update({"ALPIDE_3": proj(TH2["ALPIDE_3"],projmax=True,name="fine")})
+    PJF["ALPIDE_3"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(8)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_3"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(9)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_4"].Draw("col")
+    PJF.update({"ALPIDE_4": proj(TH2["ALPIDE_4"],projmax=True,name="fine")})
+    PJF["ALPIDE_4"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(10)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_4"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{pdfname}_ROOT_occupancy_fine.pdf")
+    for name,h in TH1.items(): del h
+    for name,h in TH2.items(): del h
+    for name,h in PJF.items(): del h
+    
+    ### occupancy middle
+    TH1 = {}
+    TH2 = {}
+    PJC = {}
+    for i,detector in enumerate(detectors):
+        det = f"ALPIDE_{i}"
+        TH1.update({det:hPixelMatrix1_middle.Clone(f"{hPixelMatrix1_coarse.GetName()} {det}")})
+        TH1[det].SetTitle(det)
+        TH2.update({det:hPixelMatrix2_middle.Clone(f"{hPixelMatrix2_coarse.GetName()} {det}")})
+        TH2[det].SetTitle(det)
+        for hit in detector.hits:
+            XX  = np.array(hit['x']*m_to_mm)
+            YY  = np.array(hit['y']*m_to_mm)
+            XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
+            XR,YR = transform_pixel_indices(XP,YP)
+            TH2[det].Fill(XR,YR)
+            bglob = TH2[det].FindBin(XR,YR)
+            TH1[det].AddBinContent(bglob,1)
+    cnv = ROOT.TCanvas("cnv","",1000,1500)
+    cnv.Divide(2,5)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_0"].Draw("col")
+    PJC.update({"ALPIDE_0": proj(TH2["ALPIDE_0"],projmax=True,name="coarse")})
+    PJC["ALPIDE_0"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_0"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_1"].Draw("col")
+    PJC.update({"ALPIDE_1": proj(TH2["ALPIDE_1"],projmax=True,name="coarse")})
+    PJC["ALPIDE_1"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(4)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_1"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(5)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_2"].Draw("col")
+    PJC.update({"ALPIDE_2": proj(TH2["ALPIDE_2"],projmax=True,name="coarse")})
+    PJC["ALPIDE_2"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(6)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_2"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(7)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_3"].Draw("col")
+    PJC.update({"ALPIDE_3": proj(TH2["ALPIDE_3"],projmax=True,name="coarse")})
+    PJC["ALPIDE_3"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(8)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_3"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(9)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_4"].Draw("col")
+    PJC.update({"ALPIDE_4": proj(TH2["ALPIDE_4"],projmax=True,name="coarse")})
+    PJC["ALPIDE_4"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(10)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_4"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{pdfname}_ROOT_occupancy_middle.pdf")
+    for name,h in TH1.items(): del h
+    for name,h in TH2.items(): del h
+    for name,h in PJF.items(): del h
+    
+    ### occupancy coarse
+    TH1 = {}
+    TH2 = {}
+    PJC = {}
+    for i,detector in enumerate(detectors):
+        det = f"ALPIDE_{i}"
+        TH1.update({det:hPixelMatrix1_coarse.Clone(f"{hPixelMatrix1_coarse.GetName()} {det}")})
+        TH1[det].SetTitle(det)
+        TH2.update({det:hPixelMatrix2_coarse.Clone(f"{hPixelMatrix2_coarse.GetName()} {det}")})
+        TH2[det].SetTitle(det)
+        for hit in detector.hits:
+            XX  = np.array(hit['x']*m_to_mm)
+            YY  = np.array(hit['y']*m_to_mm)
+            XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
+            XR,YR = transform_pixel_indices(XP,YP)
+            TH2[det].Fill(XR,YR)
+            bglob = TH2[det].FindBin(XR,YR)
+            TH1[det].AddBinContent(bglob,1)
+    cnv = ROOT.TCanvas("cnv","",1000,1500)
+    cnv.Divide(2,5)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_0"].Draw("col")
+    PJC.update({"ALPIDE_0": proj(TH2["ALPIDE_0"],projmax=True,name="coarse")})
+    PJC["ALPIDE_0"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_0"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(3)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_1"].Draw("col")
+    PJC.update({"ALPIDE_1": proj(TH2["ALPIDE_1"],projmax=True,name="coarse")})
+    PJC["ALPIDE_1"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(4)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_1"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(5)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_2"].Draw("col")
+    PJC.update({"ALPIDE_2": proj(TH2["ALPIDE_2"],projmax=True,name="coarse")})
+    PJC["ALPIDE_2"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(6)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_2"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(7)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_3"].Draw("col")
+    PJC.update({"ALPIDE_3": proj(TH2["ALPIDE_3"],projmax=True,name="coarse")})
+    PJC["ALPIDE_3"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(8)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_3"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(9)
+    ROOT.gPad.SetTicks(1,1)
+    TH2["ALPIDE_4"].Draw("col")
+    PJC.update({"ALPIDE_4": proj(TH2["ALPIDE_4"],projmax=True,name="coarse")})
+    PJC["ALPIDE_4"].Draw("hist same")
+    ROOT.gPad.RedrawAxis()
+    cnv.cd(10)
+    ROOT.gPad.SetTicks(1,1)
+    TH1["ALPIDE_4"].Draw("hist")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{pdfname}_ROOT_occupancy_coarse.pdf")
+    for name,h in TH1.items(): del h
+    for name,h in TH2.items(): del h
+    for name,h in PJF.items(): del h
+
 
 
     ### plot the hits COARSELY 2D:
@@ -1185,72 +1642,6 @@ if __name__ == "__main__":
     plt.savefig(f"{pdfname}_occupancy_fine.pdf")
     if(doshw): plt.show()
     
-
-
-    ### linear mapping from real space to pixel space
-    def real_to_pixel_coords(x_real, y_real, xmin, xmax, ymin, ymax):
-        xpixelmin = 0
-        xpixelmax = npix_y-1
-        nxpixels  = npix_y
-        ypixelmin = 0
-        ypixelmax = npix_x-1
-        nypixels  = npix_x
-        x_real = np.asarray(x_real)
-        y_real = np.asarray(y_real)
-        x_pixel = xpixelmin + (x_real - xmin) * (xpixelmax - xpixelmin) / (xmax - xmin)
-        y_pixel = ypixelmin + (y_real - ymin) * (ypixelmax - ypixelmin) / (ymax - ymin)
-        return x_pixel, y_pixel
-
-    ### convert to integer indices and clip to valid range
-    def real_to_pixel_indices(x_real, y_real, xmin, xmax, ymin, ymax):
-        xpixelmin = 0
-        xpixelmax = npix_y-1
-        nxpixels  = npix_y
-        ypixelmin = 0
-        ypixelmax = npix_x-1
-        nypixels  = npix_x
-        x_pixel, y_pixel = real_to_pixel_coords(x_real, y_real, xmin, xmax, ymin, ymax)
-        x_indices = np.clip(np.round(x_pixel).astype(int), xpixelmin, xpixelmax-1)
-        y_indices = np.clip(np.round(y_pixel).astype(int), ypixelmin, ypixelmax-1)
-        return x_indices, y_indices
-    
-    def transform_pixel_indices(x_indices, y_indices, rotate_90_cw=True, mirror_x=True, flip_y=True):
-        xpixelmin = 0
-        xpixelmax = npix_y-1
-        nxpixels  = npix_y
-        ypixelmin = 0
-        ypixelmax = npix_x-1
-        nypixels  = npix_x
-        
-        x_trans = x_indices.copy()
-        y_trans = y_indices.copy()
-    
-        # step 1: Rotate 90 degrees clockwise (x,y) -> (y, -x)
-        # After rotation: new_x = y, new_y = max_x - x
-        if rotate_90_cw:
-            temp_x = y_trans.copy()
-            temp_y = (xpixelmax - 1) - x_trans
-            x_trans = temp_x
-            y_trans = temp_y
-        
-            # Update pixel boundaries after rotation (dimensions swap)
-            xpixelmin, xpixelmax, nxpixels, ypixelmin, ypixelmax, nypixels = \
-                ypixelmin, ypixelmax, nypixels, xpixelmin, xpixelmax, nxpixels
-    
-        # # step 2: mirror x-axis around its center
-        # if mirror_x:
-        #     x_center = (xpixelmin + xpixelmax - 1) / 2
-        #     x_trans = 2 * x_center - x_trans
-        #     x_trans = np.clip(x_trans, xpixelmin, xpixelmax - 1).astype(int)
-    
-        # # step 3: flip y-axis around its center
-        # if flip_y:
-        #     y_center = (ypixelmin + ypixelmax) / 2
-        #     y_trans = 2 * y_center - y_trans
-        #     y_trans = np.clip(y_trans, ypixelmin, ypixelmax).astype(int)
-    
-        return x_trans, y_trans
-    
     
     ### plot the hits COARSELY 2D, transformed to EUDAQ (but just shape wise):
     # fig, axs = plt.subplots(1, 5, figsize=(10,3.5), sharex=True, sharey=True, tight_layout=True)
@@ -1286,22 +1677,6 @@ if __name__ == "__main__":
     plt.savefig(f"{pdfname}_occupancy_trnsfrmd.pdf")
     if(doshw): plt.show()
 
-
-
-    def hist2d_to_1d_root_style(hist2d_result,transform=True):
-        counts, xedges, yedges, image = hist2d_result
-        nbinsx, nbinsy = counts.shape
-        bin_numbers = []
-        occupancy_counts = []
-        for i in range(nbinsx):        # X bins (rows)
-            for j in range(nbinsy):    # Y bins (columns) - inner loop
-                # ROOT-style global bin number: ny * binx + biny
-                # ROOT bins are 1-indexed, but we'll use 0-indexed for simplicity
-                global_bin = nbinsy * i + j
-                occupancy = counts[i, j]
-                bin_numbers.append(global_bin)
-                occupancy_counts.append(occupancy)
-        return np.array(bin_numbers), np.array(occupancy_counts)
 
     fig, axs = plt.subplots(5, 1, figsize=(10, 10), sharex=True, sharey=True, tight_layout=True)
     h1Occ = []

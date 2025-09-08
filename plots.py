@@ -40,6 +40,20 @@ if("2024" in f.GetName()):
 ### get the number of triggers
 nTriggers = int(f.Get(f"h_events").GetBinContent(1))
 
+
+cnv = ROOT.TCanvas("cnv_pix_occ_0","",500,250)
+cnv.SetTicks(1,1)
+h = f.Get("ALPIDE_0/h_pix_occ_2D_ALPIDE_0")
+h.SetTitle("ALPIDE_0: average pixel occupancy over "+str(nTriggers)+" BXs;#it{x} (pixel number);#it{y} (pixel number);Average number of fired pixels/BX")
+h.Scale(1./float(nTriggers))
+# h.SetMaximum(hmax*1.1)
+h.GetZaxis().SetTitleOffset(0.95)
+h.Draw("colz")
+cnv.SaveAs("nov_occ.pdf")
+cnv.SaveAs("nov_occ.png")
+
+
+
 cnv = ROOT.TCanvas("cnv_pix_occ","",cnvx,cnvy)
 cnv.Divide(1,dividey)
 hmax = h2max("h_pix_occ_2D",nTriggers)

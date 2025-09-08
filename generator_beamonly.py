@@ -55,7 +55,8 @@ m_p = 1.67262192e-27 # proton/antiproton mass in kg
 ########################################################################
 def GenerateGaussianBeam(E_GeV,mass_GeV,charge,mks=False):
     ### These variables assumed to be class members
-    fx0         = -5*mm_to_m ### TODO???
+    # fx0         = -5*mm_to_m ### TODO???
+    fx0         = 0*mm_to_m ### TODO???
     fy0         = 0 ### TODO???
     fz0         = -200*cm_to_m
     fbeamfocus  = 0
@@ -117,11 +118,28 @@ def propagate_state_in_vacuum_to_z(state, z):
     return state_at_z
 
 
-def truncated_exp_NK(a,b,how_many):
-    a = -np.log(a)
-    b = -np.log(b)
-    rands = np.exp(-(np.random.rand(how_many)*(b-a) + a))
-    return rands[0] if(how_many==1) else rands
+# def truncated_exp_NK(a,b,how_many=1):
+#     a = -np.log(a)
+#     b = -np.log(b)
+#     rands = np.exp(-(np.random.rand(how_many)*(b-a) + a))
+#     return rands[0] if(how_many==1) else rands
+
+def truncated_exp_NK(aa, bb, slope=1.0, how_many=1):
+    '''
+    Sample from a power-law-like distribution between [aa, bb], with controllable slope.
+    slope=1 -> exp distribution
+    slope<1 -> shallower (power-law)
+    slope>1 -> steeper (power-law)
+    '''
+    aa, bb = float(aa), float(bb)
+    if slope == 1:
+        r = np.random.rand(how_many)
+        samples = np.exp(-(r * (-np.log(bb) + np.log(aa)) - np.log(aa)))
+    else:
+        r = np.random.rand(how_many)
+        samples = ((bb**(1-slope) - aa**(1-slope)) * r + aa**(1-slope))**(1/(1-slope))
+    return samples[0] if how_many == 1 else samples
+
 
 
 def simulate_secondary_production(primary_state,q=+1,Emin=0.5,Emax=5,smear_T=False,smear_pT=False):
@@ -145,7 +163,7 @@ def simulate_secondary_production(primary_state,q=+1,Emin=0.5,Emax=5,smear_T=Fal
         px = px + np.random.normal(0,smear_sigmax) 
         py = py + np.random.normal(0,smear_sigmay)
     ### sample energy from exponential
-    E = truncated_exp_NK(Emin,Emax,1) # GeV
+    E = truncated_exp_NK(Emin,Emax,slope=0.3) # GeV
     ### assume the x-y momemnta staty the same and correct the z momentum
     pz = np.sqrt( E**2 - mass**2 - px**2 - py**2 ) # GeV
     secondary_state = [x,y,z, px,py,pz, mass, q]

@@ -5,6 +5,7 @@ doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
 skiptracking   = 0
+doprintout     = 1
 saveprimitive  = 0
 nCPU           = 10
 nprintout      = 20
@@ -31,21 +32,21 @@ detevtlib      = 20252302
 # nmax2process  = 100000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 
-### run502 (Be window in):
-# first2process = 362
-first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+# ### run502 (Be window in):
+# # first2process = 357
+# first2process = 0
+# nmax2process  = 0
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 
 # ### run503 (beam-only, focusing on foil, 6h-long)
 # first2process = 0
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
-# ### run510 (Be window in long run, parasitic)
-# first2process = 0
-# nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
+### run510 (Be window in long run, parasitic)
+first2process = 0
+nmax2process  = 7173
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
 
 
 
@@ -117,14 +118,21 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
+cut_spot          = 0
 cut_spot_xcenter = -3
 cut_spot_ycenter = 10.5
-cut_spot          = 1
 cut_spot_radius_x = 3
 cut_spot_radius_y = 7.5
 cut_strip        = 0
 cut_strip_x      = 5
 cut_strip_y      = 5
+### eliptical RoI at the chips surface
+cut_RoI_spot           = 0
+cut_RoI_spot_xcenter   = 0
+cut_RoI_spot_ycenter   = 0
+cut_RoI_spot_radius_x  = 0
+cut_RoI_spot_radius_y  = 0
+cut_RoI_spot_theta_deg = 0
 ### full chip ROI, i.e. no cuts
 cut_ROI_xmin = 0
 cut_ROI_xmax = 1024
@@ -135,13 +143,6 @@ cut_ROI_ymax = 512
 # cut_ROI_xmax = 1024
 # cut_ROI_ymin = 0
 # cut_ROI_ymax = 150
-### eliptical RoI at the chips surface
-cut_RoI_spot           = 0
-cut_RoI_spot_xcenter   = 0
-cut_RoI_spot_ycenter   = 0
-cut_RoI_spot_radius_x  = 0
-cut_RoI_spot_radius_y  = 0
-cut_RoI_spot_theta_deg = 0
 
 
 [ALIGNMENT]

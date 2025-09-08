@@ -239,7 +239,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         for det in cfg["detectors"]:
             sprnt += f" Npixels[{det}]={len(pixels[det])},"
             fillPixOcc(det,pixels[det],masked[det],histos) ### fill pixel occupancy
-        # print(sprnt)
+        if(cfg["doprintout"]): print(sprnt)
         
         ### the fake particles are attached to the pixels (it is enough to take the 1st pixel of the 1st detector) #TODO: this is assuming that there's only one mc particle per event
         fakemcparticles = []
@@ -266,7 +266,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
         sprnt = f"ievt={ievt} in_ROI_chips={n_active_chips} -->"
         for det in cfg["detectors"]:
             sprnt += f" Npixels[{det}]={len(pixels[det])},"
-        # print(sprnt)
+        if(cfg["doprintout"]): print(sprnt)
         if(n_active_chips!=len(cfg["detectors"])): continue  ### CUT!!!
         histos["h_cutflow"].Fill( cfg["cuts"].index("N_{hits/det}^{ROI}>0") )
         # dump_pixels(f"pixels_evt_{ievt}.pkl",pixels)
@@ -293,7 +293,7 @@ def analyze(tfilenamein,irange,evt_range,masked,badtrigs):
             fillClsHists(det,clusters[det],masked[det],histos)
             if(len(det_clusters)>0): nclusters += 1
             sprnt += f" Nclusters[{det}]={len(det_clusters)},"
-        # print(sprnt)
+        if(cfg["doprintout"]): print(sprnt)
         eventslist[len(eventslist)-1].set_event_clusters(clusters)
         ### at least one cluster per layer
         if(nclusters<len(cfg["detectors"])): continue ### CUT!!!

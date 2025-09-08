@@ -67,17 +67,25 @@ def pass_geoacc_selection(track):
     xDipL,xDipR,yDipB,yDipT = get_dipole_exit_bounds()
     xFlgL,xFlgR,yFlgB,yFlgT = get_dipole_flange_bounds()
     
-    psss_RoI             = tilted_eliptic_RoI_cut(track) if(cfg["cut_RoI_spot"]) else True
+    psss_RoI             = ( tilted_eliptic_RoI_cut(track) ) if(cfg["cut_RoI_spot"]) else True
     pass_inclination_yz  = ( rN[1]>=r0[1]  and r0[1]>=rW[1]  and rN[1]>=rW[1] )
     pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) )
-    pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
     pass_flange_aperture = ( (rF[0]>=xFlgL and rF[0]<=xFlgR) and (rF[1]>0 and rF[1]<=yFlgT) )
-    pass_dipole_spot     = ( spot_cut(rD[0],rD[1]) ) if(cfg["cut_spot"]) else True
+    pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
+    pass_dipole_spot     = ( spot_cut(rD[0],rD[1])  ) if(cfg["cut_spot"])  else True
     pass_dipole_strip    = ( strip_cut(rD[0],rD[1]) ) if(cfg["cut_strip"]) else True
-    pass_dk_at_det       = ( pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02) ) ### RELEVANT ONLY FOR PRE-ALIGNMENT!!!
-    pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 )
-    pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 )
-    return (psss_RoI and pass_inclination_yz and pass_vertexatpdc and pass_flange_aperture and pass_dipole_aperture and pass_dipole_spot and pass_dipole_strip and pass_dk_at_det)
+    pass_dk_at_det       = ( pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02) ) ### TODO(need to make a flag for this) RELEVANT ONLY FOR PRE-ALIGNMENT!!!
+    pass_dipole_Eslot    = ( rD[1]>7.9 and rD[1]<15.5 ) ### TODO(need to make a flag for this) 
+    pass_dipole_Xslot    = ( rD[0]>-5  and rD[0]<+5 ) ### TODO(need to make a flag for this) 
+    print(f"psss_RoI={psss_RoI}, pass_inclination_yz={pass_inclination_yz}, pass_vertexatpdc={pass_vertexatpdc}, pass_flange_aperture={pass_flange_aperture}, pass_dipole_aperture={pass_dipole_aperture}, pass_dipole_spot={pass_dipole_spot}, pass_dipole_strip={pass_dipole_strip}, pass_dk_at_det={pass_dk_at_det}")
+    return (psss_RoI and
+            pass_inclination_yz and
+            pass_vertexatpdc and
+            pass_flange_aperture and
+            pass_dipole_aperture and
+            pass_dipole_spot and
+            pass_dipole_strip and
+            pass_dk_at_det)
 
 
 def remove_tracks_with_shared_clusters(tracks):

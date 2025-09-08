@@ -4,6 +4,29 @@ import array
 import numpy as np
 import pickle
 import ctypes
+import time
+import sys
+import copy
+import os
+
+from scipy import linalg
+from PIL import Image, ImageFilter
+from scipy.optimize import minimize, differential_evolution
+from scipy.optimize import NonlinearConstraint
+import matplotlib
+from matplotlib.colors import LogNorm
+from matplotlib import rcParams
+import matplotlib.pyplot as plt
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from matplotlib.backends.backend_pdf import PdfPages
+import scipy.io
+from scipy import stats
+from scipy.ndimage import gaussian_filter, median_filter
+import glob
+from pathlib import Path
+import re
+
+
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
@@ -100,6 +123,53 @@ def add_graph(gname,x,y,col=ROOT.kBlack):
 
 
 
+
+### plot matplotlib
+def plotter(name, pdf, arrx, arryL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-"):
+    ### first page
+    fig = plt.figure(figsize=(25, 5), constrained_layout=True)
+    ax1 = plt.subplot(111)
+    ax2 = ax1.twinx()
+    
+    ax1.plot(arrx, arryL, linewidth=0.7, color=colL,alpha=0.7, linestyle=lstyleL)
+    for i,arry in enumerate(arrsyR):
+        ax2.plot(arrx, arry, linewidth=0.7, color=colR, alpha=1-i*0.15, linestyle=lstyleR)
+    
+    plt.locator_params(axis='x', nbins=10)
+    ax1.xaxis.set_minor_locator(AutoMinorLocator(10))
+    ax1.yaxis.set_minor_locator(AutoMinorLocator(10))
+    ax1.grid(which='major', linestyle='-', linewidth='0.25', color='gray',alpha=0.5)
+    ax1.grid(which='minor', linestyle=':', linewidth='0.25', color='gray',alpha=0.3)
+    
+    ax1.set_xlim(xmin,xmax)
+    ax1.set_xlabel(xtitle, fontsize=18)
+    ax1.set_ylabel(ytitleL, fontsize=18, color=colL)
+    if(logyL): ax1.set_yscale("log")
+    if(len(arrsyR)>0):
+        ax2.set_xlim(xmin,xmax)
+        ax2.set_xlabel(xtitle, fontsize=18)
+        ax2.set_ylabel(ytitleR, fontsize=18, color=colR)
+        if(logyR): ax2.set_yscale("log")
+    
+    # Make tick labels bigger
+    ax1.tick_params(axis='both', labelsize=16)
+    ax2.tick_params(axis='both', labelsize=16)
+    
+    plt.title(name, fontsize=20, loc='center')
+    
+    # # Adjust bottom margin to fit bigger x-axis label
+    # fig.subplots_adjust(bottom=0.2)  # increase if still cropped
+    
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
+
+
+
+
+
+
     
 
 
@@ -128,6 +198,7 @@ if __name__ == "__main__":
     
     ### make directories, copy the input file to the new basedir and return the path to it
     tfilenamein = make_run_dirs(cfg["inputfile"])
+    RunNum = get_run_from_file(tfilenamein)
     
     tfile = ROOT.TFile(tfilenamein,"READ")
     ttree = tfile.Get("MyTree")
@@ -177,6 +248,8 @@ if __name__ == "__main__":
     y_q2act       = np.zeros(nentries)
     y_m12         = np.zeros(nentries)
     y_m34         = np.zeros(nentries)
+    y_z_img       = np.zeros(nentries)
+    y_z_obj       = np.zeros(nentries)
     y_rad         = np.zeros(nentries)
     y_toro2040    = np.zeros(nentries)
     y_toro2452    = np.zeros(nentries)
@@ -218,6 +291,8 @@ if __name__ == "__main__":
         y_q2act[counter]    = entry.event.epics_frame.espec_quad2_bact
         y_m12[counter]      = entry.event.epics_frame.mcalc_m12
         y_m34[counter]      = entry.event.epics_frame.mcalc_m34
+        y_z_img[counter]    = entry.event.epics_frame.mcalc_z_im
+        y_z_obj[counter]    = entry.event.epics_frame.mcalc_z_obj
         y_rad[counter]      = entry.event.epics_frame.radm_li20_1_ch01_meas
         y_toro2040[counter] = entry.event.epics_frame.toro_li20_2040_tmit_pc
         y_toro2452[counter] = entry.event.epics_frame.toro_li20_2452_tmit_pc
@@ -275,6 +350,62 @@ if __name__ == "__main__":
     
         ### important!!
         counter += 1
+    
+    
+    
+    ####################################################################
+    ####################################################################
+    fmtpltlibname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_matplotloib_trigger_analysis_toroids.pdf")
+    with PdfPages(fmtpltlibname) as pdf:
+        xarr   = x_trg
+        arryL  = hits_vs_trg["ALPIDE_0"]
+        arrsyR = [y_toro2040, y_toro2452, y_toro3163, y_toro3255]
+        xmin   = xarr[0]
+        xmax   = xarr[-1]
+        # plotter(name, pdf, arrx, arryL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-"):
+        plotter(f'Toroids in Run {RunNum}', pdf, xarr, arryL, arrsyR, xmin, xmax, xtitle='EUDAQ BX number', ytitleL='Fired pixels in ALPIDE_0', ytitleR="Toroids [pC]", colL="black", colR="red", logyL=True, logyR=False)
+
+    fmtpltlibname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_matplotloib_trigger_analysis_pmts.pdf")
+    with PdfPages(fmtpltlibname) as pdf:
+        xarr   = x_trg
+        arryL  = hits_vs_trg["ALPIDE_0"]
+        arrsyR = [y_pmt3060, y_pmt3070, y_pmt3179, y_pmt3350, y_pmt3360]
+        xmin   = xarr[0]
+        xmax   = xarr[-1]
+        # plotter(name, pdf, arrx, arryL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-"):
+        plotter(f'PMTs in Run {RunNum}', pdf, xarr, arryL, arrsyR, xmin, xmax, xtitle='EUDAQ BX number', ytitleL='Fired pixels in ALPIDE_0', ytitleR="PMTs [counts]", colL="black", colR="red", logyL=True, logyR=True)
+
+    fmtpltlibname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_matplotloib_trigger_analysis_bpms.pdf")
+    with PdfPages(fmtpltlibname) as pdf:
+        xarr   = x_trg
+        arryL  = hits_vs_trg["ALPIDE_0"]
+        arrsyR = [y_bpm_pb_3156, y_bpm_q0_3218, y_bpm_q1_3265, y_bpm_q2_3315]
+        xmin   = xarr[0]
+        xmax   = xarr[-1]
+        # plotter(name, pdf, arrx, arryL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-"):
+        plotter(f'BPMs in Run {RunNum}', pdf, xarr, arryL, arrsyR, xmin, xmax, xtitle='EUDAQ BX number', ytitleL='Fired pixels in ALPIDE_0', ytitleR="BPMs [#electrons]", colL="black", colR="red", logyL=True, logyR=True)
+    
+    fmtpltlibname = tfilenamein.replace("tree_","beam_quality/tree_").replace(".root","_matplotloib_trigger_analysis_radmon.pdf")
+    with PdfPages(fmtpltlibname) as pdf:
+        xarr   = x_trg
+        arryL  = hits_vs_trg["ALPIDE_0"]
+        arrsyR = [y_rad]
+        xmin   = xarr[0]
+        xmax   = xarr[-1]
+        # plotter(name, pdf, arrx, arryL, arrsyR, xmin, xmax, xtitle, ytitleL="", ytitleR="", colL="blue", colR="red", logyL=True, logyR=True, lstyleL="-", lstyleR="-"):
+        plotter(f'RadMon in Run {RunNum}', pdf, xarr, arryL, arrsyR, xmin, xmax, xtitle='EUDAQ BX number', ytitleL='Fired pixels in ALPIDE_0', ytitleR="RadMon [mRem/h]", colL="black", colR="red", logyL=True, logyR=True)
+    ####################################################################
+    ####################################################################
+    # quit()
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     print(f"beginning:  {x_tim[0]}")
     print(f"end of run: {x_tim[-1]}")
@@ -417,6 +548,8 @@ if __name__ == "__main__":
     add_graph("q2act",x_trg,y_q2act,ROOT.kGreen+1)
     add_graph("m12",x_trg,y_m12,ROOT.kBlack)
     add_graph("m34",x_trg,y_m34,ROOT.kRed)
+    add_graph("z_img",x_trg,y_z_img,ROOT.kBlack)
+    add_graph("z_obj",x_trg,y_z_obj,ROOT.kRed)
     add_graph("rad",x_trg,y_rad,ROOT.kBlack)
     add_graph("foilm1",x_trg,y_foilm1,ROOT.kBlack)
     add_graph("foilm2",x_trg,y_foilm2,ROOT.kRed)
@@ -587,6 +720,27 @@ if __name__ == "__main__":
     cnv.Update()
     cnv.SaveAs(f"{ftrgname}")
     
+    
+    cnv = ROOT.TCanvas("c5.1","",1200,500)
+    cnv.SetTicks(1,1)
+    # cnv.SetLogy()
+    leg = ROOT.TLegend(0.4,0.2,0.7,0.5)
+    leg.SetFillStyle(4000) # will be transparent
+    leg.SetFillColor(0)
+    leg.SetTextFont(42)
+    leg.SetBorderSize(0)
+    mg = ROOT.TMultiGraph()
+    for k in ["img","obj"]:
+        gname = f"z_{k}"
+        leg.AddEntry(graphs[gname],f"z_{k}","l")
+        mg.Add(graphs[gname])
+    mg.Draw("al")
+    leg.Draw("same")
+    mg.SetTitle(";Trigger number;z_img/obj [m]")
+    mg.GetXaxis().SetLimits(x_trg[0],x_trg[-1])
+    cnv.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{ftrgname}")
     
     
     cnv = ROOT.TCanvas("c6","",1200,500)

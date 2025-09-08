@@ -5,6 +5,7 @@ doVtx          = 0
 pdgIdMatch     = 13
 runtype        = beam
 skiptracking   = 0
+doprintout     = 0
 saveprimitive  = 0
 nCPU           = 10
 nprintout      = 20
@@ -163,26 +164,26 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
+cut_spot         = 0
 cut_spot_xcenter = -3
 cut_spot_ycenter = 10.5
-cut_spot          = 0
 cut_spot_radius_x = 3
 cut_spot_radius_y = 7.5
-cut_strip        = 1
+cut_strip        = 0
 cut_strip_x      = 8
 cut_strip_y      = 8
-### full chip ROI, i.e. no cuts
-cut_ROI_xmin = 0
-cut_ROI_xmax = 1024
-cut_ROI_ymin = 0
-cut_ROI_ymax = 512
 ### eliptical RoI at the chips surface
-cut_RoI_spot           = 1
+cut_RoI_spot           = 0
 cut_RoI_spot_xcenter   = 512
 cut_RoI_spot_ycenter   = 190
 cut_RoI_spot_radius_x  = 300
 cut_RoI_spot_radius_y  = 20
 cut_RoI_spot_theta_deg = 4.5
+### full chip ROI, i.e. no cuts
+cut_ROI_xmin = 0
+cut_ROI_xmax = 1024
+cut_ROI_ymin = 0
+cut_ROI_ymax = 512
 
 
 [ALIGNMENT]
