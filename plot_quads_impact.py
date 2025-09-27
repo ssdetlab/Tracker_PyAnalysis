@@ -2,7 +2,7 @@ import ROOT
 import os
 import numpy as np
 import array
-
+import pickle
 
 ROOT.gROOT.SetBatch(1)
 ROOT.gStyle.SetOptFit(0)
@@ -26,6 +26,55 @@ def get_h1(h,namesfx=""):
             x = h.GetBin(bx,by)
             h1.SetBinContent(x,y)
     return h1
+
+def neigbours_mask_2D(h):
+    for bx in range(1,h.GetNbinsX()+1):
+        for by in range(1,h.GetNbinsY()+1):
+            z0 = h.GetBinContent(bx,by)
+            avg = 0
+            ngbrs = 0
+            for ix in [-1,+1]:
+                if(bx+ix<1 or bx+ix>h.GetNbinsX()+1): continue
+                for jy in [-1,+1]:
+                    if(by+jy<1 or by+jy>h.GetNbinsY()+1): continue
+                    z = h.GetBinContent(bx+ix,by+jy)
+                    avg   += z
+                    ngbrs += 1
+            avg /= ngbrs
+            if(z0>avg*5): h.SetBinContent(bx,by,0)
+
+def asarray1(h):
+    nx = h.GetNbinsX()
+    arr = np.zeros(nx)
+    for bx in range(1,nx+1):
+        arr[bx-1] = h.GetBinContent(bx)
+    return arr
+
+def asarray2(h):
+    nx = h.GetNbinsX()
+    ny = h.GetNbinsY()
+    arr = np.zeros((nx, ny))
+    for bx in range(1,nx+1):
+        for by in range(1,ny+1):
+            arr[bx-1][by-1] = h.GetBinContent(bx,by)
+    return arr
+            
+def dump_to_pickle(histos,fpklname):
+    print(f"Dumping into {fpklname}")
+    fpkl = open(fpklname,"wb")
+    data = {}
+    for hname,hist in histos.items():
+        if("2D" in hname):
+            arr2D = asarray2(hist)
+            data.update( {f"{hname}":arr2D} )
+        if("1D" in hname):
+            arr1D = asarray1(hist)
+            data.update( {f"{hname}":arr1D} )
+        if("ntrg_" in hname):
+            data.update( {f"{hname}":hist} ) # <-- this is jsut a number, not an integer
+    pickle.dump(data, fpkl, protocol=pickle.HIGHEST_PROTOCOL) ### dump to pickle
+    fpkl.close()
+        
 
 
 def proj(h2,projmax=False,name=""):
@@ -176,6 +225,9 @@ p1.Divide(1,2)
 p2.Divide(1,2)
 p3.Divide(1,2)
 p4.Divide(1,2)
+
+histos = {}
+
 ### even cases
 ipad = 1
 for isfx,sfx in enumerate(sufxs):
@@ -204,8 +256,9 @@ for isfx,sfx in enumerate(sufxs):
     h.GetZaxis().SetTitle("Average number of fired pixels/BX")
     ####################
     ### "cheap mask" ###
-    bmax = maxima2[isfx]
-    h.SetBinContent(bmax,0)
+    # bmax = maxima2[isfx]
+    # h.SetBinContent(bmax,0)
+    neigbours_mask_2D(h)
     ####################
     bmax  = h.GetMaximumBin()
     bxmax = array.array('i', [0])
@@ -213,8 +266,6 @@ for isfx,sfx in enumerate(sufxs):
     bzmax = array.array('i', [0])
     h.GetBinXYZ(bmax, bxmax, bymax, bzmax)
     print(f"{det}: x={h.GetXaxis().GetBinCenter(bxmax[0])}, y={h.GetYaxis().GetBinCenter(bymax[0])}")
-    n = files[sfx].Get("h_ntrgs").GetBinContent(1)
-    h.Scale(1./n)
     h.GetXaxis().SetTitleSize(1.7*h.GetXaxis().GetTitleSize())
     h.GetYaxis().SetTitleSize(1.7*h.GetYaxis().GetTitleSize())
     h.GetZaxis().SetTitleSize(1.7*h.GetZaxis().GetTitleSize())
@@ -224,6 +275,15 @@ for isfx,sfx in enumerate(sufxs):
     h.GetXaxis().SetLabelSize(1.7*h.GetXaxis().GetLabelSize())
     h.GetYaxis().SetLabelSize(1.7*h.GetYaxis().GetLabelSize())
     h.GetZaxis().SetLabelSize(1.7*h.GetZaxis().GetLabelSize())
+    histos.update({f"2D_m34_{m34[isfx]}":h.Clone(f"2D_m34_{m34[isfx]}")})
+    h1 = get_h1(h)
+    h1.GetYaxis().SetTitle("Pixels/Trigger w/masking")
+
+    histos.update({f"1D_m34_{m34[isfx]}":h1.Clone(f"1D_m34_{m34[isfx]}")})
+    histos.update({f"ntrg_m34_{m34[isfx]}":n})
+    
+    n = files[sfx].Get("h_ntrgs").GetBinContent(1)
+    h.Scale(1./n)
     h.DrawCopy("colz")
     ROOT.gPad.RedrawAxis()
     ipad += 1
@@ -256,8 +316,9 @@ for isfx,sfx in enumerate(sufxs):
     h.GetZaxis().SetTitle("Average number of fired pixels/BX")
     ####################
     ### "cheap mask" ###
-    bmax = maxima2[isfx]
-    h.SetBinContent(bmax,0)
+    # bmax = maxima2[isfx]
+    # h.SetBinContent(bmax,0)
+    neigbours_mask_2D(h)
     ####################
     bmax  = h.GetMaximumBin()
     bxmax = array.array('i', [0])
@@ -265,8 +326,6 @@ for isfx,sfx in enumerate(sufxs):
     bzmax = array.array('i', [0])
     h.GetBinXYZ(bmax, bxmax, bymax, bzmax)
     print(f"{det}: x={h.GetXaxis().GetBinCenter(bxmax[0])}, y={h.GetYaxis().GetBinCenter(bymax[0])}")
-    n = files[sfx].Get("h_ntrgs").GetBinContent(1)
-    h.Scale(1./n)
     h.GetXaxis().SetTitleSize(1.7*h.GetXaxis().GetTitleSize())
     h.GetYaxis().SetTitleSize(1.7*h.GetYaxis().GetTitleSize())
     h.GetZaxis().SetTitleSize(1.7*h.GetZaxis().GetTitleSize())
@@ -276,6 +335,15 @@ for isfx,sfx in enumerate(sufxs):
     h.GetXaxis().SetLabelSize(1.7*h.GetXaxis().GetLabelSize())
     h.GetYaxis().SetLabelSize(1.7*h.GetYaxis().GetLabelSize())
     h.GetZaxis().SetLabelSize(1.7*h.GetZaxis().GetLabelSize())
+    histos.update({f"2D_m34_{m34[isfx]}":h.Clone(f"2D_m34_{m34[isfx]}")})
+    h1 = get_h1(h)
+    h1.GetYaxis().SetTitle("Pixels/Trigger w/masking")
+    
+    histos.update({f"1D_m34_{m34[isfx]}":h1.Clone(f"1D_m34_{m34[isfx]}")})
+    histos.update({f"ntrg_m34_{m34[isfx]}":n})
+    
+    n = files[sfx].Get("h_ntrgs").GetBinContent(1)
+    h.Scale(1./n)
     h.DrawCopy("colz")
     ROOT.gPad.RedrawAxis()
     ipad += 1
@@ -283,7 +351,24 @@ for isfx,sfx in enumerate(sufxs):
 cnv.Update()
 cnv.SaveAs("quads_impact_fist_chip.pdf")
 cnv.SaveAs("quads_impact_fist_chip.png")
+
+
+
+##########################################
+##########################################
+##########################################
+print(histos)
+dump_to_pickle(histos,"quads_impact_fist_chip.pkl")
+f.cd()
+for hname,hist in histos.items():
+    if(type(hist)==float): continue
+    hist.Write()
+f.Write()
+f.Close()
 quit()
+##########################################
+##########################################
+##########################################
 
 
 

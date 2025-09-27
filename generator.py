@@ -24,6 +24,8 @@ ROOT.gStyle.SetPalette(ROOT.kDarkBodyRadiator)
 ROOT.gStyle.SetPadBottomMargin(0.15)
 ROOT.gStyle.SetPadLeftMargin(0.13)
 ROOT.gStyle.SetPadRightMargin(0.16)
+ROOT.gStyle.SetGridColor(ROOT.kGray)
+ROOT.gStyle.SetGridWidth(1)
 
 import bremss as br
 
@@ -86,13 +88,11 @@ m_p = 1.67262192e-27 # proton/antiproton mass in kg
 ##################################
 ######### configurations #########
 ##################################
-# fx0     = -100*um_to_m ### TODO??? ### this is where the beam is shot from
-# fy0     = -1200*um_to_m ### TODO??? ### this is where the beam is shot from
 fx0     = 0*um_to_m ### TODO??? ### this is where the beam is shot from
 fy0     = 0*um_to_m ### TODO??? ### this is where the beam is shot from
+# fx0     = 0*um_to_m ### TODO??? ### this is where the beam is shot from
+# fy0     = 0*um_to_m ### TODO??? ### this is where the beam is shot from
 fz0     = -200*cm_to_m ### fixed, just has to be before the Be window ### this is where the beam is shot from
-# fsigmax = 50*um_to_m ## beam sigma
-# fsigmay = 50*um_to_m ## beam sigma
 fsigmax = 50*um_to_m ## beam sigma
 fsigmay = 50*um_to_m ## beam sigma
 fsigmaz = 150*um_to_m ## beam sigma
@@ -104,23 +104,22 @@ MM      = m_e ## kg, positron
 QQ      = +1  ## unit charge, positron
 mGeV    = (MM*c2)/GeV_to_kgm2s2 ## GeV
 E_GeV   = 10 # GeV, energy of primary partticles
-Emin    = 1 ## GeV
+Emin    = 1e-2 #1 ## GeV
 # Emin    = 2 ## GeV
 Emax    = 10 ## GeV
 # Emax    = 3.25 ## GeV
-smearT  = True
+smearT  = False #True
 smearP  = True
 smear_sigma_T_um  = 0.03 ## um
-smear_sigma_P_GeV = 1.1e-3 ## GeV
+smear_sigma_P_GeV = 1e-4 ## GeV
 ZMAX    = 18 ## METERES
 tmax    = ZMAX / (0.99 * c) ### time range for propagation (seconds): approximate time to travel 18 meters (last detector is at ~18 meters, relativistic particles going ~c)
 t_span  = (0, tmax)
 max_dt  = 1e-9
 dy_det  = 0 # cm
-
 X0   = 35.3  if(MagnetsSettings==502) else 8.897 # cm for Beryllium of Aluminum
 t_cm = 0.005 if(MagnetsSettings==502) else 0.01 # cm (50 or 100 µm)
-E_vals, photons, eplus = br.build_pdfs(0.01,E_GeV,X0,t_cm)
+E_vals, photons, eplus = br.build_pdfs(Emin,E_GeV,X0,t_cm)
 rng = np.random.default_rng(123)
 
 ### magnets
@@ -167,8 +166,8 @@ hPixelMatrix2_coarse = ROOT.TH2D("h_pix2_coarse",";pixel-x;pixel-y;Hits",int(npi
 
 
 # Define detector x range
-detector_x_center_cm = -1.0 # cm
-# detector_x_center_cm = 0. # cm
+# detector_x_center_cm = -1.0 # cm
+detector_x_center_cm = 0. # cm
 detector_x_center_m = detector_x_center_cm*cm_to_m
 
 # Define detector y range
@@ -216,6 +215,7 @@ class Element:
         self.y_max = y_max * cm_to_m
         self.z_min = z_min * cm_to_m
         self.z_max = z_max * cm_to_m
+        self.hits = []
         
         if(len(angles)==3):
             umin = [self.x_min,self.y_min,self.z_min]
@@ -246,6 +246,13 @@ class Element:
             [self.x_min, self.y_max, self.z_max]
         ])
         return vertices
+    
+    def record_hit(self, particle_id, x, y, z, px, py, pz):
+        self.hits.append({
+            'particle_id': particle_id,
+            'x': x, 'y': y, 'z': z,
+            'px': px, 'py': py, 'pz': pz
+        })
         
     def plot_element(self, ax, col, alpha=0.2):
         vertices = self.get_vertices()
@@ -278,7 +285,7 @@ class Dipole(Element):
         self.B_x = B_x  # Tesla
         self.B_y = B_y  # Tesla
         self.B_z = B_z  # Tesla
-        self.hits = []
+        # self.hits = []
         self.angles = angles
         
         if(len(self.angles)==3):
@@ -293,13 +300,6 @@ class Dipole(Element):
             return np.array([self.B_x, self.B_y, self.B_z])
         else:
             return np.array([0, 0, 0])
-    
-    def record_hit(self, particle_id, x, y, z, px, py, pz):
-        self.hits.append({
-            'particle_id': particle_id,
-            'x': x, 'y': y, 'z': z,
-            'px': px, 'py': py, 'pz': pz
-        })
 
 
 class Quadrupole(Element):
@@ -307,7 +307,7 @@ class Quadrupole(Element):
         super().__init__(name, x_min, x_max, y_min, y_max, z_min, z_max, angles)
         self.name = name
         self.gradient = gradient * kG_to_T  # Tesla/m
-        self.hits = []
+        # self.hits = []
         self.angles = angles
 
     def field(self, x, y, z):
@@ -329,13 +329,6 @@ class Quadrupole(Element):
             return np.array([B_x, B_y, B_z])
         else:
             return np.array([0, 0, 0])
-    
-    def record_hit(self, particle_id, x, y, z, px, py, pz):
-        self.hits.append({
-            'particle_id': particle_id,
-            'x': x, 'y': y, 'z': z,
-            'px': px, 'py': py, 'pz': pz
-        })
 
 
 class Detector(Element):
@@ -343,19 +336,12 @@ class Detector(Element):
         super().__init__(name, x_min, x_max, y_min, y_max, z_min, z_max, angles)
         self.name = name
         self.z_pos = z_min * cm_to_m
-        self.hits = []  # To store particle hits
+        # self.hits = []  # To store particle hits
         self.angles = angles
         
     def field(self, x, y, z):
         # Detectors don't generate magnetic fields
         return np.array([0, 0, 0])
-        
-    def record_hit(self, particle_id, x, y, z, px, py, pz):
-        self.hits.append({
-            'particle_id': particle_id,
-            'x': x, 'y': y, 'z': z,
-            'px': px, 'py': py, 'pz': pz
-        })
         
     def plot_element(self, ax, col, alpha=0.4):
         # Override to plot as a thin rectangular plane
@@ -398,7 +384,7 @@ class Beampipe(Element):
         self.outer_radius = outer_radius_cm * cm_to_m
         self.z_min_pipe = z_min_cm * cm_to_m
         self.z_max_pipe = z_max_cm * cm_to_m
-        self.hits = []
+        # self.hits = []
         
     def field(self, x, y, z):
         # Beampipe doesn't generate magnetic fields
@@ -419,13 +405,6 @@ class Beampipe(Element):
         
         r = np.sqrt(x**2 + y**2)
         return r > self.inner_radius
-        
-    def record_hit(self, particle_id, x, y, z, px, py, pz):
-        self.hits.append({
-            'particle_id': particle_id,
-            'x': x, 'y': y, 'z': z,
-            'px': px, 'py': py, 'pz': pz
-        })
         
     def plot_element(self, ax, color='gray', alpha=0.3):
         """Plot beampipe as a semi-transparent cylinder"""
@@ -644,10 +623,16 @@ xcorr = Dipole(
 dipole = Dipole(
     name="dipole",
     x_min=-2.2352+magsetdelt["dipole"][0], x_max=2.2352+magsetdelt["dipole"][0],
-    y_min=-6.3752+magsetdelt["dipole"][1], y_max=3.1752+magsetdelt["dipole"][1],
+    y_min=-6.6927+magsetdelt["dipole"][1], y_max=3.4927+magsetdelt["dipole"][1],
     z_min=1260.34, z_max=1351.78,
     B_x=0.219, B_y=0, B_z=0,  # Tesla
     angles=magsetangl["dipole"]
+)
+flange = Element(
+    name="flange",
+    x_min=-2.2352, x_max=2.2352,
+    y_min=-6.3752, y_max=3.1752,
+    z_min=1377.784, z_max=1377.785
 )
 
 # Create beampipe from z=0 to entrance of dipole:
@@ -666,7 +651,7 @@ beampipe = Beampipe(
 
 ### collect all elements
 magnets  = [quad0, quad1, quad2, xcorr, dipole]
-elements = magnets + [beampipe] + detectors
+elements = magnets + [flange] + [beampipe] + detectors
 # for element in elements:
 #     if(element.name=="beampipe"): continue
 #     print(f"{element.name}: angles={element.angles}")
@@ -760,7 +745,8 @@ def hist2d_to_1d_root_style(hist2d_result,transform=True):
 def total_field(position):
     x, y, z = position
     field = np.zeros(3)
-    for element in elements: field += element.field(x, y, z)
+    # for element in elements: field += element.field(x, y, z)
+    for magnet in magnets: field += magnet.field(x, y, z)
     return field
 
 
@@ -929,6 +915,8 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, beampi
     # Check for detector crossings
     for det in detectors: record_hits(det, det.z_pos, solution, particle_id)
     # Record hits on other elements
+    # record_hits(flange, flange.z_min, solution, particle_id)
+    record_hits(flange, flange.z_max, solution, particle_id)
     # record_hits(dipole, dipole.z_min, solution, particle_id)
     record_hits(dipole, dipole.z_max, solution, particle_id)
     # record_hits(xcorr,  xcorr.z_min,  solution, particle_id)
@@ -985,6 +973,7 @@ def propagate_particle_with_collision(particle_id, initial_state, t_span, beampi
             elif collision_element == quad2:  element_name = "Quadrupole 2"
             elif collision_element == xcorr:  element_name = "Xcorr"
             elif collision_element == dipole: element_name = "Dipole"
+            elif collision_element == flange: element_name = "Flange"
 
         collision_info = {
             "time": collision_time,
@@ -1059,6 +1048,7 @@ def plot_system(particle_trajectories, particle_collisions, initial_states, pdfn
     quad2.plot_element(ax,  'cyan')
     xcorr.plot_element(ax,  'orange')
     dipole.plot_element(ax, 'red')
+    flange.plot_element(ax, 'black')
     beampipe.plot_element(ax, 'gray', alpha=0.3)
 
     # Plot detector planes
@@ -1116,12 +1106,13 @@ def plot_system(particle_trajectories, particle_collisions, initial_states, pdfn
     quad2_patch     = mpatches.Patch(color='cyan',   alpha=0.5, label='Quad2')
     xcorr_patch     = mpatches.Patch(color='orange', alpha=0.5, label='XCorr')
     dipole_patch    = mpatches.Patch(color='red',    alpha=0.5, label='Dipole')
+    flange_patch    = mpatches.Patch(color='black',  alpha=0.5, label='Flange')
     collision_patch = mpatches.Patch(color='red',    alpha=0.8, label='Collided particles')
     free_patch      = mpatches.Patch(color='blue',   alpha=0.8, label='Free particles')
     detector_patch  = mpatches.Patch(color='green',  alpha=0.5, label='Detector')
 
     handles, labels = ax.get_legend_handles_labels()
-    handles.extend([beampipe_patch, quad0_patch, quad1_patch, quad2_patch, xcorr_patch, dipole_patch, collision_patch, free_patch, detector_patch])
+    handles.extend([beampipe_patch, quad0_patch, quad1_patch, quad2_patch, xcorr_patch, dipole_patch, flange_patch, collision_patch, free_patch, detector_patch])
     ax.legend(handles=handles, loc='center left')
     ax.set_title(f'Particle Propagation (MagSet={MagnetsSettings})')
 
@@ -1326,8 +1317,8 @@ if __name__ == "__main__":
                 if(hit['particle_id']==pivot_pid):
                     nhits += 1
                     break
-        # if(nhits==len(detectors)): list_good_tracks.append( pivot_pid ) ### good track
-        if(nhits>=1): list_good_tracks.append( pivot_pid ) ### good track
+        if(nhits==len(detectors)): list_good_tracks.append( pivot_pid ) ### good track
+        # if(nhits>=1): list_good_tracks.append( pivot_pid ) ### good track
         initial_state_nhits[pivot_pid] = nhits
     print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")       
 
@@ -1350,234 +1341,274 @@ if __name__ == "__main__":
         scale = 0.9*h2.GetYaxis().GetXmax()/p.GetMaximum() if(p.GetMaximum()!=0) else 1.
         p.Scale(scale)
         return p
-        
-    ### occupancy fine
-    TH1 = {}
-    TH2 = {}
-    PJF = {}
-    for i,detector in enumerate(detectors):
-        det = f"ALPIDE_{i}"
-        TH1.update({det:hPixelMatrix1.Clone(f"{hPixelMatrix1.GetName()} {det}")})
-        TH1[det].SetTitle(det)
-        TH2.update({det:hPixelMatrix2.Clone(f"{hPixelMatrix2.GetName()} {det}")})
-        TH2[det].SetTitle(det)
-        for hit in detector.hits:
-            XX  = np.array(hit['x']*m_to_mm)
-            YY  = np.array(hit['y']*m_to_mm)
-            XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
-            XR,YR = transform_pixel_indices(XP,YP)
-            TH2[det].Fill(XR,YR)
-            bglob = TH2[det].FindBin(XR,YR)
-            TH1[det].AddBinContent(bglob,1)
-    cnv = ROOT.TCanvas("cnv","",1000,1500)
-    cnv.Divide(2,5)
-    cnv.cd(1)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_0"].Draw("col")
-    PJF.update({"ALPIDE_0": proj(TH2["ALPIDE_0"],projmax=True,name="fine")})
-    PJF["ALPIDE_0"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(2)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_0"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_1"].Draw("col")
-    PJF.update({"ALPIDE_1": proj(TH2["ALPIDE_1"],projmax=True,name="fine")})
-    PJF["ALPIDE_1"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(4)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_1"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(5)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_2"].Draw("col")
-    PJF.update({"ALPIDE_2": proj(TH2["ALPIDE_2"],projmax=True,name="fine")})
-    PJF["ALPIDE_2"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(6)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_2"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(7)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_3"].Draw("col")
-    PJF.update({"ALPIDE_3": proj(TH2["ALPIDE_3"],projmax=True,name="fine")})
-    PJF["ALPIDE_3"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(8)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_3"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(9)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_4"].Draw("col")
-    PJF.update({"ALPIDE_4": proj(TH2["ALPIDE_4"],projmax=True,name="fine")})
-    PJF["ALPIDE_4"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(10)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_4"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{pdfname}_ROOT_occupancy_fine.pdf")
-    for name,h in TH1.items(): del h
-    for name,h in TH2.items(): del h
-    for name,h in PJF.items(): del h
     
-    ### occupancy middle
-    TH1 = {}
-    TH2 = {}
-    PJC = {}
-    for i,detector in enumerate(detectors):
-        det = f"ALPIDE_{i}"
-        TH1.update({det:hPixelMatrix1_middle.Clone(f"{hPixelMatrix1_coarse.GetName()} {det}")})
-        TH1[det].SetTitle(det)
-        TH2.update({det:hPixelMatrix2_middle.Clone(f"{hPixelMatrix2_coarse.GetName()} {det}")})
-        TH2[det].SetTitle(det)
-        for hit in detector.hits:
-            XX  = np.array(hit['x']*m_to_mm)
-            YY  = np.array(hit['y']*m_to_mm)
-            XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
-            XR,YR = transform_pixel_indices(XP,YP)
-            TH2[det].Fill(XR,YR)
-            bglob = TH2[det].FindBin(XR,YR)
-            TH1[det].AddBinContent(bglob,1)
-    cnv = ROOT.TCanvas("cnv","",1000,1500)
-    cnv.Divide(2,5)
-    cnv.cd(1)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_0"].Draw("col")
-    PJC.update({"ALPIDE_0": proj(TH2["ALPIDE_0"],projmax=True,name="coarse")})
-    PJC["ALPIDE_0"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(2)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_0"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_1"].Draw("col")
-    PJC.update({"ALPIDE_1": proj(TH2["ALPIDE_1"],projmax=True,name="coarse")})
-    PJC["ALPIDE_1"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(4)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_1"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(5)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_2"].Draw("col")
-    PJC.update({"ALPIDE_2": proj(TH2["ALPIDE_2"],projmax=True,name="coarse")})
-    PJC["ALPIDE_2"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(6)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_2"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(7)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_3"].Draw("col")
-    PJC.update({"ALPIDE_3": proj(TH2["ALPIDE_3"],projmax=True,name="coarse")})
-    PJC["ALPIDE_3"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(8)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_3"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(9)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_4"].Draw("col")
-    PJC.update({"ALPIDE_4": proj(TH2["ALPIDE_4"],projmax=True,name="coarse")})
-    PJC["ALPIDE_4"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(10)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_4"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{pdfname}_ROOT_occupancy_middle.pdf")
-    for name,h in TH1.items(): del h
-    for name,h in TH2.items(): del h
-    for name,h in PJF.items(): del h
     
-    ### occupancy coarse
-    TH1 = {}
-    TH2 = {}
-    PJC = {}
-    for i,detector in enumerate(detectors):
-        det = f"ALPIDE_{i}"
-        TH1.update({det:hPixelMatrix1_coarse.Clone(f"{hPixelMatrix1_coarse.GetName()} {det}")})
-        TH1[det].SetTitle(det)
-        TH2.update({det:hPixelMatrix2_coarse.Clone(f"{hPixelMatrix2_coarse.GetName()} {det}")})
-        TH2[det].SetTitle(det)
-        for hit in detector.hits:
-            XX  = np.array(hit['x']*m_to_mm)
-            YY  = np.array(hit['y']*m_to_mm)
-            XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
-            XR,YR = transform_pixel_indices(XP,YP)
-            TH2[det].Fill(XR,YR)
-            bglob = TH2[det].FindBin(XR,YR)
-            TH1[det].AddBinContent(bglob,1)
-    cnv = ROOT.TCanvas("cnv","",1000,1500)
-    cnv.Divide(2,5)
-    cnv.cd(1)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_0"].Draw("col")
-    PJC.update({"ALPIDE_0": proj(TH2["ALPIDE_0"],projmax=True,name="coarse")})
-    PJC["ALPIDE_0"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(2)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_0"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(3)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_1"].Draw("col")
-    PJC.update({"ALPIDE_1": proj(TH2["ALPIDE_1"],projmax=True,name="coarse")})
-    PJC["ALPIDE_1"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(4)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_1"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(5)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_2"].Draw("col")
-    PJC.update({"ALPIDE_2": proj(TH2["ALPIDE_2"],projmax=True,name="coarse")})
-    PJC["ALPIDE_2"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(6)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_2"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(7)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_3"].Draw("col")
-    PJC.update({"ALPIDE_3": proj(TH2["ALPIDE_3"],projmax=True,name="coarse")})
-    PJC["ALPIDE_3"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(8)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_3"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(9)
-    ROOT.gPad.SetTicks(1,1)
-    TH2["ALPIDE_4"].Draw("col")
-    PJC.update({"ALPIDE_4": proj(TH2["ALPIDE_4"],projmax=True,name="coarse")})
-    PJC["ALPIDE_4"].Draw("hist same")
-    ROOT.gPad.RedrawAxis()
-    cnv.cd(10)
-    ROOT.gPad.SetTicks(1,1)
-    TH1["ALPIDE_4"].Draw("hist")
-    ROOT.gPad.RedrawAxis()
-    cnv.Update()
-    cnv.SaveAs(f"{pdfname}_ROOT_occupancy_coarse.pdf")
-    for name,h in TH1.items(): del h
-    for name,h in TH2.items(): del h
-    for name,h in PJF.items(): del h
+    
+    
+    # ### occupancy fine
+    # TH1_F = {}
+    # TH2_F = {}
+    # PJF = {}
+    # for i,detector in enumerate(detectors):
+    #     det = f"ALPIDE_{i}"
+    #     TH1_F.update({det:hPixelMatrix1.Clone(f"{hPixelMatrix1.GetName()} {det}")})
+    #     TH1_F[det].SetTitle(det)
+    #     TH2_F.update({det:hPixelMatrix2.Clone(f"{hPixelMatrix2.GetName()} {det}")})
+    #     TH2_F[det].SetTitle(det)
+    #     for hit in detector.hits:
+    #         XX  = np.array(hit['x']*m_to_mm)
+    #         YY  = np.array(hit['y']*m_to_mm)
+    #         XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
+    #         XR,YR = transform_pixel_indices(XP,YP)
+    #         TH2_F[det].Fill(XR,YR)
+    #         bglob = TH2_F[det].FindBin(XR,YR)
+    #         TH1_F[det].AddBinContent(bglob,1)
+    # cnv1 = ROOT.TCanvas("cnv11","",1000,1500)
+    # cnv1.Divide(2,5)
+    # cnv1.cd(1)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_F["ALPIDE_0"].Draw("col")
+    # PJF.update({"ALPIDE_0": proj(TH2_F["ALPIDE_0"],projmax=True,name="fine")})
+    # PJF["ALPIDE_0"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_F["ALPIDE_0"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(3)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_F["ALPIDE_1"].Draw("col")
+    # PJF.update({"ALPIDE_1": proj(TH2_F["ALPIDE_1"],projmax=True,name="fine")})
+    # PJF["ALPIDE_1"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(4)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_F["ALPIDE_1"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(5)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_F["ALPIDE_2"].Draw("col")
+    # PJF.update({"ALPIDE_2": proj(TH2_F["ALPIDE_2"],projmax=True,name="fine")})
+    # PJF["ALPIDE_2"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(6)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_F["ALPIDE_2"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(7)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_F["ALPIDE_3"].Draw("col")
+    # PJF.update({"ALPIDE_3": proj(TH2_F["ALPIDE_3"],projmax=True,name="fine")})
+    # PJF["ALPIDE_3"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(8)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_F["ALPIDE_3"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(9)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_F["ALPIDE_4"].Draw("col")
+    # PJF.update({"ALPIDE_4": proj(TH2_F["ALPIDE_4"],projmax=True,name="fine")})
+    # PJF["ALPIDE_4"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.cd(10)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_F["ALPIDE_4"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv1.Update()
+    # cnv1.SaveAs(f"{pdfname}_ROOT_occupancy_fine.pdf")
+    # for name,h in TH1_F.items(): del h
+    # for name,h in TH2_F.items(): del h
+    # for name,h in PJF.items(): del h
+    # del TH1_F
+    # del TH2_F
+    # del PJF
+    # del cnv1
+    #
+    #
+    #
+    # ### occupancy middle
+    # TH1_M = {}
+    # TH2_M = {}
+    # PJM = {}
+    # for i,detector in enumerate(detectors):
+    #     det = f"ALPIDE_{i}"
+    #     TH1_M.update({det:hPixelMatrix1_middle.Clone(f"{hPixelMatrix1_middle.GetName()} {det}")})
+    #     TH1_M[det].SetTitle(det)
+    #     TH2_M.update({det:hPixelMatrix2_middle.Clone(f"{hPixelMatrix2_middle.GetName()} {det}")})
+    #     TH2_M[det].SetTitle(det)
+    #     for hit in detector.hits:
+    #         XX  = np.array(hit['x']*m_to_mm)
+    #         YY  = np.array(hit['y']*m_to_mm)
+    #         XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
+    #         XR,YR = transform_pixel_indices(XP,YP)
+    #         TH2_M[det].Fill(XR,YR)
+    #         bglob = TH2_M[det].FindBin(XR,YR)
+    #         TH1_M[det].AddBinContent(bglob,1)
+    # cnv2 = ROOT.TCanvas("cnv22","",1000,1500)
+    # cnv2.Divide(2,5)
+    # cnv2.cd(1)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_M["ALPIDE_0"].Draw("col")
+    # PJM.update({"ALPIDE_0": proj(TH2_M["ALPIDE_0"],projmax=True,name="middle")})
+    # PJM["ALPIDE_0"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_M["ALPIDE_0"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(3)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_M["ALPIDE_1"].Draw("col")
+    # PJM.update({"ALPIDE_1": proj(TH2_M["ALPIDE_1"],projmax=True,name="middle")})
+    # PJM["ALPIDE_1"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(4)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_M["ALPIDE_1"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(5)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_M["ALPIDE_2"].Draw("col")
+    # PJM.update({"ALPIDE_2": proj(TH2_M["ALPIDE_2"],projmax=True,name="middle")})
+    # PJM["ALPIDE_2"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(6)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_M["ALPIDE_2"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(7)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_M["ALPIDE_3"].Draw("col")
+    # PJM.update({"ALPIDE_3": proj(TH2_M["ALPIDE_3"],projmax=True,name="middle")})
+    # PJM["ALPIDE_3"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(8)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_M["ALPIDE_3"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(9)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_M["ALPIDE_4"].Draw("col")
+    # PJM.update({"ALPIDE_4": proj(TH2_M["ALPIDE_4"],projmax=True,name="middle")})
+    # PJM["ALPIDE_4"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.cd(10)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_M["ALPIDE_4"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv2.Update()
+    # cnv2.SaveAs(f"{pdfname}_ROOT_occupancy_middle.pdf")
+    # for name,h in TH1_M.items(): del h
+    # for name,h in TH2_M.items(): del h
+    # for name,h in PJM.items(): del h
+    # del TH1_M
+    # del TH2_M
+    # del PJM
+    # del cnv2
+    #
+    # print("here 1")
+    #
+    # ### occupancy coarse
+    # TH1_C = {}
+    # TH2_C = {}
+    # PJC = {}
+    # for i,detector in enumerate(detectors):
+    #     det = f"ALPIDE_{i}"
+    #     TH1_C.update({det:hPixelMatrix1_coarse.Clone(f"{hPixelMatrix1_coarse.GetName()} {det}")})
+    #     TH1_C[det].SetTitle(det)
+    #     TH2_C.update({det:hPixelMatrix2_coarse.Clone(f"{hPixelMatrix2_coarse.GetName()} {det}")})
+    #     TH2_C[det].SetTitle(det)
+    #
+    #     print(f"here 1 {det}")
+    #
+    #     for hit in detector.hits:
+    #         XX  = np.array(hit['x']*m_to_mm)
+    #         YY  = np.array(hit['y']*m_to_mm)
+    #         XP,YP = real_to_pixel_indices(XX,YY, detectors[0].x_min*m_to_mm,detectors[0].x_max*m_to_mm, detectors[0].y_min*m_to_mm,detectors[0].y_max*m_to_mm)
+    #         XR,YR = transform_pixel_indices(XP,YP)
+    #         TH2_C[det].Fill(XR,YR)
+    #         bglob = TH2_C[det].FindBin(XR,YR)
+    #         TH1_C[det].AddBinContent(bglob,1)
+    #     print(f"here 2 {det}")
+    #
+    # print("here 2.1")
+    # cnv3 = ROOT.TCanvas("cnv33","",1000,1500)
+    # cnv3.Divide(2,5)
+    # cnv3.cd(1)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_C["ALPIDE_0"].Draw("col")
+    # PJC.update({"ALPIDE_0": proj(TH2_C["ALPIDE_0"],projmax=True,name="coarse")})
+    # PJC["ALPIDE_0"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.2")
+    # cnv3.cd(2)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_C["ALPIDE_0"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.3")
+    # cnv3.cd(3)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_C["ALPIDE_1"].Draw("col")
+    # PJC.update({"ALPIDE_1": proj(TH2_C["ALPIDE_1"],projmax=True,name="coarse")})
+    # PJC["ALPIDE_1"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.4")
+    # cnv3.cd(4)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_C["ALPIDE_1"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.5")
+    # cnv3.cd(5)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_C["ALPIDE_2"].Draw("col")
+    # PJC.update({"ALPIDE_2": proj(TH2_C["ALPIDE_2"],projmax=True,name="coarse")})
+    # PJC["ALPIDE_2"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.6")
+    # cnv3.cd(6)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_C["ALPIDE_2"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.7")
+    # cnv3.cd(7)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_C["ALPIDE_3"].Draw("col")
+    # PJC.update({"ALPIDE_3": proj(TH2_C["ALPIDE_3"],projmax=True,name="coarse")})
+    # PJC["ALPIDE_3"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.8")
+    # cnv3.cd(8)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_C["ALPIDE_3"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.10")
+    # cnv3.cd(9)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH2_C["ALPIDE_4"].Draw("col")
+    # PJC.update({"ALPIDE_4": proj(TH2_C["ALPIDE_4"],projmax=True,name="coarse")})
+    # PJC["ALPIDE_4"].Draw("hist same")
+    # ROOT.gPad.RedrawAxis()
+    # print("here 2.11")
+    # cnv3.cd(10)
+    # ROOT.gPad.SetTicks(1,1)
+    # TH1_C["ALPIDE_4"].Draw("hist")
+    # ROOT.gPad.RedrawAxis()
+    # cnv3.Update()
+    # cnv3.SaveAs(f"{pdfname}_ROOT_occupancy_coarse.pdf")
+    # print("here 2.12")
+    # for name,h in TH1_C.items(): del h
+    # for name,h in TH2_C.items(): del h
+    # for name,h in PJC.items(): del h
+    # del TH1_C
+    # del TH2_C
+    # del PJC
+    # del cnv3
+    #
+    #
+    #
+    # print("here 3")
+
 
 
 
@@ -1609,9 +1640,9 @@ if __name__ == "__main__":
         axs[i].xaxis.set_minor_locator(AutoMinorLocator(10))
         axs[i].yaxis.set_minor_locator(AutoMinorLocator(10))
     plt.tight_layout()
-    plt.savefig(f"{pdfname}_occupancy_coarse.pdf")
+    plt.savefig(f"{pdfname}_occupancy_coarse1.pdf")
     if(doshw): plt.show()
-
+    
 
     ### plot the hits FINELY 2D:
     fig, axs = plt.subplots(1, 5, figsize=(10, 3.5), sharex=True, sharey=True, tight_layout=True)
@@ -1703,9 +1734,32 @@ if __name__ == "__main__":
     
     
     
-    
-    
-    
+    ###############################################
+    ###############################################
+    ###############################################
+    ########### diploe exit plots #################
+    ### dipole line
+    dipoleTPL = ROOT.TPolyLine()
+    dipoleTPL.SetNextPoint(dipole.x_min*m_to_mm,dipole.y_min*m_to_mm)
+    dipoleTPL.SetNextPoint(dipole.x_min*m_to_mm,dipole.y_max*m_to_mm)
+    dipoleTPL.SetNextPoint(dipole.x_max*m_to_mm,dipole.y_max*m_to_mm)
+    dipoleTPL.SetNextPoint(dipole.x_max*m_to_mm,dipole.y_min*m_to_mm)
+    dipoleTPL.SetNextPoint(dipole.x_min*m_to_mm,dipole.y_min*m_to_mm)
+    dipoleTPL.SetLineColor(ROOT.kBlue)
+    dipoleTPL.SetLineWidth(1)
+    flangeTPL = ROOT.TPolyLine()
+    flangeTPL.SetNextPoint(flange.x_min*m_to_mm,flange.y_min*m_to_mm)
+    flangeTPL.SetNextPoint(flange.x_min*m_to_mm,flange.y_max*m_to_mm)
+    flangeTPL.SetNextPoint(flange.x_max*m_to_mm,flange.y_max*m_to_mm)
+    flangeTPL.SetNextPoint(flange.x_max*m_to_mm,flange.y_min*m_to_mm)
+    flangeTPL.SetNextPoint(flange.x_min*m_to_mm,flange.y_min*m_to_mm)
+    flangeTPL.SetLineColor(ROOT.kAzure+1)
+    flangeTPL.SetLineWidth(1)
+    # histD_entrance = ROOT.TH2D("histD_entrance","Dipole entrance plane;x [mm];y [mm];particles",120,-80,+80, 120,-70,+90)
+    # histD_exit     = ROOT.TH2D("histD_exit",    "Dipole exit plane;x [mm];y [mm];particles",    120,-80,+80, 120,-70,+90)
+    ztitle = "Particles in full acceptance" if(fullacc) else "Particles"
+    histD_entrance = ROOT.TH2D("histD_entrance",f"Dipole entrance plane;x_{{LAB}} [mm];y_{{LAB}} [mm];{ztitle}",200,-80,+80, 200,-70,+90)
+    histD_exit     = ROOT.TH2D("histD_exit",    f"Dipole exit plane;x_{{LAB}} [mm];y_{{LAB}} [mm];{ztitle}",    200,-80,+80, 200,-70,+90)
     
     
     def getrect():
@@ -1735,6 +1789,7 @@ if __name__ == "__main__":
         if(abs(point['z']-dipole.z_min)>1e-6):       continue
         X.append(point['x'])
         Y.append(point['y'])
+        histD_entrance.Fill(point['x']*m_to_mm,point['y']*m_to_mm)
     hDentzoom = axs[0].hist2d(X, Y, bins=(200,200),range=[[dipole.x_min*1.2,dipole.x_max*1.2],[dipole.y_min*1.1,dipole.y_max*1.1]], rasterized=True)
     axs[0].set_xlabel('X [m]')
     axs[0].set_ylabel('Y [m]')
@@ -1755,6 +1810,7 @@ if __name__ == "__main__":
         if(abs(point['z']-dipole.z_max)>1e-6):       continue
         X.append(point['x'])
         Y.append(point['y'])
+        histD_exit.Fill(point['x']*m_to_mm,point['y']*m_to_mm)
     hDextzoom = axs[1].hist2d(X, Y, bins=(200,200),range=[[dipole.x_min*1.2,dipole.x_max*1.2],[dipole.y_min*1.1,dipole.y_max*1.1]], rasterized=True)
     axs[1].set_xlabel('X [m]')
     axs[1].set_ylabel('Y [m]')
@@ -1769,6 +1825,112 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(f"{pdfname}_dipole_exit_zoom.pdf")
     if(doshw): plt.show()
+    
+    
+    ############ root
+    cnv = ROOT.TCanvas("cnv_dipole_entrance","",550,500)
+    cnv.SetTicks(1,1)
+    cnv.SetGridx()
+    cnv.SetGridy()
+    histD_entrance.Draw("colz")
+    dipoleTPL.Draw()
+    flangeTPL.Draw()
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(22)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.88,"Toy MC")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={histD_entrance.GetMean(1):.1f} mm")
+    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={histD_entrance.GetMean(2):.1f} mm")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.35,0.88,"(Global alignment: as designed)")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlue)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.367,0.69,"Dipole aperture")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kAzure+1)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.15,0.65,"Flange aperture")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{pdfname}_ROOT_dipole_entrance.pdf")
+    
+    
+    cnv = ROOT.TCanvas("cnv_dipole_exit","",550,500)
+    cnv.SetTicks(1,1)
+    cnv.SetGridx()
+    cnv.SetGridy()
+    histD_exit.Draw("colz")
+    dipoleTPL.Draw()
+    flangeTPL.Draw()
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(22)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.88,"Toy MC")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={histD_exit.GetMean(1):.1f} mm")
+    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={histD_exit.GetMean(2):.1f} mm")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.35,0.88,"(Global alignment: as designed)")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlue)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.367,0.69,"Dipole aperture")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kAzure+1)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.15,0.65,"Flange aperture")
+    ROOT.gPad.RedrawAxis()
+    cnv.Update()
+    cnv.SaveAs(f"{pdfname}_ROOT_dipole_exit.pdf")
+    
     
     
     
@@ -2134,10 +2296,13 @@ if __name__ == "__main__":
     
     ### plot the energies
     fig, axs = plt.subplots(1, 2, figsize=(6, 3), tight_layout=True)
+    # hpz0 = axs[0].hist(PZ0, bins=50,range=(Emin,Emax), rasterized=True)
+    # hp0  = axs[1].hist(P0,  bins=50,range=(1.5,4.5), rasterized=True)
     hpz0 = axs[0].hist(PZ0, bins=50,range=(Emin,Emax), rasterized=True)
-    hp0  = axs[1].hist(P0,  bins=50,range=(1.5,4.5), rasterized=True)
+    hp0  = axs[1].hist(P0,  bins=50,range=(Emin,Emax), rasterized=True)
 
     axs[0].set_xlim(Emin,Emax)
+    axs[0].set_yscale("log")
     axs[0].set_xlabel('E [GeV]')
     axs[0].set_ylabel('Particles')
     axs[0].set_title(f'Generated')
@@ -2146,7 +2311,7 @@ if __name__ == "__main__":
     axs[0].yaxis.set_minor_locator(AutoMinorLocator(10))
     axs[0].grid(True,linewidth=0.25,alpha=0.25)
     
-    axs[1].set_xlim(1.5,4.5)
+    axs[1].set_xlim(Emin,Emax)
     axs[1].set_yscale("log")
     axs[1].set_xlabel('E [GeV]')
     axs[1].set_ylabel('Particles')

@@ -32,21 +32,21 @@ detevtlib      = 20252302
 # nmax2process  = 100000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 
-# ### run502 (Be window in):
-# # first2process = 357
-# first2process = 0
-# nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+### run502 (Be window in):
+# first2process = 357
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
 
 # ### run503 (beam-only, focusing on foil, 6h-long)
 # first2process = 0
 # nmax2process  = 0
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
-### run510 (Be window in long run, parasitic)
-first2process = 0
-nmax2process  = 7173
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
+# ### run510 (Be window in long run, parasitic)
+# first2process = 0
+# nmax2process  = 7173
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run510.root
 
 
 
@@ -247,11 +247,10 @@ yWindowMin    = 53.5
 [BEAMPIPE]
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
-### design
-# yZero2PipeTop = 51.65
-### from adjusting with toy MC (51.65 + 1 mm)
-# yZero2PipeTop = 52.65
-yZero2PipeTop = 56.15
+### from design:
+yZero2PipeTop = 51.65
+# ### from global alignment:
+# yZero2PipeTop = 56.15
 
 
 [DIPOLE]
@@ -277,17 +276,19 @@ yFlangeMax         = +31.752
 ### thetay in !!!degrees!!! is "found" from the dipole exit plane
 thetay = 0
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
-# thetax = 0
-thetax = 0.1706
+### from design: 
+thetax = 0
+### from global alignment:
+# thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
-# xOffset = 0
-xOffset = -10.5
-### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
+### from design:
+xOffset = 0
+### from global alignment:
+# xOffset = -10.5
+### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm):
 # yPipeTop2BoxBot = 9.525
-### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)
-# yPipeTop2BoxBot = 1.525
-### see slides!!!
+### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm):
 yPipeTop2BoxBot = 1.525
 yMidChip2BoxBot = 36.85
 zWin2Box = 114.3
