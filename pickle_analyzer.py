@@ -327,8 +327,8 @@ if __name__ == "__main__":
     
     histos.update({ "hTheta_xz_before_cuts": ROOT.TH1D("hTheta_xz_before_cuts",";#theta_{xz}^{trk} [rad];Tracks",50,-0.015,0.015)})
     histos.update({ "hTheta_xz_after_cuts":  ROOT.TH1D("hTheta_xz_after_cuts",";#theta_{xz}^{trk} [rad];Tracks",50,-0.015,0.015)})
-    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.045)})
-    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.045)})
+    histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.05)})
+    histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.05)})
     
     histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
     histos.update({ "hTheta_yz_tru": ROOT.TH1D("hTheta_yz_tru",";#theta_{yz} [rad];Tracks",100,0,0.035)})
@@ -966,7 +966,7 @@ if __name__ == "__main__":
     
     
     hDipoleExitNoCuts = histos["hD_before_cuts"].Clone("hDipoleExitNoCuts")
-    hDipoleExitNoCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks, no cuts")
+    hDipoleExitNoCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks")
     cnv = ROOT.TCanvas("cnv_dipole_exit_no_cuts","",550,500)
     cnv.SetTicks(1,1)
     cnv.SetGridx()
@@ -988,8 +988,8 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={hDipoleExitNoCuts.GetMean(1):.1f} mm")
-    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={hDipoleExitNoCuts.GetMean(2):.1f} mm")
+    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={hDipoleExitNoCuts.GetMean(1):.1f} mm, #sigma_{{x}}={hDipoleExitNoCuts.GetStdDev(1):.1f} mm")
+    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={hDipoleExitNoCuts.GetMean(2):.1f} mm, #sigma_{{y}}={hDipoleExitNoCuts.GetStdDev(2):.1f} mm")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1033,7 +1033,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.88,"Beam + Be window data, Run 502")
+    s.DrawLatex(0.17,0.88,"Run 502")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1041,8 +1041,8 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={hDipoleExitWithCuts.GetMean(1):.1f} mm")
-    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={hDipoleExitWithCuts.GetMean(2):.1f} mm")
+    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={hDipoleExitWithCuts.GetMean(1):.1f} mm, #sigma_{{x}}={hDipoleExitWithCuts.GetStdDev(1):.1f} mm")
+    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={hDipoleExitWithCuts.GetMean(2):.1f} mm, #sigma_{{y}}={hDipoleExitWithCuts.GetStdDev(2):.1f} mm")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1069,6 +1069,10 @@ if __name__ == "__main__":
     s.DrawLatex(0.15,0.65,"Flange aperture")
     cnv.Update()
     cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_withcuts.pdf')
+    
+    
+    
+    
     
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
@@ -1146,6 +1150,74 @@ if __name__ == "__main__":
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
+    
+    
+    
+    hxz = histos["hTheta_xz_before_cuts"].Clone("hxz")
+    hyz = histos["hTheta_yz_before_cuts"].Clone("hyz")
+    hxz.GetXaxis().SetTitle("Track #theta_{xz} (LAB frame) [rad]")
+    hyz.GetXaxis().SetTitle("Track #theta_{yz} (LAB frame) [rad]")
+    hxz.SetFillColorAlpha(ROOT.kBlue,0.35)
+    hyz.SetFillColorAlpha(ROOT.kBlue,0.35)
+    hxz.SetLineColor(ROOT.kBlue)
+    hyz.SetLineColor(ROOT.kBlue)
+    hxz.SetMaximum(400)
+    hyz.SetMaximum(250)
+    hxz.GetXaxis().SetTitleOffset(1.3)
+    hyz.GetXaxis().SetTitleOffset(1.3)
+    cnv = ROOT.TCanvas("cnv_dipole_window","",1100,500)
+    cnv.Divide(2,1)
+    cnv.cd(1)
+    ROOT.gPad.SetTicks(1,1)
+    hxz.Draw("hist")
+    cnv.RedrawAxis()
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(22)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.85,"Run 502")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.80,f"#mu={hxz.GetMean():.3f} mm")
+    s.DrawLatex(0.17,0.75,f"#sigma={hxz.GetStdDev():.3f} mm")
+    s.DrawLatex(0.17,0.70,f"#theta_{{xz}}^{{max}}={hxz.GetXaxis().GetBinCenter(hxz.GetMaximumBin()):.3f} mm")
+    
+    cnv.cd(2)
+    ROOT.gPad.SetTicks(1,1)
+    hyz.Draw("hist")
+    cnv.RedrawAxis()
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(22)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.85,"Run 502")
+    #
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(132)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.17,0.80,f"#mu={hyz.GetMean():.3f} mm")
+    s.DrawLatex(0.17,0.75,f"#sigma={hyz.GetStdDev():.3f} mm")
+    s.DrawLatex(0.17,0.70,f"#theta_{{yz}}^{{max}}={hyz.GetXaxis().GetBinCenter(hyz.GetMaximumBin()):.3f} mm")
+    
+    cnv.Update()
+    cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_angles_nocuts.pdf')
+    
+    
+    
+    
+    
     
     cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     cnv.Divide(2,1)
