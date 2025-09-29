@@ -118,14 +118,17 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
-cut_spot          = 0
-cut_spot_xcenter = -3
-cut_spot_ycenter = 10.5
+cut_vertexatpdc = 1
+cut_flangeaprtr = 1
+cut_dipoleaprtr = 1
+cut_spot          = 1
+cut_spot_xcenter  = -2.6
+cut_spot_ycenter  = 10.6
 cut_spot_radius_x = 3
-cut_spot_radius_y = 7.5
-cut_strip        = 0
-cut_strip_x      = 5
-cut_strip_y      = 5
+cut_spot_radius_y = 9
+cut_strip   = 0
+cut_strip_x = 0
+cut_strip_y = 0
 ### eliptical RoI at the chips surface
 cut_RoI_spot           = 0
 cut_RoI_spot_xcenter   = 0
@@ -247,10 +250,7 @@ yWindowMin    = 53.5
 [BEAMPIPE]
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
-### from design:
 yZero2PipeTop = 51.65
-# ### from global alignment:
-# yZero2PipeTop = 56.15
 
 
 [DIPOLE]
@@ -277,15 +277,19 @@ yFlangeMax         = +31.752
 thetay = 0
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
 ### from design: 
-thetax = 0
+# thetax = 0
 ### from global alignment:
-# thetax = 0.1706
+thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
 ### from design:
-xOffset = 0
+# xOffset = 0
+# yOffset = 0
+# zOffset = 0
 ### from global alignment:
-# xOffset = -10.5
+xOffset = -9.9
+yOffset = 4.3
+zOffset = 0
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm):
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm):

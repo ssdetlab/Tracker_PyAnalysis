@@ -472,6 +472,7 @@ if __name__ == "__main__":
     
     ### save all events
     nevents = 0
+    nalltrk = 0
     ntracks = 0
     nbadtrigs_actual = 0
     ntrigs_actual = 0
@@ -705,6 +706,7 @@ if __name__ == "__main__":
                     histos["hTheta_xz_before_cuts"].Fill(thetaf_xz)
                     histos["hTheta_yz_before_cuts"].Fill(thetaf_yz)
                     
+                    nalltrk += 1
                     
                     ##########################################
                     ### require pointing to the pdc window ###
@@ -920,7 +922,7 @@ if __name__ == "__main__":
                 print(f"Event[{nevents-1}], Trigger[{pkl_event.trigger}] --> Good tracks: {len(good_tracks)}, Acceptance tracks: {len(acceptance_tracks)}, Selected tracks: {len(selected_tracks)}")
 
     # print(f"Events:{nevents}, Tracks:{ntracks}")
-    print(f"Tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual}, Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
+    print(f"All tracks: {nalltrk}, Selected tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual}, Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
     
     ### plot the counters
     fmultpdfname = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
@@ -965,6 +967,21 @@ if __name__ == "__main__":
     cnv.SaveAs(f"{foupdfname}")
     
     
+    
+    noGlobalAlignment     = (cfg["xOffset"]==0 and cfg["thetax"]==0 and cfg["yOffset"]==0)
+    xthetaGlobalAlignment = (cfg["xOffset"]!=0 and cfg["thetax"]!=0 and cfg["yOffset"]==0)
+    fullGlobalAlignment   = (cfg["xOffset"]!=0 and cfg["thetax"]!=0 and cfg["yOffset"]!=0)
+    fullGlobAlgFullSel    = (cfg["xOffset"]!=0 and cfg["thetax"]!=0 and cfg["yOffset"]!=0 and cfg["cut_spot"]==1)
+    
+    algn_label = "Before global alignment"
+    if(xthetaGlobalAlignment): algn_label = "Partial global alignment"
+    if(fullGlobalAlignment):   algn_label = "Full global alignment"
+    if(fullGlobAlgFullSel):    algn_label = "Full selection"
+    algn_sufix = ""
+    if(xthetaGlobalAlignment): algn_sufix = "_partial_glob_algn"
+    if(fullGlobalAlignment):   algn_sufix = "_full_glob_algn"
+    if(fullGlobAlgFullSel):    algn_sufix = "_full_selection"
+    
     hDipoleExitNoCuts = histos["hD_before_cuts"].Clone("hDipoleExitNoCuts")
     hDipoleExitNoCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks")
     cnv = ROOT.TCanvas("cnv_dipole_exit_no_cuts","",550,500)
@@ -997,7 +1014,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.37,0.88,"(Before global alignment)")
+    s.DrawLatex(0.37,0.88,f"({algn_label})")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1015,7 +1032,7 @@ if __name__ == "__main__":
     s.SetTextSize(0.045)
     s.DrawLatex(0.15,0.65,"Flange aperture")
     cnv.Update()
-    cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_nocuts.pdf')
+    cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_nocuts{algn_sufix}.pdf')
     
     
     hDipoleExitWithCuts = histos["hD_after_cuts"].Clone("hDipoleExitWithCuts")
@@ -1050,7 +1067,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.38,0.805,"(Before global alignment)")
+    s.DrawLatex(0.37,0.88,f"({algn_label})")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1068,7 +1085,7 @@ if __name__ == "__main__":
     s.SetTextSize(0.045)
     s.DrawLatex(0.15,0.65,"Flange aperture")
     cnv.Update()
-    cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_withcuts.pdf')
+    cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_withcuts{algn_sufix}.pdf')
     
     
     
@@ -2093,7 +2110,7 @@ if __name__ == "__main__":
     
     ### summary of tracking
     # print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs}  (with AllTriggers:{nevents} and BadTriggers: {nbadtrigs})")
-    print(f"\nTracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual} Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
+    print(f"\nAll tracks:{nalltrk}, Selected tracks:{ntracks}, GoodTriggers:{nevents-nbadtrigs_actual} Actual triggers: {ntrigs_actual} (with AllTriggers:{nevents} and BadTriggers in the range: {nbadtrigs_actual} (or {nbadtrigs} in the full run))")
     
     
     tracks_triggers_dict["all"]["pix"]["all"]  /= tracks_triggers_dict["all"]["trgs"]["all"]

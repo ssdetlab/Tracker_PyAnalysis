@@ -118,15 +118,18 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
+cut_vertexatpdc = 0
+cut_flangeaprtr = 0
+cut_dipoleaprtr = 0
 cut_spot          = 0
-cut_spot_xcenter = -3
-cut_spot_ycenter = 10.5
-cut_spot_radius_x = 3
-cut_spot_radius_y = 7.5
-cut_strip        = 0
-cut_strip_x      = 5
-cut_strip_y      = 5
-### eliptical RoI at the chips surface
+cut_spot_xcenter  = 0
+cut_spot_ycenter  = 0
+cut_spot_radius_x = 0
+cut_spot_radius_y = 0
+cut_strip   = 0
+cut_strip_x = 0
+cut_strip_y = 0
+### tilted eliptical RoI at the chips surface
 cut_RoI_spot           = 0
 cut_RoI_spot_xcenter   = 0
 cut_RoI_spot_ycenter   = 0
@@ -247,10 +250,7 @@ yWindowMin    = 53.5
 [BEAMPIPE]
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
-### from design:
 yZero2PipeTop = 51.65
-# ### from global alignment:
-# yZero2PipeTop = 56.15
 
 
 [DIPOLE]
@@ -284,6 +284,8 @@ thetax = 0
 thetaz = +90.
 ### from design:
 xOffset = 0
+yOffset = 0
+zOffset = 0
 ### from global alignment:
 # xOffset = -10.5
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm):

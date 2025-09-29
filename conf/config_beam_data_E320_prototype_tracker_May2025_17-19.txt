@@ -164,9 +164,12 @@ cut_chi2dof = 3
 # cut_chi2dof = 1000
 cut_maxcls  = 4
 cut_allow_shared_clusters = 0
-cut_spot         = 0
-cut_spot_xcenter = -3
-cut_spot_ycenter = 10.5
+cut_vertexatpdc = 1
+cut_flangeaprtr = 1
+cut_dipoleaprtr = 1
+cut_spot          = 0
+cut_spot_xcenter  = -3
+cut_spot_ycenter  = 10.5
 cut_spot_radius_x = 3
 cut_spot_radius_y = 7.5
 cut_strip        = 0
@@ -282,11 +285,7 @@ yWindowMin    = 53.5
 Rpipe = 304.8
 yMidWin2PipeCenter = 244.094
 ### design
-# yZero2PipeTop = 51.65
-### from adjusting with toy MC
-# yZero2PipeTop = 52.65
-yZero2PipeTop = 56.15
-
+yZero2PipeTop = 51.65
 
 [DIPOLE]
 ### this is wrt to the window which I set at z=0
@@ -316,6 +315,8 @@ thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
 xOffset = -3
+yOffset = 4.5
+zOffset = 0
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)

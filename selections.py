@@ -24,10 +24,10 @@ def tilted_eliptic_RoI_cut(track):
     E = -B*X0 - 2*C*Y0
     F = A*(X0**2) + B*X0*Y0 + C*(Y0**2) - (a*b)**2
     for det in cfg["detectors"]:
-            x = track.trkcls[det].x ### cluster center measured in pixels in the EUDAQ frame
-            y = track.trkcls[det].y ### cluster center measured in pixels in the EUDAQ frame 
-            elipse = A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F
-            if(elipse>0.): return False
+        x = track.trkcls[det].x ### cluster center measured in pixels in the EUDAQ frame
+        y = track.trkcls[det].y ### cluster center measured in pixels in the EUDAQ frame 
+        elipse = A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F
+        if(elipse>0.): return False
     return True
 
 def spot_cut(x,y):
@@ -69,9 +69,9 @@ def pass_geoacc_selection(track):
     
     psss_RoI             = ( tilted_eliptic_RoI_cut(track) ) if(cfg["cut_RoI_spot"]) else True
     pass_inclination_yz  = ( rN[1]>=r0[1]  and r0[1]>=rW[1]  and rN[1]>=rW[1] )
-    pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) )
-    pass_flange_aperture = ( (rF[0]>=xFlgL and rF[0]<=xFlgR) and (rF[1]>0 and rF[1]<=yFlgT) )
-    pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )
+    pass_vertexatpdc     = ( (rW[0]>=xWinL and rW[0]<=xWinR) and (rW[1]>=yWinB and rW[1]<=yWinT) ) if(cfg["cut_vertexatpdc"]) else True 
+    pass_flange_aperture = ( (rF[0]>=xFlgL and rF[0]<=xFlgR) and (rF[1]>0 and rF[1]<=yFlgT) )      if(cfg["cut_flangeaprtr"]) else True 
+    pass_dipole_aperture = ( (rD[0]>=xDipL and rD[0]<=xDipR) and (rD[1]>0 and rD[1]<=yDipT) )      if(cfg["cut_dipoleaprtr"]) else True 
     pass_dipole_spot     = ( spot_cut(rD[0],rD[1])  ) if(cfg["cut_spot"])  else True
     pass_dipole_strip    = ( strip_cut(rD[0],rD[1]) ) if(cfg["cut_strip"]) else True
     pass_dk_at_det       = ( pass_dk_at_detector(track,"ALPIDE_3",dxMax=-0.02,dyMax=-0.02) ) ### TODO(need to make a flag for this) RELEVANT ONLY FOR PRE-ALIGNMENT!!!

@@ -274,16 +274,19 @@ class Config:
         self.add("thetay", thetay)
         self.add("thetaz", thetaz)
         self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
+        self.add("yOffset", self.getF('TRANSFORMATIONS','yOffset'))
+        self.add("zOffset", self.getF('TRANSFORMATIONS','zOffset'))
         # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
         self.add("yPipeTop2BoxBot", self.getF('TRANSFORMATIONS','yPipeTop2BoxBot'))
         self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
         self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
         self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
         
-        yOffset = self.map["yZero2PipeTop"]+self.map["yPipeTop2BoxBot"]+self.map["yMidChip2BoxBot"]
-        zOffset = self.map["zWin2Box"]+self.map["zBox2chip"]
-        self.add("yOffset", yOffset)
-        self.add("zOffset", zOffset)
+        yOffset = self.map["yOffset"]+self.map["yZero2PipeTop"]+self.map["yPipeTop2BoxBot"]+self.map["yMidChip2BoxBot"]
+        self.map["yOffset"] = yOffset
+        
+        zOffset = self.map["zOffset"]+self.map["zWin2Box"]+self.map["zBox2chip"]
+        self.map["zOffset"] = zOffset
         
         offsets_x = {}
         offsets_y = {}
@@ -299,6 +302,9 @@ class Config:
         self.add("fit_chi2_method1", self.getArrS('FIT','fit_chi2_method1'))
         
         self.add("cuts", self.getArrS('CUTS','cuts'))
+        self.add("cut_vertexatpdc", self.getB('CUTS','cut_vertexatpdc'))
+        self.add("cut_flangeaprtr", self.getB('CUTS','cut_flangeaprtr'))
+        self.add("cut_dipoleaprtr", self.getB('CUTS','cut_dipoleaprtr'))
         self.add("cut_chi2dof", self.getF('CUTS','cut_chi2dof'))
         self.add("cut_ROI_xmin", self.getF('CUTS','cut_ROI_xmin'))
         self.add("cut_ROI_xmax", self.getF('CUTS','cut_ROI_xmax'))
