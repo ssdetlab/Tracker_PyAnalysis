@@ -41,7 +41,8 @@ def h1h2min(h1,h2):
 
 fS = ROOT.TFile("test_data/e320_prototype_beam_Feb2025/runs/run_0000502/tree_Run502_dipole_window.root","READ")
 fB = ROOT.TFile("test_data/e320_prototype_beam_Feb2025/runs/run_0000503/tree_Run503_dipole_window.root","READ")
-fM = ROOT.TFile("generator_plots/generator_502.0_Toy_MC_hPz_zoom.root","READ")
+# fM = ROOT.TFile("generator_plots/generator_502.0_Toy_MC_hPz_zoom.root","READ")
+fM = ROOT.TFile("/Users/noamtalhod/GitHub/XsuiteSim/Simulation/Real_data/Xsuite.root","READ")
 fF = ROOT.TFile("../../Downloads/sasha/fOut.root","READ")
 
 
@@ -101,7 +102,7 @@ grpz0.SetLineColorAlpha(ROOT.kGray+2,0.3)
 grpz0.SetMarkerStyle(0)
 
 legR.AddEntry(hS0,"Run 502 (Be win.)","pl")
-legR.AddEntry(grpz0,"Uncertainty","f")
+legR.AddEntry(grpz0,"Systematic Uncertainty","f")
 legR.AddEntry(hB0,"Run 503 (Dump-only)","pl")
 legR.AddEntry(hM0,"Xsuite MC (as Run 502)","f")
 legR.AddEntry(hP0,"GEANT4 (e^{+} from Be win.)","f")

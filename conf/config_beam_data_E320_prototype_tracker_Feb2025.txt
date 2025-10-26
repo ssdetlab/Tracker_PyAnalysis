@@ -32,16 +32,16 @@ detevtlib      = 20252302
 # nmax2process  = 100000
 # inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run501.root
 
-### run502 (Be window in):
-first2process = 357
-# first2process = 0
-nmax2process  = 0
-inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
-
-# ### run503 (beam-only, focusing on foil, 6h-long)
-# first2process = 0
+# ### run502 (Be window in):
+# first2process = 357
+# # first2process = 0
 # nmax2process  = 0
-# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
+# inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run502.root
+
+### run503 (beam-only, focusing on foil, 6h-long)
+first2process = 0
+nmax2process  = 0
+inputfile     = test_data/e320_prototype_beam_Feb2025/runs/tree_Run503.root
 
 # ### run510 (Be window in long run, parasitic)
 # first2process = 0
@@ -129,6 +129,7 @@ cut_spot_radius_y = 7
 cut_strip         = 0
 cut_strip_xcenter = -2.6
 cut_strip_ycenter = 10.6
+# cut_strip_ycenter = 9
 cut_strip_xwidth  = 7
 cut_strip_ywidth  = 7
 ### eliptical RoI at the chips surface
@@ -279,13 +280,13 @@ yFlangeMax         = +31.752
 thetay = 0
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
 ### from global alignment:
-# thetax = 0.1706
 thetax = 0.2216
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
 ### from global alignment:
 xOffset0 = -10.1
 yOffset0 = 1.2
+# yOffset0 = 0
 zOffset0 = 0
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm):
 # yPipeTop2BoxBot = 9.525

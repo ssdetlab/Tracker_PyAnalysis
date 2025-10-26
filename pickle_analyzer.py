@@ -102,16 +102,17 @@ def get_error_graph(name,h0,hh,hl):
     gr.SetName(name)
     return gr
 
-def get_pz_from_fit(theta_yz, err_on_thetax=0):
-    phi = theta_yz - cfg["thetax"]
-    if(err_on_thetax>0):
-        e = rnd.Gaus(0,err_on_thetax)
-        while(e<-err_on_thetax or e>err_on_thetax): e = rnd.Gaus(0,err_on_thetax)
-        phi = theta_yz - (cfg["thetax"]+e)
+def get_pz_from_fit(theta_yz, err_yz_detpipe=0):
+    theta_yz_detpipe = cfg["thetax"]
+    phi = theta_yz - theta_yz_detpipe
+    if(err_yz_detpipe>0):
+        e = rnd.Gaus(0,err_yz_detpipe)
+        while(e<-err_yz_detpipe or e>err_yz_detpipe): e = rnd.Gaus(0,err_yz_detpipe)
+        phi = theta_yz - (theta_yz_detpipe+e)
     pz = (0.3 * B * LB)/math.sin( phi )
     return pz
 
-def get_toy(toy,T,htH,htL,err,hpzH=None,hpzL=None,fOut=None):
+def get_toy(toy,T,htH,htL,err,hpzH=None,hpzL=None,err_yz_detpipe=0,fOut=None):
     ### get the misalignment
     e = rnd.Gaus(0,err)
     while(e<-err or e>err): e = rnd.Gaus(0,err)
@@ -128,7 +129,7 @@ def get_toy(toy,T,htH,htL,err,hpzH=None,hpzL=None,fOut=None):
         t1 = t+e
         ht1.Fill(t1)
         if(hp1 is not None):
-            p1 = get_pz_from_fit(t1)
+            p1 = get_pz_from_fit(t1,err_yz_detpipe)
             hp1.Fill( p1 )
     
     ### check if larger/smaller than the existing and update if so
@@ -1121,14 +1122,26 @@ if __name__ == "__main__":
     print(f"fullGlobalAlignment={fullGlobalAlignment}")
     print(f"algn_label={algn_label}, algn_sufix={algn_sufix}")
     
+    
+    
     hDipoleExitNoCuts = histos["hD_before_cuts"].Clone("hDipoleExitNoCuts")
     hDipoleExitNoCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks")
+    cnv.cd()
+    ROOT.gStyle.SetPadRightMargin(0.15)
     cnv = ROOT.TCanvas("cnv_dipole_exit_no_cuts","",550,500)
     cnv.SetTicks(1,1)
     cnv.SetGridx()
     cnv.SetGridy()
     if(hDipoleExitNoCuts.GetMaximum()<3): hDipoleExitNoCuts.SetMaximum(3)
     hDipoleExitNoCuts.Draw("colz")
+    
+    palette = cnv.GetPrimitive("palette")
+    if not palette: palette = hist.FindObject("palette")
+    if palette:
+        palette.SetX1NDC(0.86)
+        palette.SetX2NDC(0.91)
+    cnv.Modified()
+    
     dipole.Draw()
     flange.Draw()
     s = ROOT.TLatex()
@@ -1137,7 +1150,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.88,f"Run {runnum}")
+    s.DrawLatex(0.15,0.88,f"Run {runnum}")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1145,8 +1158,8 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={hDipoleExitNoCuts.GetMean(1):.1f} mm, #sigma_{{x}}={hDipoleExitNoCuts.GetStdDev(1):.1f} mm")
-    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={hDipoleExitNoCuts.GetMean(2):.1f} mm, #sigma_{{y}}={hDipoleExitNoCuts.GetStdDev(2):.1f} mm")
+    s.DrawLatex(0.15,0.83,f"#mu_{{x}}={hDipoleExitNoCuts.GetMean(1):.1f} mm, #sigma_{{x}}={hDipoleExitNoCuts.GetStdDev(1):.1f} mm")
+    s.DrawLatex(0.15,0.78,f"#mu_{{y}}={hDipoleExitNoCuts.GetMean(2):.1f} mm, #sigma_{{y}}={hDipoleExitNoCuts.GetStdDev(2):.1f} mm")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1154,7 +1167,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.37,0.88,f"({algn_label})")
+    s.DrawLatex(0.35,0.88,f"({algn_label})")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1162,7 +1175,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlue)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.367,0.69,"Dipole aperture")
+    s.DrawLatex(0.36,0.67,"Dipole aperture")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1170,19 +1183,29 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kAzure+1)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.15,0.65,"Flange aperture")
+    s.DrawLatex(0.13,0.625,"Flange aperture")
     cnv.Update()
     cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_nocuts{algn_sufix}.pdf')
     
     
     hDipoleExitWithCuts = histos["hD_after_cuts"].Clone("hDipoleExitWithCuts")
-    hDipoleExitWithCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks, with cuts")
+    hDipoleExitWithCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks")
     cnv = ROOT.TCanvas("cnv_dipole_exit_with_cuts","",550,500)
+    cnv.cd()
+    ROOT.gStyle.SetPadRightMargin(0.15)
     cnv.SetTicks(1,1)
     cnv.SetGridx()
     cnv.SetGridy()
     if(hDipoleExitWithCuts.GetMaximum()<3): hDipoleExitWithCuts.SetMaximum(3)
     hDipoleExitWithCuts.Draw("colz")
+    
+    palette = cnv.GetPrimitive("palette")
+    if not palette: palette = hist.FindObject("palette")
+    if palette:
+        palette.SetX1NDC(0.86)
+        palette.SetX2NDC(0.91)
+    cnv.Modified()
+    
     dipole.Draw()
     flange.Draw()
     s = ROOT.TLatex()
@@ -1191,7 +1214,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.88,f"Run {runnum}")
+    s.DrawLatex(0.15,0.88,f"Run {runnum}")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1199,8 +1222,8 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.83,f"#mu_{{x}}={hDipoleExitWithCuts.GetMean(1):.1f} mm, #sigma_{{x}}={hDipoleExitWithCuts.GetStdDev(1):.1f} mm")
-    s.DrawLatex(0.17,0.78,f"#mu_{{y}}={hDipoleExitWithCuts.GetMean(2):.1f} mm, #sigma_{{y}}={hDipoleExitWithCuts.GetStdDev(2):.1f} mm")
+    s.DrawLatex(0.15,0.83,f"#mu_{{x}}={hDipoleExitWithCuts.GetMean(1):.1f} mm, #sigma_{{x}}={hDipoleExitWithCuts.GetStdDev(1):.1f} mm")
+    s.DrawLatex(0.15,0.78,f"#mu_{{y}}={hDipoleExitWithCuts.GetMean(2):.1f} mm, #sigma_{{y}}={hDipoleExitWithCuts.GetStdDev(2):.1f} mm")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1208,7 +1231,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.37,0.88,f"({algn_label})")
+    s.DrawLatex(0.35,0.88,f"({algn_label})")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1216,7 +1239,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlue)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.367,0.69,"Dipole aperture")
+    s.DrawLatex(0.36,0.67,"Dipole aperture")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1224,10 +1247,9 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kAzure+1)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.15,0.65,"Flange aperture")
+    s.DrawLatex(0.13,0.625,"Flange aperture")
     cnv.Update()
     cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_dipole_exit_withcuts{algn_sufix}.pdf')
-    
     
     
     
@@ -1325,13 +1347,14 @@ if __name__ == "__main__":
     hpzh = histos["hPf_small"].Clone("hpz_up")
     err_xz = 0.00087 #0.0025
     err_yz = 0.00094 #0.0025
+    err_yz_detpipe = 0.001
     fOutToys = ROOT.TFile("fOutToys.root","RECREATE")
     hyz.Write()
     hpz.Write()
     for i in range(1000): get_toy(i,arr_theta_xz,htH=hxzh,htL=hxzl,err=err_xz)
     for i in range(1000): get_toy(i,arr_theta_yz,htH=hyzh,htL=hyzl,err=err_yz)
-    # for i in range(1000): get_toy(i,arr_theta_yz_pass,htH=hyzh,htL=hyzl,err=err_yz,hpzH=hpzh,hpzL=hpzl,fOut=fOutToys)
-    for i in range(1000): get_toy(i,arr_theta_yz_pass,htH=hyzh,htL=hyzl,err=err_yz,hpzH=hpzh,hpzL=hpzl)
+    # for i in range(1000): get_toy(i,arr_theta_yz_pass,htH=hyzh,htL=hyzl,err=err_yz,hpzH=hpzh,hpzL=hpzl,err_yz_detpipe=err_yz_detpipe,fOut=fOutToys)
+    for i in range(1000): get_toy(i,arr_theta_yz_pass,htH=hyzh,htL=hyzl,err=err_yz,hpzH=hpzh,hpzL=hpzl,err_yz_detpipe=err_yz_detpipe)
     fOutToys.Close()
     
     grxz = get_error_graph("grxz",h0=hxz,hh=hxzh,hl=hxzl)
