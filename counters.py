@@ -8,8 +8,12 @@ import ROOT
 import config
 from config import *
 
+pad_mrg_bot = ROOT.gStyle.GetPadBottomMargin()
+pad_mrg_lft = ROOT.gStyle.GetPadLeftMargin()
+pad_mrg_rgt = ROOT.gStyle.GetPadRightMargin()
 
-COUNTERS      = ["Pixels/chip", "Clusters/chip", "Track Seeds", "Good Tracks", "Selected Tracks"]
+
+COUNTERS      = ["Pixels/layer", "Clusters/layer", "Track Seeds", "Good Tracks", "Selected Tracks"]
 counters_cols = [ROOT.kBlack,   ROOT.kBlue,      ROOT.kRed,     ROOT.kOrange+1, ROOT.kGreen+2 ]
 counters_mrks = [23,            22,              26,            24,             20 ]
 
@@ -27,7 +31,7 @@ def set_global_counter(counter,idx,val):
     counters_y_val[counter][idx] = val
 
 
-def plot_counters(foutpdfname):
+def plot_counters(foutpdfname,runnum):
     gmax = -1e10
     gmin = +1e10
     for i,counter in enumerate(COUNTERS):
@@ -44,12 +48,12 @@ def plot_counters(foutpdfname):
     mg = ROOT.TMultiGraph()
     # leg = ROOT.TLegend(0.0,0.1,1.0,0.9)
     # leg = ROOT.TLegend(0.14,0.13,0.88,0.3)
-    leg = ROOT.TLegend(0.125,0.85,0.86,1)
+    leg = ROOT.TLegend(0.06,0.86,0.99,1.02)
     leg.SetNColumns(len(COUNTERS))
     leg.SetFillStyle(4000) # will be transparent
     leg.SetFillColor(0)
     leg.SetTextFont(42)
-    leg.SetTextSize(0.037)
+    leg.SetTextSize(0.045)
     leg.SetBorderSize(0)
     for i,counter in enumerate(COUNTERS):
         counter_name = counter.replace("/","_per_")
@@ -81,7 +85,7 @@ def plot_counters(foutpdfname):
     # pL.SetGridy()
     # pL.SetLogy()
     # mg.Draw("ap")
-    # mg.SetTitle(f";Trigger number;Multiplicity")
+    # mg.SetTitle(f";EUDAQ Trigger Number;Multiplicity")
     # mg.SetMaximum(gmax)
     # mg.SetMinimum(gmin)
     # mg.GetXaxis().SetLimits(counters_x_trg[0],counters_x_trg[-1])
@@ -90,6 +94,9 @@ def plot_counters(foutpdfname):
     # pR.cd()
     # leg.Draw()
     
+    ROOT.gStyle.SetPadBottomMargin(0.1)
+    ROOT.gStyle.SetPadLeftMargin(0.08)
+    ROOT.gStyle.SetPadRightMargin(0.04)
     
     cnv = ROOT.TCanvas("cnv_hits_vs_trg_all","",1000,500)
     cnv.SetTicks(1,1)
@@ -97,17 +104,35 @@ def plot_counters(foutpdfname):
     cnv.SetGridy()
     cnv.SetLogy()
     mg.Draw("alp")
-    mg.SetTitle(f";Trigger number;Multiplicity")
+    mg.SetTitle(f";EUDAQ Trigger Number;Multiplicity")
     mg.SetMaximum(gmax)
     mg.SetMinimum(gmin)
     mg.GetXaxis().SetLimits(counters_x_trg[0]-2,counters_x_trg[-1]+2)
+    
+    mg.GetXaxis().SetTitleSize(1.1*mg.GetXaxis().GetTitleSize())
+    mg.GetYaxis().SetTitleSize(1.1*mg.GetYaxis().GetTitleSize())
+    # mg.GetXaxis().SetLabelSize(1.1*mg.GetXaxis().GetLabelSize())
+    # mg.GetYaxis().SetLabelSize(1.1*mg.GetYaxis().GetLabelSize())
+    
     cnv.RedrawAxis()
     leg.Draw()
     
+    s = ROOT.TLatex()
+    s.SetNDC(1)
+    s.SetTextAlign(13)
+    s.SetTextColor(ROOT.kBlack)
+    s.SetTextFont(22)
+    s.SetTextSize(0.045)
+    s.DrawLatex(0.15,0.85,f"Run {runnum}")
+    
     
     cnv.Update()
-    # cnv.SaveAs("multiplicities_vs_triggers.pdf")
     cnv.SaveAs(f"{foutpdfname}")
+    cnv.SaveAs(f'{foutpdfname.replace(".pdf",".png")}')
     
     ctr = COUNTERS[-1]
     print(f"Avg+/-Std for {ctr}: {np.mean(counters_y_val[ctr])} +/- {np.std(counters_y_val[ctr])}")
+    
+    ROOT.gStyle.SetPadBottomMargin(pad_mrg_bot)
+    ROOT.gStyle.SetPadLeftMargin(pad_mrg_lft)
+    ROOT.gStyle.SetPadRightMargin(pad_mrg_rgt)

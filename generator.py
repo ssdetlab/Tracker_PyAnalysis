@@ -105,9 +105,7 @@ QQ      = +1  ## unit charge, positron
 mGeV    = (MM*c2)/GeV_to_kgm2s2 ## GeV
 E_GeV   = 10 # GeV, energy of primary partticles
 Emin    = 1e-2 #1 ## GeV
-# Emin    = 2 ## GeV
 Emax    = 10 ## GeV
-# Emax    = 3.25 ## GeV
 smearT  = False #True
 smearP  = True
 smear_sigma_T_um  = 0.03 ## um
@@ -163,7 +161,9 @@ hPixelMatrix1_middle = ROOT.TH1D("h_pix1_middle",";Pixel;Hits",int(npix_x/rebin2
 hPixelMatrix2_middle = ROOT.TH2D("h_pix2_middle",";pixel-x;pixel-y;Hits",int(npix_x/rebin2D_mid)+1,pix_x_min,pix_x_max, int(npix_y/rebin2D_mid)+1,pix_y_min,pix_y_max)
 hPixelMatrix1_coarse = ROOT.TH1D("h_pix1_coarse",";Pixel;Hits",int(npix_x/rebin2D)*int(npix_y/rebin2D),1,int(npix_x/rebin2D)*int(npix_y/rebin2D)+1)
 hPixelMatrix2_coarse = ROOT.TH2D("h_pix2_coarse",";pixel-x;pixel-y;Hits",int(npix_x/rebin2D)+1,pix_x_min,pix_x_max, int(npix_y/rebin2D)+1,pix_y_min,pix_y_max)
-
+hPz_full  = ROOT.TH1D("hPz_full", ";p_{z} [GeV];Particles",100,0,10)
+hPz_small = ROOT.TH1D("hPz_small",";p_{z} [GeV];Particles",50,1.5,4.5)
+hPz_zoom  = ROOT.TH1D("hPz_zoom", ";p_{z} [GeV];Particles",40,1.5,3.5)
 
 # Define detector x range
 # detector_x_center_cm = -1.0 # cm
@@ -180,6 +180,17 @@ detector_z_base_m  = detector_z_base_cm*cm_to_m
 detector_z_base_mm = detector_z_base_cm*cm_to_mm
 
 
+def spot_cut(x,y,xcent,ycent,xrad,yrad):
+    CX = xcent
+    CY = ycent
+    RX = xrad
+    RY = yrad
+    X = (x-CX)/RX
+    Y = (y-CY)/RY
+    X2 = X*X
+    Y2 = Y*Y
+    if( (X2+Y2)>1. ): return False
+    return True
 
 def Rot3D(u,thetax=0,thetay=0,thetaz=0):
     Rx = [[1,0,0],[0,math.cos(thetax),-math.sin(thetax)], [0,math.sin(thetax),math.cos(thetax)]]
@@ -1303,6 +1314,7 @@ if __name__ == "__main__":
     scat_fig = plot_scatter(pdfname)
 
 
+
     ### check acceptance
     npivots = 0
     initial_state_nhits = np.zeros(len(initial_states))
@@ -1317,8 +1329,24 @@ if __name__ == "__main__":
                 if(hit['particle_id']==pivot_pid):
                     nhits += 1
                     break
-        if(nhits==len(detectors)): list_good_tracks.append( pivot_pid ) ### good track
-        # if(nhits>=1): list_good_tracks.append( pivot_pid ) ### good track
+        
+        ### acceptance
+        if(nhits!=len(detectors)): continue
+        
+        ### main selection cut...
+        pass_dipole_spot_cut = True
+        for point in dipole.hits:
+            if(point['particle_id'] != pivot_pid): continue
+            if(abs(point['z']-dipole.z_max)>1e-6): continue
+            X = point['x']*m_to_mm
+            Y = point['y']*m_to_mm
+            if(not spot_cut(X,Y,-2.6,10.6,3,7)):
+                pass_dipole_spot_cut = False
+                break
+        if(not pass_dipole_spot_cut): continue
+        
+        ### good track
+        list_good_tracks.append( pivot_pid )
         initial_state_nhits[pivot_pid] = nhits
     print(f"Got {len(list_good_tracks)} tracks with {len(detectors)} hits out of {npivots} pivot points at ALPIDE_0")       
 
@@ -1643,6 +1671,19 @@ if __name__ == "__main__":
     plt.savefig(f"{pdfname}_occupancy_coarse1.pdf")
     if(doshw): plt.show()
     
+    
+    ### root histogram of the energies
+    for p in P0:
+        hPz_full.Fill(p)
+        hPz_small.Fill(p)
+        hPz_zoom.Fill(p)
+    fOut = ROOT.TFile(f"{pdfname}_Toy_MC_hPz_zoom.root","RECREATE")
+    fOut.cd()
+    hPz_full.Write()
+    hPz_small.Write()
+    hPz_zoom.Write()
+    fOut.Close()
+
 
     ### plot the hits FINELY 2D:
     fig, axs = plt.subplots(1, 5, figsize=(10, 3.5), sharex=True, sharey=True, tight_layout=True)

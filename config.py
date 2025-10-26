@@ -273,20 +273,21 @@ class Config:
         self.add("thetax", thetax)
         self.add("thetay", thetay)
         self.add("thetaz", thetaz)
-        self.add("xOffset", self.getF('TRANSFORMATIONS','xOffset'))
-        self.add("yOffset", self.getF('TRANSFORMATIONS','yOffset'))
-        self.add("zOffset", self.getF('TRANSFORMATIONS','zOffset'))
+        self.add("xOffset0", self.getF('TRANSFORMATIONS','xOffset0'))
+        self.add("yOffset0", self.getF('TRANSFORMATIONS','yOffset0'))
+        self.add("zOffset0", self.getF('TRANSFORMATIONS','zOffset0'))
         # self.add("yBoxBot2WinBot", self.getF('TRANSFORMATIONS','yBoxBot2WinBot'))
         self.add("yPipeTop2BoxBot", self.getF('TRANSFORMATIONS','yPipeTop2BoxBot'))
         self.add("yMidChip2BoxBot", self.getF('TRANSFORMATIONS','yMidChip2BoxBot'))
         self.add("zWin2Box", self.getF('TRANSFORMATIONS','zWin2Box'))
         self.add("zBox2chip", self.getF('TRANSFORMATIONS','zBox2chip'))
         
-        yOffset = self.map["yOffset"]+self.map["yZero2PipeTop"]+self.map["yPipeTop2BoxBot"]+self.map["yMidChip2BoxBot"]
-        self.map["yOffset"] = yOffset
-        
-        zOffset = self.map["zOffset"]+self.map["zWin2Box"]+self.map["zBox2chip"]
-        self.map["zOffset"] = zOffset
+        xOffset = self.map["xOffset0"]
+        self.add("xOffset", xOffset)
+        yOffset = self.map["yOffset0"]+self.map["yZero2PipeTop"]+self.map["yPipeTop2BoxBot"]+self.map["yMidChip2BoxBot"]
+        self.add("yOffset", yOffset)
+        zOffset = self.map["zOffset0"]+self.map["zWin2Box"]+self.map["zBox2chip"]
+        self.add("zOffset", zOffset)
         
         offsets_x = {}
         offsets_y = {}
@@ -318,14 +319,16 @@ class Config:
         self.add("cut_RoI_spot_theta_deg", self.getF('CUTS','cut_RoI_spot_theta_deg'))
         self.add("cut_maxcls", self.getF('CUTS','cut_maxcls'))
         self.add("cut_allow_shared_clusters", self.getB('CUTS','cut_allow_shared_clusters'))
-        self.add("cut_spot", self.getB('CUTS','cut_spot'))
+        self.add("cut_spot",          self.getB('CUTS','cut_spot'))
         self.add("cut_spot_radius_x", self.getF('CUTS','cut_spot_radius_x'))
         self.add("cut_spot_radius_y", self.getF('CUTS','cut_spot_radius_y'))
-        self.add("cut_spot_xcenter", self.getF('CUTS','cut_spot_xcenter'))
-        self.add("cut_spot_ycenter", self.getF('CUTS','cut_spot_ycenter'))
-        self.add("cut_strip", self.getB('CUTS','cut_strip'))
-        self.add("cut_strip_x", self.getF('CUTS','cut_strip_x'))
-        self.add("cut_strip_y", self.getF('CUTS','cut_strip_y'))
+        self.add("cut_spot_xcenter",  self.getF('CUTS','cut_spot_xcenter'))
+        self.add("cut_spot_ycenter",  self.getF('CUTS','cut_spot_ycenter'))
+        self.add("cut_strip",         self.getB('CUTS','cut_strip'))
+        self.add("cut_strip_xcenter", self.getF('CUTS','cut_strip_xcenter'))
+        self.add("cut_strip_ycenter", self.getF('CUTS','cut_strip_ycenter'))
+        self.add("cut_strip_xwidth",  self.getF('CUTS','cut_strip_xwidth'))
+        self.add("cut_strip_ywidth",  self.getF('CUTS','cut_strip_ywidth'))
         
         self.add("plot_online_evtdisp", self.getB('PLOT','plot_online_evtdisp'))
         self.add("plot_offline_evtdisp", self.getB('PLOT','plot_offline_evtdisp'))

@@ -43,10 +43,10 @@ def spot_cut(x,y):
     return True
 
 def strip_cut(x,y):
-    CX = cfg["cut_spot_xcenter"]
-    CY = cfg["cut_spot_ycenter"]
-    SX = cfg["cut_strip_x"]
-    SY = cfg["cut_strip_y"]
+    CX = cfg["cut_strip_xcenter"]
+    CY = cfg["cut_strip_ycenter"]
+    SX = cfg["cut_strip_xwidth"]
+    SY = cfg["cut_strip_ywidth"]
     if( x<CX-SX or x>CX+SX ): return False
     if( y<CY-SY or y>CY+SY ): return False
     return True

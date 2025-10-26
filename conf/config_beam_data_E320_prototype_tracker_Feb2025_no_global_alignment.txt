@@ -126,9 +126,16 @@ cut_spot_xcenter  = 0
 cut_spot_ycenter  = 0
 cut_spot_radius_x = 0
 cut_spot_radius_y = 0
-cut_strip   = 0
-cut_strip_x = 0
-cut_strip_y = 0
+# cut_strip         = 1
+# cut_strip_xcenter = 7.3
+# cut_strip_ycenter = -2.8
+# cut_strip_xwidth  = 7
+# cut_strip_ywidth  = 7
+cut_strip         = 0
+cut_strip_xcenter = 0
+cut_strip_ycenter = 0
+cut_strip_xwidth  = 0
+cut_strip_ywidth  = 0
 ### tilted eliptical RoI at the chips surface
 cut_RoI_spot           = 0
 cut_RoI_spot_xcenter   = 0
@@ -278,16 +285,12 @@ thetay = 0
 ### thetax in !!!degrees!!! is the angle of the detector wrt the beampipe that is roughly 1/2 a degree (downward towards the dump)
 ### from design: 
 thetax = 0
-### from global alignment:
-# thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
 ### from design:
-xOffset = 0
-yOffset = 0
-zOffset = 0
-### from global alignment:
-# xOffset = -10.5
+xOffset0 = 0
+yOffset0 = 0
+zOffset0 = 0
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm):
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm):

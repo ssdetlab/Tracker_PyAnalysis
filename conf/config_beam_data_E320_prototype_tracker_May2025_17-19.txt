@@ -172,9 +172,11 @@ cut_spot_xcenter  = -3
 cut_spot_ycenter  = 10.5
 cut_spot_radius_x = 3
 cut_spot_radius_y = 7.5
-cut_strip        = 0
-cut_strip_x      = 8
-cut_strip_y      = 8
+cut_strip         = 0
+cut_strip_xcenter = 0
+cut_strip_ycenter = 0
+cut_strip_xwidth  = 0
+cut_strip_ywidth  = 0
 ### eliptical RoI at the chips surface
 cut_RoI_spot           = 0
 cut_RoI_spot_xcenter   = 512
@@ -314,9 +316,9 @@ thetay = 0.
 thetax = 0.1706
 ### thetaz in !!!degrees!!! is just the transformation to real space.
 thetaz = +90.
-xOffset = -3
-yOffset = 4.5
-zOffset = 0
+xOffset0 = -3
+yOffset0 = 4.5
+zOffset0 = 0
 ### this was true for Nov 2024 shifts: box is ~1cm above the beampipe (stage is at 78mm)
 # yPipeTop2BoxBot = 9.525
 ### this is used for the Feb 2025 shifts: box is ~2mm above the beampipe (stage is at 86mm)

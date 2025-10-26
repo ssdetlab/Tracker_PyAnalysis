@@ -9,7 +9,6 @@ import subprocess
 import array
 import numpy as np
 import ROOT
-# from ROOT import *
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -67,6 +66,7 @@ ROOT.gStyle.SetPadLeftMargin(0.13)
 ROOT.gStyle.SetPadRightMargin(0.16)
 ROOT.gStyle.SetGridColor(ROOT.kGray)
 ROOT.gStyle.SetGridWidth(1)
+# ROOT.gStyle.SetImageScaling(2.)
 
 ROOT.gErrorIgnoreLevel = ROOT.kError
 # ROOT.gErrorIgnoreLevel = ROOT.kWarning
@@ -75,6 +75,88 @@ B  = cfg["fDipoleTesla"]
 LB = cfg["zDipoleLenghMeters"]
 mm2m = 1e-3
 
+rnd = ROOT.TRandom()
+rnd.SetSeed()
+    
+
+def get_error_graph(name,h0,hh,hl):
+    gx, gy, exl, exh, eyl, eyh = [], [], [], [], [], []
+    for b in range(1,h0.GetNbinsX()+1):
+        x0 = h0.GetXaxis().GetBinCenter(b)
+        xd = x0-h0.GetXaxis().GetBinLowEdge(b)
+        xu = h0.GetXaxis().GetBinUpEdge(b)-x0
+        gx.append(x0)
+        exl.append(xd)
+        exh.append(xu)
+        y0 = h0.GetBinContent(b)
+        yh = hh.GetBinContent(b)
+        yl = hl.GetBinContent(b)
+        print(f"{name} - b={b}:  yl={yl} <<< y0={y0} <<< yh={yh}")
+        gy.append(y0)
+        eyl.append(y0-yl)
+        eyh.append(yh-y0)
+    gr = ROOT.TGraphAsymmErrors(len(gx), np.array(gx), np.array(gy), np.array(exl), np.array(exh), np.array(eyl), np.array(eyh))
+    gr.SetFillColorAlpha(ROOT.kGray+2,0.3)
+    gr.SetLineColor(ROOT.kGray+2)
+    gr.SetMarkerStyle(0)
+    gr.SetName(name)
+    return gr
+
+def get_pz_from_fit(theta_yz, err_on_thetax=0):
+    phi = theta_yz - cfg["thetax"]
+    if(err_on_thetax>0):
+        e = rnd.Gaus(0,err_on_thetax)
+        while(e<-err_on_thetax or e>err_on_thetax): e = rnd.Gaus(0,err_on_thetax)
+        phi = theta_yz - (cfg["thetax"]+e)
+    pz = (0.3 * B * LB)/math.sin( phi )
+    return pz
+
+def get_toy(toy,T,htH,htL,err,hpzH=None,hpzL=None,fOut=None):
+    ### get the misalignment
+    e = rnd.Gaus(0,err)
+    while(e<-err or e>err): e = rnd.Gaus(0,err)
+    ### clone and reset
+    ht1 = htH.Clone(f"ht1_{toy}")
+    ht1.Reset()
+    hp1 = None
+    if(hpzH is not None): 
+        hp1 = hpzH.Clone(f"hp1_{toy}")
+        hp1.Reset()
+    
+    ### fil the toy histos
+    for t in T:
+        t1 = t+e
+        ht1.Fill(t1)
+        if(hp1 is not None):
+            p1 = get_pz_from_fit(t1)
+            hp1.Fill( p1 )
+    
+    ### check if larger/smaller than the existing and update if so
+    for b in range(1,ht1.GetNbinsX()+1):
+        yH0 = htH.GetBinContent(b)
+        yL0 = htL.GetBinContent(b)
+        y1  = ht1.GetBinContent(b)
+        if(y1>yH0): htH.SetBinContent(b,y1)
+        if(y1<yL0): htL.SetBinContent(b,y1)
+    if(fOut is None): del ht1
+    ### check if larger/smaller than the existing and update if so
+    if(hp1 is not None):
+        for b in range(1,hp1.GetNbinsX()+1):
+            yH0 = hpzH.GetBinContent(b)
+            yL0 = hpzL.GetBinContent(b)
+            y1  = hp1.GetBinContent(b)
+            if(y1>yH0): hpzH.SetBinContent(b,y1)
+            if(y1<yL0): hpzL.SetBinContent(b,y1)
+        if(fOut is None): del hp1
+
+    ### write for diagnostics
+    if(fOut is not None):
+        fOut.cd()
+        ht1.Write()
+        hp1.Write()
+        
+    
+            
 
 def h1h2max(h1,h2):
     hmax = -1
@@ -330,6 +412,11 @@ if __name__ == "__main__":
     histos.update({ "hTheta_yz_before_cuts": ROOT.TH1D("hTheta_yz_before_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.05)})
     histos.update({ "hTheta_yz_after_cuts":  ROOT.TH1D("hTheta_yz_after_cuts",";#theta_{yz}^{trk} [rad];Tracks",50,0,0.05)})
     
+    histos.update({ "hTheta_xz_labframe_before_cuts": ROOT.TH1D("hTheta_xzlabframe_before_cuts",";#theta_{xz}^{lab} [rad];Tracks",50,-0.015,0.015)})
+    histos.update({ "hTheta_xz_labframe_after_cuts":  ROOT.TH1D("hTheta_xzlabframe_after_cuts",";#theta_{xz}^{lab} [rad];Tracks",50,-0.015,0.015)})
+    histos.update({ "hTheta_yz_labframe_before_cuts": ROOT.TH1D("hTheta_yzlabframe_before_cuts",";#theta_{yz}^{lab} [rad];Tracks",50,0,0.05)})
+    histos.update({ "hTheta_yz_labframe_after_cuts":  ROOT.TH1D("hTheta_yzlabframe_after_cuts",";#theta_{yz}^{lab} [rad];Tracks",50,0,0.05)})
+    
     histos.update({ "hTheta_xz_tru": ROOT.TH1D("hTheta_xz_tru",";#theta_{xz} [rad];Tracks",100,-0.01,0.01)})
     histos.update({ "hTheta_yz_tru": ROOT.TH1D("hTheta_yz_tru",";#theta_{yz} [rad];Tracks",100,0,0.035)})
     
@@ -400,6 +487,13 @@ if __name__ == "__main__":
     
         name = f"h_tunnel_width_x_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width [mm];Tracks",bintnl,limtnl[det][0],limtnl[det][1]) } )
         name = f"h_tunnel_width_y_{det}"; histos.update( { name:ROOT.TH1D(name,det+";Tunnel width [mm];Tracks",bintnl,limtnl[det][0],limtnl[det][1]) } )
+    
+    ####################################################
+    for hname,hist in histos.items(): hist.Sumw2() #####
+    ####################################################
+    
+    
+    
     
     dipole = ROOT.TPolyLine()
     xMinD = cfg["xDipoleExitMin"]
@@ -479,6 +573,11 @@ if __name__ == "__main__":
     tracks_triggers_dict = { "all": {"trgs":{"all":0,"good":0},"pix":{"all":0,"good":0},"cls":{"all":0,"good":0},"trks":0},
                              "even":{"trgs":{"all":0,"good":0},"pix":{"all":0,"good":0},"cls":{"all":0,"good":0},"trks":0},
                              "odd": {"trgs":{"all":0,"good":0},"pix":{"all":0,"good":0},"cls":{"all":0,"good":0},"trks":0} }
+    
+    arr_theta_xz = []
+    arr_theta_yz = []
+    arr_theta_yz_pass = []
+    
     for fpkl in files:
         suff = str(fpkl).split("_")[-1].replace(".pkl","")
         with open(fpkl,'rb') as handle:
@@ -504,6 +603,11 @@ if __name__ == "__main__":
                 eudaq_event.ts_end   = -1.
                 eudaq_event.st_ev_buffer.push_back( ROOT.stave() )
                 ########################################
+                
+                
+                ### check if the first part should be ignored:
+                if(eudaq_event.trg_n<cfg["first2process"]): continue
+                
                 
                 ### check parity
                 iseven = (int(pkl_event.trigger)%2==0)
@@ -587,7 +691,7 @@ if __name__ == "__main__":
                     npix = pkl_event.npixels[det]
                     if(npix==0): pass_pixels = False
                     n_pixels += npix
-                set_global_counter("Pixels/chip",icounter,n_pixels/Ndet)
+                set_global_counter("Pixels/layer",icounter,n_pixels/Ndet)
                 if(not pass_pixels): continue
             
 
@@ -602,7 +706,7 @@ if __name__ == "__main__":
                     ncls = pkl_event.nclusters[det]
                     if(ncls==0): pass_clusters = False
                     n_clusters += ncls
-                set_global_counter("Clusters/chip",icounter,n_clusters/Ndet)
+                set_global_counter("Clusters/layer",icounter,n_clusters/Ndet)
                 if(not pass_clusters): continue
 
 
@@ -696,6 +800,10 @@ if __name__ == "__main__":
                     tan_theta_xz = -track.params[3] ### the slope p2x transformed to real space (gets minus sign)
                     thetaf_yz = math.atan(tan_theta_yz) #- cfg["thetax"] ###TODO: check if - or +
                     thetaf_xz = math.atan(tan_theta_xz) #- cfg["thetay"] ###TODO: check if - or +
+                    
+                    thetaf_yz_labframe = math.atan( (rN[1]-r0[1])/(rN[2]-r0[2]) )
+                    thetaf_xz_labframe = math.atan( (rN[0]-r0[0])/(rN[2]-r0[2]) )
+                    
 
                     ### fill histos before cuts
                     histos["hF_before_cuts"].Fill(rF[0],rF[1])
@@ -705,6 +813,13 @@ if __name__ == "__main__":
                     histos["hW_before_cuts"].Fill(rW[0],rW[1])
                     histos["hTheta_xz_before_cuts"].Fill(thetaf_xz)
                     histos["hTheta_yz_before_cuts"].Fill(thetaf_yz)
+                    
+                    arr_theta_xz.append(thetaf_xz)
+                    arr_theta_yz.append(thetaf_yz)
+                        
+                    histos["hTheta_xz_labframe_before_cuts"].Fill(thetaf_xz_labframe)
+                    histos["hTheta_yz_labframe_before_cuts"].Fill(thetaf_yz_labframe)
+                    
                     
                     nalltrk += 1
                     
@@ -735,9 +850,12 @@ if __name__ == "__main__":
                     thetar_yz = math.atan( (rN[1]-r0[1])/(rN[2]-r0[2]) )
                     
                     ### the momentum magnitudes
-                    pf = (0.3 * B * LB)/math.sin( thetaf_yz - cfg["thetax"] )
+                    pf = get_pz_from_fit(thetaf_yz)
                     pd = (0.3 * B * LB)/math.sin( thetad_yz )
                     pr = (0.3 * B * LB)/math.sin( thetar_yz )
+                    
+                    ### theta_yz passing:
+                    arr_theta_yz_pass.append(thetaf_yz)
                     
                     histos["hThetad_vs_thetaf"].Fill(thetaf_yz,thetad_yz)
                     histos["hThetar_vs_thetaf"].Fill(thetaf_yz,thetar_yz)
@@ -766,6 +884,9 @@ if __name__ == "__main__":
                     
                     histos["hTheta_xz_after_cuts"].Fill(thetaf_xz)
                     histos["hTheta_yz_after_cuts"].Fill(thetaf_yz)
+                    
+                    histos["hTheta_xz_labframe_after_cuts"].Fill(thetaf_xz_labframe)
+                    histos["hTheta_yz_labframe_after_cuts"].Fill(thetaf_yz_labframe)
                     
                     histos["hdExit"].Fill(dExit)
                     
@@ -926,7 +1047,7 @@ if __name__ == "__main__":
     
     ### plot the counters
     fmultpdfname = tfilenamein.replace(".root",f"_multiplicities_vs_triggers.pdf")
-    plot_counters(fmultpdfname)
+    plot_counters(fmultpdfname,runnum)
 
 
     ### plot the geometry distributions
@@ -968,19 +1089,37 @@ if __name__ == "__main__":
     
     
     
-    noGlobalAlignment     = (cfg["xOffset"]==0 and cfg["thetax"]==0 and cfg["yOffset"]==0)
-    xthetaGlobalAlignment = (cfg["xOffset"]!=0 and cfg["thetax"]!=0 and cfg["yOffset"]==0)
-    fullGlobalAlignment   = (cfg["xOffset"]!=0 and cfg["thetax"]!=0 and cfg["yOffset"]!=0)
-    fullGlobAlgFullSel    = (cfg["xOffset"]!=0 and cfg["thetax"]!=0 and cfg["yOffset"]!=0 and cfg["cut_spot"]==1)
+    noGlobalAlignment      = (cfg["xOffset0"]==0 and cfg["thetax"]==0 and cfg["yOffset0"]==0 and cfg["cut_strip"]==False and cfg["cut_spot"]==False)
+    noGlobAlgnWithStrip    = (cfg["xOffset0"]==0 and cfg["thetax"]==0 and cfg["yOffset0"]==0 and cfg["cut_strip"]==True  and cfg["cut_spot"]==False) ## strip cut has to be around the original blob
+    partialGlobalAlignment = (cfg["xOffset0"]!=0 and cfg["thetax"]!=0 and cfg["yOffset0"]==0 and cfg["cut_strip"]==False and cfg["cut_spot"]==False) 
+    partGlobalAlgnWithStrp = (cfg["xOffset0"]!=0 and cfg["thetax"]!=0 and cfg["yOffset0"]==0 and cfg["cut_strip"]==True  and cfg["cut_spot"]==False) ## strip cut has to be around the new blob
+    fullGlobalAlignment    = (cfg["xOffset0"]!=0 and cfg["thetax"]!=0 and cfg["yOffset0"]!=0 and cfg["cut_strip"]==False and cfg["cut_spot"]==False)
+    fullGlobAlgnWithStrip  = (cfg["xOffset0"]!=0 and cfg["thetax"]!=0 and cfg["yOffset0"]!=0 and cfg["cut_strip"]==True  and cfg["cut_spot"]==False) ## strip cut has to be around the new blob
+    fullGlobAlgFullSel     = (cfg["xOffset0"]!=0 and cfg["thetax"]!=0 and cfg["yOffset0"]!=0 and cfg["cut_strip"]==False and cfg["cut_spot"]==True)
     
-    algn_label = "Before global alignment"
-    if(xthetaGlobalAlignment): algn_label = "Partial global alignment"
-    if(fullGlobalAlignment):   algn_label = "Full global alignment"
-    if(fullGlobAlgFullSel):    algn_label = "Full selection"
-    algn_sufix = ""
-    if(xthetaGlobalAlignment): algn_sufix = "_partial_glob_algn"
-    if(fullGlobalAlignment):   algn_sufix = "_full_glob_algn"
-    if(fullGlobAlgFullSel):    algn_sufix = "_full_selection"
+    algn_label = "NULL"
+    if(noGlobalAlignment):      algn_label = "Before global alignment"
+    if(noGlobAlgnWithStrip):    algn_label = "Outlier tracks removed"
+    if(partialGlobalAlignment): algn_label = "Partial global alignment"
+    if(partGlobalAlgnWithStrp): algn_label = "Partial alignment w/o outliers"
+    if(fullGlobalAlignment):    algn_label = "Full global alignment"
+    if(fullGlobAlgnWithStrip):  algn_label = "Global alignment w/o outliers"
+    if(fullGlobAlgFullSel):     algn_label = "Full selection"
+    algn_sufix = "NULL"
+    if(noGlobalAlignment):      algn_sufix = ""
+    if(noGlobAlgnWithStrip):    algn_sufix = "_no_outliers"
+    if(partialGlobalAlignment): algn_sufix = "_partial_glob_algn"
+    if(partGlobalAlgnWithStrp): algn_sufix = "_partial_glob_algn_no_outliers"
+    if(fullGlobalAlignment):    algn_sufix = "_full_glob_algn"
+    if(fullGlobAlgnWithStrip):  algn_sufix = "_full_glob_algn_no_outliers"
+    if(fullGlobAlgFullSel):     algn_sufix = "_full_selection"
+    
+    print(f'cfg["xOffset"]={cfg["xOffset0"]}, cfg["thetax"]={cfg["thetax"]}, cfg["yOffset0"]={cfg["yOffset"]}, cfg["cut_strip"]={cfg["cut_strip"]}, cfg["cut_spot"]={cfg["cut_spot"]}')
+    print(f"noGlobalAlignment={noGlobalAlignment}")
+    print(f"noGlobAlgnWithStrip={noGlobAlgnWithStrip}")
+    print(f"partialGlobalAlignment={partialGlobalAlignment}")
+    print(f"fullGlobalAlignment={fullGlobalAlignment}")
+    print(f"algn_label={algn_label}, algn_sufix={algn_sufix}")
     
     hDipoleExitNoCuts = histos["hD_before_cuts"].Clone("hDipoleExitNoCuts")
     hDipoleExitNoCuts.SetTitle("Dipole exit plane;x_{LAB} [mm];y_{LAB} [mm];Back-extrapolated tracks")
@@ -988,6 +1127,7 @@ if __name__ == "__main__":
     cnv.SetTicks(1,1)
     cnv.SetGridx()
     cnv.SetGridy()
+    if(hDipoleExitNoCuts.GetMaximum()<3): hDipoleExitNoCuts.SetMaximum(3)
     hDipoleExitNoCuts.Draw("colz")
     dipole.Draw()
     flange.Draw()
@@ -997,7 +1137,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.88,"Run 502")
+    s.DrawLatex(0.17,0.88,f"Run {runnum}")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1041,6 +1181,7 @@ if __name__ == "__main__":
     cnv.SetTicks(1,1)
     cnv.SetGridx()
     cnv.SetGridy()
+    if(hDipoleExitWithCuts.GetMaximum()<3): hDipoleExitWithCuts.SetMaximum(3)
     hDipoleExitWithCuts.Draw("colz")
     dipole.Draw()
     flange.Draw()
@@ -1050,7 +1191,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.88,"Run 502")
+    s.DrawLatex(0.17,0.88,f"Run {runnum}")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1172,21 +1313,58 @@ if __name__ == "__main__":
     
     hxz = histos["hTheta_xz_before_cuts"].Clone("hxz")
     hyz = histos["hTheta_yz_before_cuts"].Clone("hyz")
+    hpz = histos["hPf_small"].Clone("hpz")
+    hxz.SetBinErrorOption(ROOT.TH1.kPoisson)
+    hyz.SetBinErrorOption(ROOT.TH1.kPoisson)
+    # hpz.SetBinErrorOption(ROOT.TH1.kPoisson)
+    hxzl = histos["hTheta_xz_before_cuts"].Clone("hxz_down")
+    hxzh = histos["hTheta_xz_before_cuts"].Clone("hxz_up")
+    hyzl = histos["hTheta_yz_before_cuts"].Clone("hyz_down")
+    hyzh = histos["hTheta_yz_before_cuts"].Clone("hyz_up")
+    hpzl = histos["hPf_small"].Clone("hpz_down")
+    hpzh = histos["hPf_small"].Clone("hpz_up")
+    err_xz = 0.00087 #0.0025
+    err_yz = 0.00094 #0.0025
+    fOutToys = ROOT.TFile("fOutToys.root","RECREATE")
+    hyz.Write()
+    hpz.Write()
+    for i in range(1000): get_toy(i,arr_theta_xz,htH=hxzh,htL=hxzl,err=err_xz)
+    for i in range(1000): get_toy(i,arr_theta_yz,htH=hyzh,htL=hyzl,err=err_yz)
+    # for i in range(1000): get_toy(i,arr_theta_yz_pass,htH=hyzh,htL=hyzl,err=err_yz,hpzH=hpzh,hpzL=hpzl,fOut=fOutToys)
+    for i in range(1000): get_toy(i,arr_theta_yz_pass,htH=hyzh,htL=hyzl,err=err_yz,hpzH=hpzh,hpzL=hpzl)
+    fOutToys.Close()
+    
+    grxz = get_error_graph("grxz",h0=hxz,hh=hxzh,hl=hxzl)
+    gryz = get_error_graph("gryz",h0=hyz,hh=hyzh,hl=hyzl)
+    grpz = get_error_graph("grpz",h0=hpz,hh=hpzh,hl=hpzl)
+    
     hxz.GetXaxis().SetTitle("Track #theta_{xz} (LAB frame) [rad]")
     hyz.GetXaxis().SetTitle("Track #theta_{yz} (LAB frame) [rad]")
-    hxz.SetFillColorAlpha(ROOT.kBlue,0.35)
-    hyz.SetFillColorAlpha(ROOT.kBlue,0.35)
-    hxz.SetLineColor(ROOT.kBlue)
-    hyz.SetLineColor(ROOT.kBlue)
-    hxz.SetMaximum(400)
-    hyz.SetMaximum(250)
+    # hxz.SetFillColorAlpha(ROOT.kBlue,0.35)
+    # hyz.SetFillColorAlpha(ROOT.kBlue,0.35)
+    # hxz.SetLineColor(ROOT.kBlue)
+    # hyz.SetLineColor(ROOT.kBlue)
+    hxz.SetMarkerStyle(20)
+    hyz.SetMarkerStyle(20)
+    hxz.SetMarkerSize(1)
+    hyz.SetMarkerSize(1)
+    hxz.SetMarkerColor(ROOT.kBlack)
+    hyz.SetMarkerColor(ROOT.kBlack)
+    hxz.SetLineColor(ROOT.kBlack)
+    hyz.SetLineColor(ROOT.kBlack)
+    
+    hxz.SetMaximum(420)
+    hyz.SetMaximum(280)
     hxz.GetXaxis().SetTitleOffset(1.3)
     hyz.GetXaxis().SetTitleOffset(1.3)
     cnv = ROOT.TCanvas("cnv_dipole_window","",1100,500)
     cnv.Divide(2,1)
     cnv.cd(1)
     ROOT.gPad.SetTicks(1,1)
-    hxz.Draw("hist")
+    # hxz.Draw("hist")
+    hxz.Draw("ep")
+    # grxz.Draw("E3 same")
+    grxz.Draw("E2 same")
     cnv.RedrawAxis()
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1194,7 +1372,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.85,"Run 502")
+    s.DrawLatex(0.17,0.85,f"Run {runnum}")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1202,13 +1380,15 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.80,f"#mu={hxz.GetMean():.3f} mm")
-    s.DrawLatex(0.17,0.75,f"#sigma={hxz.GetStdDev():.3f} mm")
-    s.DrawLatex(0.17,0.70,f"#theta_{{xz}}^{{max}}={hxz.GetXaxis().GetBinCenter(hxz.GetMaximumBin()):.3f} mm")
+    s.DrawLatex(0.16,0.80,f"#mu={hxz.GetMean():.3f} rad")
+    s.DrawLatex(0.16,0.75,f"#sigma={hxz.GetStdDev():.3f} rad")
+    s.DrawLatex(0.16,0.70,f"#theta_{{xz}}^{{max}}={hxz.GetXaxis().GetBinCenter(hxz.GetMaximumBin()):.3f} rad")
     
     cnv.cd(2)
     ROOT.gPad.SetTicks(1,1)
-    hyz.Draw("hist")
+    hyz.Draw("ep")
+    # gryz.Draw("E3 same")
+    gryz.Draw("E2 same")
     cnv.RedrawAxis()
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1216,7 +1396,7 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(22)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.85,"Run 502")
+    s.DrawLatex(0.17,0.85,f"Run {runnum}")
     #
     s = ROOT.TLatex()
     s.SetNDC(1)
@@ -1224,9 +1404,9 @@ if __name__ == "__main__":
     s.SetTextColor(ROOT.kBlack)
     s.SetTextFont(132)
     s.SetTextSize(0.045)
-    s.DrawLatex(0.17,0.80,f"#mu={hyz.GetMean():.3f} mm")
-    s.DrawLatex(0.17,0.75,f"#sigma={hyz.GetStdDev():.3f} mm")
-    s.DrawLatex(0.17,0.70,f"#theta_{{yz}}^{{max}}={hyz.GetXaxis().GetBinCenter(hyz.GetMaximumBin()):.3f} mm")
+    s.DrawLatex(0.16,0.80,f"#mu={hyz.GetMean():.3f} rad")
+    s.DrawLatex(0.16,0.75,f"#sigma={hyz.GetStdDev():.3f} rad")
+    s.DrawLatex(0.16,0.70,f"#theta_{{yz}}^{{max}}={hyz.GetXaxis().GetBinCenter(hyz.GetMaximumBin()):.3f} rad")
     
     cnv.Update()
     cnv.SaveAs(f'{foupdfname.replace(".pdf","")}_angles_nocuts.pdf')
@@ -1307,6 +1487,16 @@ if __name__ == "__main__":
     cnv.RedrawAxis()
     cnv.Update()
     cnv.SaveAs(f"{foupdfname}")
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     # cnv = ROOT.TCanvas("cnv_dipole_window","",1000,500)
     # cnv.Divide(2,1)
@@ -2094,6 +2284,9 @@ if __name__ == "__main__":
     fout = ROOT.TFile(foutrootname,"RECREATE")
     fout.cd()
     for hname,hist in histos.items(): hist.Write()
+    grxz.Write()
+    gryz.Write()
+    grpz.Write()
     fout.Write()
     fout.Close()
     
